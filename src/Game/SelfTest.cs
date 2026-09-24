@@ -68,10 +68,13 @@ public sealed class SelfTest
             list.Add((3.0 + k * 0.05, "", () => Motion(cat + new Vector2(k * 6, -k * 12), new Vector2(6, -12), false)));
         }
         list.Add((4.0, "check held", () => Expect(_main.Brain.State == CatState.Held, "gatto in braccio")));
+        list.Add((4.05, "check region while dragging", () =>
+            Expect(InRegion(new Vec2(_main.OverlayWindow.Origin.X + 20, _main.OverlayWindow.Origin.Y + 20)), "durante il trascinamento la finestra prende tutto il mouse")));
         list.Add((4.1, "screenshot", Shot));
         list.Add((4.2, "release", () => Button(cat + new Vector2(90, -180), false)));
         list.Add((4.25, "check thrown", () => Expect(_main.Body.Mode == BodyMode.Airborne, "gatto lanciato")));
         list.Add((7.0, "sit again", () => _main.Brain.SitFor(120)));
+        list.Add((7.2, "check region", CheckRegion));
         for (int i = 0; i < 60; i++)
         {
             int k = i;
@@ -108,6 +111,24 @@ public sealed class SelfTest
             Position = at, GlobalPosition = at, Relative = rel,
             ButtonMask = pressed ? MouseButtonMask.Left : 0,
         });
+
+    bool InRegion(Vec2 p) => ZairaPet.Windows.Win32.RegionContains(_main.OverlayWindow.Handle, (int)p.X, (int)p.Y);
+
+    /// <summary>The applied window region covers every object and leaves the rest of the desktop to other windows.</summary>
+    void CheckRegion()
+    {
+        var cat = _main.Body.Pos - new Vec2(0, _main.Visual.SizePx.Y * 0.5);
+        var bowl = _main.World.Bowl.Body.Pos - new Vec2(0, 10);
+        var perch = _main.World.Perch.Body.Pos - new Vec2(0, 100);
+        var perchTop = _main.World.Perch.Body.Pos - new Vec2(0, Perch.Height + 5);
+        Expect(InRegion(cat), "gatto dentro la regione (visibile e cliccabile)");
+        Expect(InRegion(bowl), "ciotola dentro la regione");
+        Expect(InRegion(perch) && InRegion(perchTop), "trespolo dentro la regione");
+        var o = _main.OverlayWindow;
+        Expect(!InRegion(new Vec2(o.Origin.X + 20, o.Origin.Y + 20)), "angolo vuoto fuori dalla regione (clic passano sotto)");
+        var far = _main.World.Bowl.Body.Pos.X < o.Origin.X + o.Size.X / 2 ? o.Origin.X + o.Size.X - 20 : o.Origin.X + 20;
+        Expect(!InRegion(new Vec2(far, _main.Body.Pos.Y - 30)), "pavimento lontano dagli oggetti fuori dalla regione");
+    }
 
     static void Expect(bool ok, string what) => Log.Info($"selftest CHECK {(ok ? "OK  " : "FAIL")} {what}");
 

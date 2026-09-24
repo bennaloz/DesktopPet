@@ -251,17 +251,22 @@ public partial class Main : Node3D
         return new RectI((int)(_body.Pos.X - w / 2), (int)(_body.Pos.Y - h), (int)(_body.Pos.X + w / 2), (int)_body.Pos.Y + 4);
     }
 
-    /// <summary>The window only takes the mouse over the cat and the props; clicks elsewhere reach the desktop.</summary>
+    /// <summary>
+    /// The window region covers exactly what is visible (cat with its emote, props), with a margin for
+    /// animation overshoot. Outside it nothing is drawn and clicks reach the desktop.
+    /// </summary>
     void UpdateClickable()
     {
-        if (_drag != Drag.None) { _overlay.SetClickable(null, all: true); return; }
-        var m = _overlay.ToScreen(DisplayServer.MouseGetPosition() - DisplayServer.WindowGetPosition());
-        foreach (var r in new[] { CatRect(), _world.Bowl.ScreenRect, _world.Perch.ScreenRect })
+        if (_drag != Drag.None) { _overlay.SetVisible(Array.Empty<RectI>(), all: true); return; }
+        var rects = new List<RectI>();
+        var c = CatRect();
+        rects.Add(new RectI(c.Left - 30, c.Top - 80, c.Right + 30, c.Bottom + 12));   // room for the emote above
+        foreach (var prop in Props())
         {
-            var grown = new RectI(r.Left - 6, r.Top - 6, r.Right + 6, r.Bottom + 6);
-            if (grown.Contains(m.X, m.Y)) { _overlay.SetClickable(_overlay.ToLocal(grown)); return; }
+            var r = prop.ScreenRect;
+            rects.Add(new RectI(r.Left - 10, r.Top - 12, r.Right + 10, r.Bottom + 6));
         }
-        _overlay.SetClickable(null);
+        _overlay.SetVisible(rects);
     }
 
     // ------------------------------------------------------------------ mouse

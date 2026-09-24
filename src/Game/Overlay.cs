@@ -20,7 +20,7 @@ public sealed class Overlay
     public Vector2I Size { get; private set; }
     public IntPtr Handle { get; private set; }
 
-    Rect2I? _passthrough;
+    string _regionKey = "";
 
     public void Setup(Window window)
     {
@@ -57,21 +57,26 @@ public sealed class Overlay
     public Rect2I ToLocal(RectI r) => new(r.Left - Origin.X, r.Top - Origin.Y, r.Width, r.Height);
 
     /// <summary>
-    /// Only this rectangle (window-local) receives the mouse; everything else goes to the windows below.
-    /// Null captures nothing, the whole window when <paramref name="all"/> is set.
+    /// The window region: only these screen rectangles are drawn and receive the mouse (on Windows the region
+    /// clips both), so it must cover every visible object. Clicks anywhere else reach the windows below.
+    /// With <paramref name="all"/> the whole window takes the mouse (while dragging something).
     /// </summary>
-    public void SetClickable(Rect2I? rect, bool all = false)
+    public void SetVisible(IEnumerable<RectI> screenRects, bool all = false)
     {
-        if (all) rect = new Rect2I(0, 0, Size.X, Size.Y);
-        rect ??= new Rect2I(-10, -10, 1, 1);   // an empty region would mean "everything"
-        if (_passthrough == rect) return;
-        _passthrough = rect;
-        var r = rect.Value;
-        DisplayServer.WindowSetMousePassthrough(new[]
+        List<(int x, int y)> poly;
+        if (all)
+            poly = new() { (0, 0), (Size.X, 0), (Size.X, Size.Y), (0, Size.Y) };
+        else
         {
-            new Vector2(r.Position.X, r.Position.Y), new Vector2(r.End.X, r.Position.Y),
-            new Vector2(r.End.X, r.End.Y), new Vector2(r.Position.X, r.End.Y),
-        });
+            var local = screenRects.Select(r => new RectI(r.Left - Origin.X, r.Top - Origin.Y, r.Right - Origin.X, r.Bottom - Origin.Y));
+            poly = Region.Polygon(Region.Merge(local));
+            // An empty region would mean "no region": the whole window would take the mouse.
+            if (poly.Count == 0) poly = new() { (-10, -10), (-9, -10), (-9, -9), (-10, -9) };
+        }
+        string key = string.Join(";", poly);
+        if (key == _regionKey) return;
+        _regionKey = key;
+        DisplayServer.WindowSetMousePassthrough(poly.Select(p => new Vector2(p.x, p.y)).ToArray());
     }
 }
 

@@ -140,6 +140,28 @@ internal static partial class Win32
         SetWindowPos(hWnd, IntPtr.Zero, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE | SWP_FRAMECHANGED);
     }
 
+    [DllImport("user32.dll")] static extern int GetWindowRgn(IntPtr hWnd, IntPtr hRgn);
+    [DllImport("gdi32.dll")] static extern IntPtr CreateRectRgn(int l, int t, int r, int b);
+    [DllImport("gdi32.dll")] static extern bool PtInRegion(IntPtr hRgn, int x, int y);
+    [DllImport("gdi32.dll")] static extern bool DeleteObject(IntPtr obj);
+
+    /// <summary>
+    /// Whether a screen point lies inside the window region Windows actually applied (what gets drawn and
+    /// clicked). True when the window has no region at all.
+    /// </summary>
+    public static bool RegionContains(IntPtr hWnd, int screenX, int screenY)
+    {
+        var r = GetBounds(hWnd);
+        IntPtr rgn = CreateRectRgn(0, 0, 0, 0);
+        try
+        {
+            int kind = GetWindowRgn(hWnd, rgn);
+            if (kind == 0) return true;   // ERROR: no region set
+            return PtInRegion(rgn, screenX - r.Left, screenY - r.Top);
+        }
+        finally { DeleteObject(rgn); }
+    }
+
     public static RectI GetBounds(IntPtr hWnd) => GetWindowRect(hWnd, out var r) ? ToRect(r) : default;
 
     static RectI ToRect(RECT r) => new(r.Left, r.Top, r.Right, r.Bottom);
