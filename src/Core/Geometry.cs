@@ -17,3 +17,9 @@ public readonly record struct RectI(int Left, int Top, int Right, int Bottom)
     public int Height => Bottom - Top;
     public bool Contains(double x, double y) => x >= Left && x < Right && y >= Top && y < Bottom;
 }
+
+public static class MathX
+{
+    /// <summary>Clamp that tolerates a range narrower than its margins (returns the middle).</summary>
+    public static double SafeClamp(double v, double min, double max) => min > max ? (min + max) / 2 : Math.Clamp(v, min, max);
+}

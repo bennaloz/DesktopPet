@@ -20,7 +20,7 @@ public static class Navigator
     public static List<NavStep>? FindPath(SurfaceMap map, Platform from, double fromX, Platform to, double toX,
                                           double maxJumpUp, double maxJumpGap)
     {
-        toX = Math.Clamp(toX, to.X0 + 1, to.X1 - 1);
+        toX = MathX.SafeClamp(toX, to.X0 + 1, to.X1 - 1);
         if (from.Id == to.Id)
             return new List<NavStep> { new(NavStepKind.Walk, toX, toX, to) };
 
@@ -83,11 +83,11 @@ public static class Navigator
         if (gap == 0)
         {
             // Overlapping spans: land right next to where we are, a short hop sideways.
-            land = Math.Clamp(ax, Math.Max(a.X0, b.X0) + EdgeMargin, Math.Min(a.X1, b.X1) - EdgeMargin);
+            land = MathX.SafeClamp(ax, Math.Max(a.X0, b.X0) + EdgeMargin, Math.Min(a.X1, b.X1) - EdgeMargin);
             if (Math.Min(a.X1, b.X1) - Math.Max(a.X0, b.X0) < 2 * EdgeMargin)
                 land = (Math.Max(a.X0, b.X0) + Math.Min(a.X1, b.X1)) / 2;
             // Jumping straight up/down looks odd: offset the takeoff a little.
-            takeoff = Math.Clamp(land - 60 * Math.Sign(land - a.Center + 0.1), a.X0 + EdgeMargin, a.X1 - EdgeMargin);
+            takeoff = MathX.SafeClamp(land - 60 * Math.Sign(land - a.Center + 0.1), a.X0 + EdgeMargin, a.X1 - EdgeMargin);
         }
         else if (b.X0 >= a.X1)
         {
