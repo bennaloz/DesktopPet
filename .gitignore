@@ -1,0 +1,8 @@
+.godot/
+.vs/
+bin/
+obj/
+*.user
+tests/**/bin/
+tests/**/obj/
+export/
