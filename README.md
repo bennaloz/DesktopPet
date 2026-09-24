@@ -11,6 +11,23 @@ di Zaira si inserisce dopo senza toccare il codice (vedi sotto).
 
 Doppio clic su `run.bat`. Per chiudere: icona nella system tray → **Esci**.
 
+## Stato (notte del 24/09)
+
+**Verificato** (test automatici e autotest dal vivo, con finestre vere):
+- 59 test sulla logica: superfici e occlusioni, salti, arrampicata, percorsi, bisogni, comportamenti,
+  30 minuti simulati con finestre che si spostano/chiudono;
+- dal vivo: sale su una finestra (saltando o arrampicandosi), la segue quando si sposta, cade quando si chiude;
+  mangia, dorme sul trespolo, zoomies, bocconcino; presa, lancio, carezze e doppio clic (eventi iniettati);
+- la regione della finestra (ciò che si vede e si clicca) contiene gatto, ciotola e trespolo e lascia fuori il resto;
+- consumi: ~10% di un core, ~280 MB RAM, GPU trascurabile.
+
+**Non verificabile stanotte** (sessione Windows bloccata: niente mouse vero, niente cattura dello schermo):
+- che a schermo si veda davvero solo il gatto sul desktop (trasparenza reale) e che i clic fuori dal gatto
+  arrivino alle finestre sotto;
+- l'icona nella system tray e il suo menu.
+
+Primi 2 minuti di prova, se qualcosa non va: `%APPDATA%\Godotpp_userdata\Zaira Desktop Pet\zaira.log`.
+
 ## Cosa provare
 
 | Azione | Come |
