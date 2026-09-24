@@ -21,11 +21,103 @@ public sealed class SelfTest
     int _shot;
     string _lastState = "";
 
-    public SelfTest(Main main, bool windows)
+    public SelfTest(Main main, string mode)
     {
         _main = main;
-        _script = windows ? WindowScript() : TourScript();
-        Log.Info($"selftest: start ({(windows ? "finestre" : "giro")})");
+        _script = mode switch
+        {
+            "windows" => WindowScript(), "mouse" => MouseScript(), "input" => InputScript(), _ => TourScript(),
+        };
+        Log.Info($"selftest: start ({mode})");
+    }
+
+    /// <summary>
+    /// Pairs with tools/test-mouse.ps1, which reads targets.txt and drives the real cursor:
+    /// grab and spin the cat, stroke it, click empty desktop, double-click the bowl.
+    /// </summary>
+    List<(double, string, Action)> MouseScript()
+    {
+        var list = new List<(double, string, Action)>
+        {
+            (2.0, "sit still", () => { _main.Brain.SitFor(120); _main.World.Bowl.Food = 0; }),
+            (40.0, "quit", () => _main.Quit()),
+        };
+        for (double t = 2.5; t < 40; t += 0.5) list.Add((t, "", WriteTargets));
+        return list.OrderBy(x => x.Item1).ToList();
+    }
+
+    /// <summary>
+    /// Same gestures as test-mouse.ps1 but injected into Godot's input queue: checks the game's handling
+    /// (grab, spin, throw, stroke, double-click) without the OS. Works on a locked session.
+    /// </summary>
+    List<(double, string, Action)> InputScript()
+    {
+        Vector2 cat = default;
+        var list = new List<(double, string, Action)>
+        {
+            (2.0, "sit still", () => { _main.Brain.SitFor(120); _main.World.Bowl.Food = 0; }),
+            (3.0, "press on cat", () =>
+            {
+                cat = _main.OverlayWindow.ToLocal(_main.Body.Pos) - new Vector2(0, _main.Visual.SizePx.Y * 0.5f);
+                Button(cat, true);
+            }),
+        };
+        for (int i = 1; i <= 15; i++)
+        {
+            int k = i;
+            list.Add((3.0 + k * 0.05, "", () => Motion(cat + new Vector2(k * 6, -k * 12), new Vector2(6, -12), false)));
+        }
+        list.Add((4.0, "check held", () => Expect(_main.Brain.State == CatState.Held, "gatto in braccio")));
+        list.Add((4.1, "screenshot", Shot));
+        list.Add((4.2, "release", () => Button(cat + new Vector2(90, -180), false)));
+        list.Add((4.25, "check thrown", () => Expect(_main.Body.Mode == BodyMode.Airborne, "gatto lanciato")));
+        list.Add((7.0, "sit again", () => _main.Brain.SitFor(120)));
+        for (int i = 0; i < 60; i++)
+        {
+            int k = i;
+            list.Add((7.5 + k * 0.033, "", () =>
+            {
+                var c = _main.OverlayWindow.ToLocal(_main.Body.Pos) - new Vector2(0, _main.Visual.SizePx.Y * 0.4f);
+                float dx = (k % 10 < 5 ? 1 : -1) * 12;
+                Motion(c + new Vector2(dx * (k % 5) - 24, 0), new Vector2(dx, 0), false);
+            }));
+        }
+        list.Add((9.6, "check purring", () => Expect(_main.Brain.State == CatState.Petted, "fusa dopo le carezze")));
+        list.Add((9.7, "screenshot", Shot));
+        list.Add((11.0, "double-click bowl", () =>
+        {
+            var bowl = _main.OverlayWindow.ToLocal(_main.World.Bowl.Body.Pos) - new Vector2(0, 10);
+            Log.Info($"selftest bowl body={_main.World.Bowl.Body.Pos} rect={_main.World.Bowl.ScreenRect} click={bowl} cat={_main.Body.Pos} origin={_main.OverlayWindow.Origin}");
+            Button(bowl, true, doubleClick: true);
+            Button(bowl, false);
+        }));
+        list.Add((11.2, "check bowl", () => Expect(_main.World.Bowl.Food > 0.99, "ciotola riempita col doppio clic")));
+        list.Add((12.0, "quit", () => _main.Quit()));
+        return list;
+    }
+
+    static void Button(Vector2 at, bool pressed, bool doubleClick = false) =>
+        Input.ParseInputEvent(new InputEventMouseButton
+        {
+            ButtonIndex = MouseButton.Left, Pressed = pressed, DoubleClick = doubleClick, Position = at, GlobalPosition = at,
+        });
+
+    static void Motion(Vector2 at, Vector2 rel, bool pressed) =>
+        Input.ParseInputEvent(new InputEventMouseMotion
+        {
+            Position = at, GlobalPosition = at, Relative = rel,
+            ButtonMask = pressed ? MouseButtonMask.Left : 0,
+        });
+
+    static void Expect(bool ok, string what) => Log.Info($"selftest CHECK {(ok ? "OK  " : "FAIL")} {what}");
+
+    void WriteTargets()
+    {
+        var b = _main.Body.Pos;
+        var bowl = _main.World.Bowl.Body.Pos;
+        string text = FormattableString.Invariant(
+            $"{b.X:0} {b.Y - _main.Visual.SizePx.Y * 0.5:0} {bowl.X:0} {bowl.Y - 10:0} {_main.Brain.State}");
+        System.IO.File.WriteAllText(System.IO.Path.Combine(OS.GetUserDataDir(), "targets.txt"), text);
     }
 
     /// <summary>
@@ -82,7 +174,7 @@ public sealed class SelfTest
         while (_next < _script.Count && _script[_next].at <= _t)
         {
             var (_, what, act) = _script[_next++];
-            Log.Info($"selftest {_t:0.0}s: {what}");
+            if (what != "") Log.Info($"selftest {_t:0.0}s: {what}");
             act();
         }
 

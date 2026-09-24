@@ -87,6 +87,13 @@ public sealed class CatBrain
             Enter(CatState.Idle, 0.3);
     }
 
+    /// <summary>Keep the cat sitting still for a while (self test, debugging).</summary>
+    public void SitFor(double seconds)
+    {
+        Goal = Goal.None;
+        Enter(CatState.Sit, seconds);
+    }
+
     /// <summary>Send the cat to a given spot (self test, debugging).</summary>
     public void ExploreTo(Platform p, double x)
     {

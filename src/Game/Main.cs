@@ -68,8 +68,9 @@ public partial class Main : Node3D
         _world.TreatEaten = RemoveTreat;
 
         var args = OS.GetCmdlineUserArgs();
-        if (args.Contains("--selftest") || args.Contains("--selftest-windows"))
-            _selfTest = new SelfTest(this, windows: args.Contains("--selftest-windows"));
+        string? mode = args.Contains("--selftest") ? "tour" : args.Contains("--selftest-windows") ? "windows"
+                     : args.Contains("--selftest-mouse") ? "mouse" : args.Contains("--selftest-input") ? "input" : null;
+        if (mode != null) _selfTest = new SelfTest(this, mode);
     }
 
     string CatFolder()
@@ -273,21 +274,22 @@ public partial class Main : Node3D
     void Press(Vector2 local, bool doubleClick)
     {
         var p = _overlay.ToScreen(local);
-        if (CatRect().Contains(p.X, p.Y))
-        {
-            _drag = Drag.Cat;
-            _brain.OnGrab(_body);
-            _visual.HeldSpin = _brain.Facing * 65;
-            // Hold the cat by the scruff: the cursor sits on its back.
-            _dragOffset = new Vector2(0, _visual.SizePx.Y * 0.75f);
-            _body.MoveHeld(Held(local));
-        }
-        else if (_world.Bowl.ScreenRect.Contains(p.X, p.Y))
+        // The bowl first: it is small and the cat often stands right over it while eating.
+        if (_world.Bowl.ScreenRect.Contains(p.X, p.Y))
         {
             if (doubleClick) { FillBowl(); return; }
             _drag = Drag.Bowl;
             _world.Bowl.Body.Grab();
             _dragOffset = new Vector2((float)(_world.Bowl.Body.Pos.X - p.X), (float)(_world.Bowl.Body.Pos.Y - p.Y));
+        }
+        else if (CatRect().Contains(p.X, p.Y))
+        {
+            _drag = Drag.Cat;
+            _brain.OnGrab(_body);
+            _visual.HeldSpin = _brain.Facing * 65;
+            // Hold the cat by the scruff: the cursor sits on its back.
+            _dragOffset = new Vector2(0, _visual.ScruffHeight);
+            _body.MoveHeld(Held(local));
         }
         else if (_world.Perch.ScreenRect.Contains(p.X, p.Y))
         {
