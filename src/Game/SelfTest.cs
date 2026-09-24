@@ -16,6 +16,7 @@ public sealed class SelfTest
     readonly List<(double at, string what, Action act)> _script;
 
     double _t;
+    double _clickY;
     double _logTimer;
     int _next;
     int _shot;
@@ -72,6 +73,18 @@ public sealed class SelfTest
             Expect(InRegion(new Vec2(_main.OverlayWindow.Origin.X + 20, _main.OverlayWindow.Origin.Y + 20)), "durante il trascinamento la finestra prende tutto il mouse")));
         list.Add((4.1, "screenshot", Shot));
         list.Add((4.2, "release", () => Button(cat + new Vector2(90, -180), false)));
+        // A plain click (no drag) must leave the cat where it stood.
+        list.Add((5.5, "click without moving", () =>
+        {
+            _main.Brain.SitFor(60);
+            _clickY = _main.Body.Pos.Y;
+            var c = _main.OverlayWindow.ToLocal(_main.Body.Pos) - new Vector2(0, _main.Visual.SizePx.Y * 0.5f);
+            Button(c, true);
+            Button(c, false);
+        }));
+        list.Add((6.8, "check plain click", () =>
+            Expect(_main.Body.Mode == BodyMode.Grounded && Math.Abs(_main.Body.Pos.Y - _clickY) < 1,
+                   $"clic senza trascinare: resta in piedi dov'era (y {_clickY:0} → {_main.Body.Pos.Y:0})")));
         list.Add((4.25, "check thrown", () => Expect(_main.Body.Mode == BodyMode.Airborne, "gatto lanciato")));
         list.Add((7.0, "sit again", () => _main.Brain.SitFor(120)));
         list.Add((7.2, "check region", CheckRegion));
@@ -96,7 +109,7 @@ public sealed class SelfTest
         }));
         list.Add((11.2, "check bowl", () => Expect(_main.World.Bowl.Food > 0.99, "ciotola riempita col doppio clic")));
         list.Add((12.0, "quit", () => _main.Quit()));
-        return list;
+        return list.OrderBy(x => x.Item1).ToList();
     }
 
     static void Button(Vector2 at, bool pressed, bool doubleClick = false) =>
@@ -182,7 +195,7 @@ public sealed class SelfTest
             (58.0, "screenshot", Shot),
             (62.0, "grab", Grab),
             (63.0, "screenshot", Shot),
-            (64.0, "release", () => _main.Brain.OnRelease(_main.Body, new Vec2(300, -600))),
+            (64.0, "release", () => _main.Brain.OnRelease(_main.Body, new Vec2(300, -600), _main.Map)),
             (64.3, "screenshot", Shot),
             (68.0, "screenshot", Shot),
             (70.0, "quit", () => _main.Quit()),

@@ -29,7 +29,9 @@ public partial class Main : Node3D
     SelfTest? _selfTest;
 
     double _trackTimer;
+    double _monitorTimer;
     double _saveTimer;
+    Camera3D _cam = null!;
     double _tooltipTimer;
     bool _paused;
     Drag _drag;
@@ -88,17 +90,15 @@ public partial class Main : Node3D
 
     void SetupScene()
     {
-        var size = _overlay.Size;
-        var cam = new Camera3D
+        _cam = new Camera3D
         {
             Projection = Camera3D.ProjectionType.Orthogonal,
             KeepAspect = Camera3D.KeepAspectEnum.Height,
-            Size = size.Y,
             Near = 1, Far = 4000,
-            Position = new Vector3(size.X / 2f, -size.Y / 2f, 1500),
         };
-        AddChild(cam);
-        cam.MakeCurrent();
+        AddChild(_cam);
+        _cam.MakeCurrent();
+        FitCamera();
 
         AddChild(new DirectionalLight3D { RotationDegrees = new Vector3(-40, 35, 0), LightEnergy = 1.15f });
         AddChild(new DirectionalLight3D { RotationDegrees = new Vector3(-20, -150, 0), LightEnergy = 0.35f });
@@ -114,6 +114,23 @@ public partial class Main : Node3D
         });
     }
 
+    /// <summary>1 world unit = 1 pixel over the whole overlay.</summary>
+    void FitCamera()
+    {
+        var size = _overlay.Size;
+        _cam.Size = size.Y;
+        _cam.Position = new Vector3(size.X / 2f, -size.Y / 2f, 1500);
+    }
+
+    /// <summary>Monitors changed (docking, resolution, taskbar): stretch the overlay again over the new desktop.</summary>
+    void ReconfigureDisplay()
+    {
+        Log.Info("monitor cambiati: riconfiguro l'overlay");
+        _overlay.Setup(GetWindow());
+        FitCamera();
+        RebuildMap();
+    }
+
     // ------------------------------------------------------------------ world state
 
     void RebuildMap(bool initial = false)
@@ -127,16 +144,23 @@ public partial class Main : Node3D
             return;
         }
         var work = _overlay.Monitors.Select(m => m.work).ToList();
+        if (initial)
+        {
+            _map = SurfaceMap.Build(windows, work, Array.Empty<Platform>());
+            return;
+        }
+
+        // The perch may stand on a window: move it first, then build its top where it is now,
+        // then move whatever stands on that top. Otherwise the perch surface lags one scan behind.
+        _world.Perch.Body.FollowSupport(SurfaceMap.Build(windows, work, Array.Empty<Platform>()));
         var extra = new List<Platform>();
-        if (!initial && _world.Perch.Body.Mode == BodyMode.Grounded)
+        if (_world.Perch.Body.Mode == BodyMode.Grounded)
             extra.Add(_world.Perch.TopPlatform());
         _map = SurfaceMap.Build(windows, work, extra);
         _world.PerchPlatform = _map.Platforms.FirstOrDefault(p => p.Kind == SurfaceKind.Perch);
 
-        if (initial) return;
         _body.FollowSupport(_map);
         _world.Bowl.Body.FollowSupport(_map);
-        _world.Perch.Body.FollowSupport(_map);
         _world.Treat?.Body.FollowSupport(_map);
     }
 
@@ -192,6 +216,13 @@ public partial class Main : Node3D
     {
         double dt = Math.Min(delta, 0.1);
 
+        _monitorTimer += dt;
+        if (_monitorTimer >= 3)
+        {
+            _monitorTimer = 0;
+            if (_overlay.MonitorsChanged()) ReconfigureDisplay();
+        }
+
         _trackTimer += dt;
         if (_trackTimer >= TrackInterval)
         {
@@ -200,7 +231,11 @@ public partial class Main : Node3D
         }
 
         foreach (var prop in Props())
-            if (prop.Body.Mode != BodyMode.Held) prop.Body.Step(dt, _map, 0);
+        {
+            if (prop.Body.Mode == BodyMode.Held) prop.Body.TickHeld(dt);
+            else prop.Body.Step(dt, _map, 0);
+        }
+        _body.TickHeld(dt);
 
         if (_paused)
         {
@@ -348,13 +383,13 @@ public partial class Main : Node3D
         switch (_drag)
         {
             case Drag.Cat:
-                _brain.OnRelease(_body, _body.HeldVelocity * 0.8);
+                _brain.OnRelease(_body, _body.HeldVelocity * 0.8, _map);
                 break;
             case Drag.Bowl:
-                _world.Bowl.Body.Release(new Vec2(0, 0));
+                _world.Bowl.Body.Release(new Vec2(0, 0), _map);
                 break;
             case Drag.Perch:
-                _world.Perch.Body.Release(new Vec2(0, 0));
+                _world.Perch.Body.Release(new Vec2(0, 0), _map);
                 break;
         }
         _drag = Drag.None;

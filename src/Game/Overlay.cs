@@ -42,7 +42,17 @@ public sealed class Overlay
         Win32.MakeToolWindow(Handle);
         var r = Win32.GetBounds(Handle);
         Origin = new Vector2I(r.Left, r.Top);
+        // Windows (or a DPI change) may not honour the requested size exactly: use what we got.
+        if (r.Width > 0 && r.Height > 0) Size = new Vector2I(r.Width, r.Height);
+        _regionKey = "";
         Log.Info($"overlay: virtual={Virtual} godotPos={godotPos} win32={r} monitors={Monitors.Count}");
+    }
+
+    /// <summary>True when monitors were plugged, unplugged, resized, or the taskbar moved since Setup.</summary>
+    public bool MonitorsChanged()
+    {
+        var now = Win32.EnumerateMonitors();
+        return now.Count != Monitors.Count || now.Where((m, i) => m != Monitors[i]).Any();
     }
 
     /// <summary>Screen (Win32) → window-local pixels.</summary>

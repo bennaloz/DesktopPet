@@ -8,3 +8,4 @@ tests/**/obj/
 export/
 run_selftest.log
 run_perf.log
+run_*.log

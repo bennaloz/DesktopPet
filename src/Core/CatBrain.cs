@@ -59,6 +59,9 @@ public sealed class CatBrain
     int _stuckFrames;
     double _zoomLeft;
     Goal _afterLanding;
+    Vec2? _treatIgnored;      // a treat we could not reach: leave it alone
+    int _bowlFails;           // failed trips to the bowl in a row
+    double _bowlCooldown;     // seconds before trying the bowl again after giving up
 
     public CatBrain(Random rng) => _rng = rng;
 
@@ -71,9 +74,9 @@ public sealed class CatBrain
         Goal = Goal.None;
     }
 
-    public void OnRelease(CatBody body, Vec2 throwVel)
+    public void OnRelease(CatBody body, Vec2 throwVel, SurfaceMap? map = null)
     {
-        body.Release(throwVel);
+        body.Release(throwVel, map);
         Enter(CatState.Airborne);
         _afterLanding = Goal.None;
     }
@@ -84,7 +87,7 @@ public sealed class CatBrain
     /// <summary>Something happened (a treat appeared, needs changed): a resting cat reconsiders right away.</summary>
     public void Notice()
     {
-        if (State is CatState.Idle or CatState.Sit or CatState.Wander or CatState.Petted)
+        if (State is CatState.Idle or CatState.Sit or CatState.Wander or CatState.Petted or CatState.Meow)
             Enter(CatState.Idle, 0.3);
     }
 
@@ -118,6 +121,7 @@ public sealed class CatBrain
     {
         _stateTime += dt;
         _petting = Math.Max(0, _petting - dt);
+        _bowlCooldown = Math.Max(0, _bowlCooldown - dt);
         needs.Tick(dt, State == CatState.Sleep);
         Emote = null;
 
@@ -228,6 +232,15 @@ public sealed class CatBrain
             case CatState.Meow:
                 Action = (_stateTime % 5) < 1.2 ? "meow" : "sit";
                 if (Action == "meow") Emote = "!";
+                // Exhausted, or the bowl cannot be reached: stop insisting for a while.
+                if (needs.Energy < 0.15 || _bowlFails >= 3)
+                {
+                    _bowlCooldown = 90;
+                    _bowlFails = 0;
+                    Goal = Goal.None;
+                    Enter(CatState.Idle, 1);
+                    return 0;
+                }
                 if (_stateTime > 5 && world.BowlFood > 0.05) { Goal = Goal.Bowl; Enter(CatState.Travel); }
                 if (needs.Hunger < 0.5) Enter(CatState.Idle, 1);
                 return 0;
@@ -274,8 +287,19 @@ public sealed class CatBrain
 
     void Decide(CatBody body, Needs needs, SurfaceMap map, IWorld world)
     {
-        if (world.TreatPos != null && world.TreatLanded) { Goal = Goal.Treat; Enter(CatState.ChaseTreat); return; }
-        if (needs.Hunger > 0.65 && world.BowlPlatform != null) { Goal = Goal.Bowl; Enter(CatState.Travel); return; }
+        if (world.TreatPos is { } t && world.TreatLanded
+            && !(_treatIgnored is { } ig && (ig - t).Length < 3))
+        {
+            Goal = Goal.Treat;
+            Enter(CatState.ChaseTreat);
+            return;
+        }
+        if (needs.Hunger > 0.65 && world.BowlPlatform != null && _bowlCooldown <= 0)
+        {
+            Goal = Goal.Bowl;
+            Enter(CatState.Travel);
+            return;
+        }
         if (needs.Energy < 0.25)
         {
             Goal = Goal.Perch;
@@ -364,7 +388,13 @@ public sealed class CatBrain
         if (path == null)
         {
             // Unreachable: complain a bit if it was food, otherwise give up.
-            if (Goal == Goal.Bowl) { Enter(CatState.Meow); return 0; }
+            if (Goal == Goal.Bowl)
+            {
+                _bowlFails++;
+                Enter(CatState.Meow);
+                return 0;
+            }
+            if (Goal == Goal.Treat) _treatIgnored = world.TreatPos;
             Goal = Goal.None;
             Enter(CatState.Idle, 2);
             return 0;
@@ -417,6 +447,7 @@ public sealed class CatBrain
         switch (Goal)
         {
             case Goal.Bowl:
+                _bowlFails = 0;
                 Facing = world.BowlX > body.Pos.X ? 1 : -1;
                 Enter(world.BowlFood > 0.02 ? CatState.Eat : CatState.Meow);
                 break;
@@ -467,7 +498,13 @@ public sealed class CatBrain
             }
         }
         _stuckFrames = Math.Abs(body.Vel.X) < 1 ? _stuckFrames + 1 : 0;
-        if (_stuckFrames > 15) { _zoomTarget = double.NaN; _stuckFrames = 0; }
+        if (_stuckFrames > 15)
+        {
+            // Pinned against a screen edge: pick a new target next frame.
+            _zoomTarget = double.NaN;
+            _stuckFrames = 0;
+            return 0;
+        }
         return Toward(body.Pos.X, _zoomTarget, RunSpeed);
     }
 
@@ -476,7 +513,7 @@ public sealed class CatBrain
     double Toward(double from, double to, double speed)
     {
         double d = to - from;
-        if (Math.Abs(d) < 1) return 0;
+        if (double.IsNaN(d) || Math.Abs(d) < 1) return 0;
         Facing = Math.Sign(d);
         return Facing * speed;
     }

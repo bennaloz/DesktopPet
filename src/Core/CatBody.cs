@@ -35,7 +35,9 @@ public sealed class CatBody
     /// <summary>The window side being climbed, while Mode is Climbing.</summary>
     public Wall? Wall { get; private set; }
     Platform? _climbTop;
-    double _climbLandX;
+    /// <summary>Where to step off at the top, relative to the side being climbed (it may move or resize).</summary>
+    double _climbLandOffset;
+    bool _heldFresh;
 
     public CatBody(Vec2 pos) => Pos = pos;
 
@@ -64,7 +66,7 @@ public sealed class CatBody
         Support = null;
         Wall = wall;
         _climbTop = top;
-        _climbLandX = landX;
+        _climbLandOffset = landX - wall.X;
         Vel = new Vec2(0, -ClimbSpeed);
         // Grab the side a little above the feet, never below its bottom end.
         Pos = new Vec2(wall.X + wall.Side * WallOffset, Math.Min(Pos.Y - 20, wall.Y1));
@@ -77,7 +79,7 @@ public sealed class CatBody
         if (y <= w.Y0)
         {
             Wall = null;
-            Land(_climbTop!, _climbLandX);
+            Land(_climbTop!, MathX.SafeClamp(w.X + _climbLandOffset, _climbTop!.X0, _climbTop.X1 - 1));
             LandingSpeed = 0;
             return;
         }
@@ -205,7 +207,6 @@ public sealed class CatBody
         var (wall, dx, dy) = moved.Value;
         Wall = wall;
         _climbTop = top;
-        _climbLandX += dx;
         Pos = new Vec2(wall.X + wall.Side * WallOffset, Pos.Y + dy);
     }
 
@@ -217,11 +218,20 @@ public sealed class CatBody
         Support = null;
         _heldPrev = Pos;
         _heldVel = new Vec2(0, 0);
+        _heldFresh = true;
     }
 
     public void MoveHeld(Vec2 pos, double dt = 1 / 30.0)
     {
         if (Mode != BodyMode.Held) return;
+        if (_heldFresh)
+        {
+            // The first sample only snaps the body under the hand; it is not a movement.
+            _heldFresh = false;
+            _heldPrev = pos;
+            Pos = pos;
+            return;
+        }
         var v = (pos - _heldPrev) * (1 / dt);
         _heldVel = _heldVel * 0.6 + v * 0.4;
         _heldPrev = pos;
@@ -231,8 +241,24 @@ public sealed class CatBody
     /// <summary>Estimated hand speed while held, useful for a throw.</summary>
     public Vec2 HeldVelocity => _heldVel;
 
-    public void Release(Vec2 throwVel)
+    /// <summary>Called every frame while held: the hand speed fades when the mouse stops.</summary>
+    public void TickHeld(double dt)
     {
+        if (Mode == BodyMode.Held) _heldVel = _heldVel * Math.Exp(-dt * 10);
+    }
+
+    /// <summary>
+    /// Let go. The held cat hangs below the cursor, so its feet may be a little under the surface it was
+    /// picked up from: lift them back on top, or it would fall through.
+    /// </summary>
+    public void Release(Vec2 throwVel, SurfaceMap? map = null)
+    {
+        if (map != null)
+        {
+            var under = map.Platforms.Where(p => p.SpansX(Pos.X) && p.Y <= Pos.Y && p.Y > Pos.Y - 130)
+                                     .OrderByDescending(p => p.Y).FirstOrDefault();
+            if (under != null) Pos = new Vec2(Pos.X, under.Y - 1);
+        }
         const double maxThrow = 2500;
         if (throwVel.Length > maxThrow) throwVel = throwVel * (maxThrow / throwVel.Length);
         Mode = BodyMode.Airborne;

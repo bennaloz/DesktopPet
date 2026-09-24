@@ -13,8 +13,10 @@ public enum SurfaceKind { Floor, WindowTop, Perch }
 /// A horizontal segment the cat can stand on: [X0, X1) at height Y.
 /// Owner is the window handle (0 for the floor, negative for props); OwnerX/OwnerY is the owner's
 /// top-left corner when the map was built, so a standing cat can follow its owner when it moves.
+/// OwnerRight (when known) tells a move (both edges shift) from a resize (one edge shifts).
 /// </summary>
-public sealed record Platform(int Id, SurfaceKind Kind, int Y, int X0, int X1, long Owner, int OwnerX, int OwnerY)
+public sealed record Platform(int Id, SurfaceKind Kind, int Y, int X0, int X1, long Owner, int OwnerX, int OwnerY,
+                              int OwnerRight = int.MinValue)
 {
     public bool SpansX(double x) => x >= X0 && x < X1;
     public double Center => (X0 + X1) / 2.0;
@@ -76,7 +78,8 @@ public sealed class SurfaceMap
                     if (y < wa.Top + Headroom || y >= wa.Bottom) continue;
                     int a = Math.Max(x0, wa.Left), b = Math.Min(x1, wa.Right);
                     if (b - a >= minWidth)
-                        result.Add(new Platform(id++, SurfaceKind.WindowTop, y, a, b, w.Handle, w.Bounds.Left, w.Bounds.Top));
+                        result.Add(new Platform(id++, SurfaceKind.WindowTop, y, a, b, w.Handle, w.Bounds.Left, w.Bounds.Top,
+                                                w.Bounds.Right));
                 }
         }
 
@@ -157,7 +160,10 @@ public sealed class SurfaceMap
             if (p.Owner != old.Owner || p.Kind != old.Kind) continue;
             // Floors never move; several share Owner 0, so only the same screen's floor matches.
             if (p.Kind == SurfaceKind.Floor && (p.X0 != old.X0 || p.Y != old.Y)) continue;
-            double nx = x + (p.OwnerX - old.OwnerX);
+            int dx = p.OwnerX - old.OwnerX;
+            // Resized from one edge (the other stayed): the cat keeps its place.
+            bool resized = old.OwnerRight != int.MinValue && p.OwnerRight - old.OwnerRight != dx;
+            double nx = x + (resized ? 0 : dx);
             if (p.OwnerY - old.OwnerY == p.Y - old.Y && p.SpansX(nx))
                 return (p, nx);
         }
