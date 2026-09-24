@@ -80,6 +80,22 @@ public sealed class CatBrain
     /// <summary>Called every frame the cursor strokes the cat.</summary>
     public void OnPetting(double dt) => _petting = Math.Min(_petting + dt * 2, 3);
 
+    /// <summary>Something happened (a treat appeared, needs changed): a resting cat reconsiders right away.</summary>
+    public void Notice()
+    {
+        if (State is CatState.Idle or CatState.Sit or CatState.Wander or CatState.Petted)
+            Enter(CatState.Idle, 0.3);
+    }
+
+    /// <summary>Send the cat to a given spot (self test, debugging).</summary>
+    public void ExploreTo(Platform p, double x)
+    {
+        _exploreTarget = p;
+        _exploreX = x;
+        Goal = Goal.Explore;
+        Enter(CatState.Travel);
+    }
+
     /// <summary>Bring the cat back onto a floor (tray "call the cat").</summary>
     public void Summon(CatBody body, Platform floor, double x)
     {

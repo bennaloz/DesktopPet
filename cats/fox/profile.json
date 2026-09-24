@@ -1,0 +1,25 @@
+{
+  "name": "Volpe grigia (segnaposto)",
+  "model": "fox.glb",
+  "length_px": 150,
+  "yaw_offset_deg": 0,
+  "three_quarter_deg": 25,
+  "material_colors": {
+    "Main": [0.36, 0.35, 0.34],
+    "Main_Light": [0.88, 0.86, 0.82]
+  },
+  "actions": {
+    "idle":  { "anims": ["Idle", "Idle_2"], "loop": true },
+    "walk":  { "anims": ["Walk"], "loop": true, "speed": 1.0, "ref_speed_px": 110 },
+    "run":   { "anims": ["Gallop"], "loop": true, "speed": 1.0, "ref_speed_px": 330 },
+    "jump":  { "anims": ["Gallop_Jump"], "loop": false, "speed": 1.2 },
+    "fall":  { "anims": ["Gallop_Jump"], "loop": false, "speed": 0.6 },
+    "land":  { "anims": ["Jump_ToIdle"], "loop": false, "speed": 1.4 },
+    "sit":   { "anims": ["Idle_2_HeadLow"], "loop": true, "speed": 0.6 },
+    "sleep": { "anims": ["Death"], "loop": false, "speed": 0.5, "breathe": true },
+    "eat":   { "anims": ["Eating"], "loop": true },
+    "meow":  { "anims": ["Idle_HitReact_Left", "Idle_HitReact_Right"], "loop": false, "speed": 0.8 },
+    "purr":  { "anims": ["Idle_2_HeadLow"], "loop": true, "speed": 0.4, "vibrate": true },
+    "held":  { "anims": ["Idle_2"], "loop": true, "speed": 0.7 }
+  }
+}

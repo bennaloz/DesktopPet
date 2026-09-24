@@ -1,0 +1,151 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using Godot;
+
+namespace ZairaPet.Game;
+
+/// <summary>
+/// The 3D cat: loads the GLB of a <see cref="CatProfile"/> at runtime, scales it to its on-screen length,
+/// recolours it and plays logical actions ("walk", "sleep"...) through the profile's mapping.
+/// The node origin sits between the feet; 1 world unit = 1 screen pixel.
+/// </summary>
+public partial class CatVisual : Node3D
+{
+    CatProfile _profile = null!;
+    Node3D _pivot = null!;       // yaw / held spin / procedural wobble
+    Node3D _model = null!;
+    AnimationPlayer? _player;
+    readonly Dictionary<string, string> _resolved = new(); // lower-case → real clip name
+    readonly Random _rng = new();
+
+    string _action = "";
+    ActionClip? _clip;
+    double _yaw;
+    double _time;
+
+    /// <summary>Model size on screen after scaling, in pixels.</summary>
+    public Vector2 SizePx { get; private set; }
+
+    /// <summary>Extra yaw set by the player while holding the cat.</summary>
+    public double HeldSpin { get; set; }
+
+    public void Load(CatProfile profile)
+    {
+        _profile = profile;
+        _pivot = new Node3D { Name = "Pivot" };
+        AddChild(_pivot);
+
+        var doc = new GltfDocument();
+        var state = new GltfState();
+        string path = System.IO.Path.Combine(profile.Folder, profile.Model);
+        var err = doc.AppendFromFile(path, state);
+        if (err != Error.Ok) throw new InvalidOperationException($"GLB non caricato ({err}): {path}");
+        _model = (Node3D)doc.GenerateScene(state);
+        _pivot.AddChild(_model);
+
+        _player = FindAll<AnimationPlayer>(_model).FirstOrDefault();
+        if (_player != null)
+            foreach (var name in _player.GetAnimationList())
+                _resolved.TryAdd(name.ToString().ToLowerInvariant(), name);
+
+        Recolor();
+        FitToLength();
+        Play("idle");
+    }
+
+    void Recolor()
+    {
+        if (_profile.MaterialColors.Count == 0) return;
+        foreach (var mi in FindAll<MeshInstance3D>(_model))
+        {
+            var mesh = mi.Mesh;
+            if (mesh == null) continue;
+            for (int s = 0; s < mesh.GetSurfaceCount(); s++)
+            {
+                if (mesh.SurfaceGetMaterial(s) is not StandardMaterial3D mat) continue;
+                if (!_profile.MaterialColors.TryGetValue(mat.ResourceName, out var c) || c.Length < 3) continue;
+                var copy = (StandardMaterial3D)mat.Duplicate();
+                copy.AlbedoColor = new Color(c[0], c[1], c[2], 1);
+                copy.Metallic = 0;
+                copy.Roughness = 0.85f;
+                mi.SetSurfaceOverrideMaterial(s, copy);
+            }
+        }
+    }
+
+    void FitToLength()
+    {
+        var box = ModelAabb();
+        double length = Math.Max(box.Size.X, box.Size.Z);
+        if (length <= 0.0001) length = 1;
+        float scale = (float)(_profile.LengthPx / length);
+        _model.Scale *= scale;
+        // Put the feet on the node origin.
+        box = ModelAabb();
+        _model.Position -= new Vector3(box.GetCenter().X, box.Position.Y, box.GetCenter().Z);
+        SizePx = new Vector2((float)_profile.LengthPx, box.Size.Y);
+    }
+
+    Aabb ModelAabb()
+    {
+        Aabb? total = null;
+        var toPivot = _pivot.GlobalTransform.AffineInverse();
+        foreach (var mi in FindAll<MeshInstance3D>(_model))
+        {
+            var box = (toPivot * mi.GlobalTransform) * mi.GetAabb();
+            total = total?.Merge(box) ?? box;
+        }
+        return total ?? new Aabb(Vector3.Zero, Vector3.One);
+    }
+
+    /// <summary>Switch the logical action; the clip keeps playing if it is already the current one.</summary>
+    public void Play(string action)
+    {
+        if (action == _action || _player == null) return;
+        var clip = _profile.Resolve(action);
+        if (clip == null) return;
+        _action = action;
+        _clip = clip;
+
+        var names = clip.Anims.Select(a => _resolved.GetValueOrDefault(a.ToLowerInvariant())).Where(n => n != null).ToList();
+        if (names.Count == 0) return;
+        string name = names[_rng.Next(names.Count)]!;
+        var anim = _player.GetAnimation(name);
+        anim.LoopMode = clip.Loop ? Animation.LoopModeEnum.Linear : Animation.LoopModeEnum.None;
+        _player.Play(name, customBlend: 0.18, customSpeed: (float)clip.Speed);
+    }
+
+    /// <summary>Per-frame pose: facing, ground speed for locomotion clips, procedural touches.</summary>
+    public void Animate(double dt, int facing, double groundSpeed, bool held)
+    {
+        _time += dt;
+        double target = held ? HeldSpin : facing * (90 - _profile.ThreeQuarterDeg);
+        target += _profile.YawOffsetDeg;
+        // Turn quickly but not instantly, through the viewer side (the cat never shows its back while turning).
+        _yaw += (target - _yaw) * Math.Min(1, dt * (held ? 20 : 10));
+        _pivot.RotationDegrees = new Vector3(held ? 12 * (float)Math.Sin(_time * 2.2) : 0, (float)_yaw, 0);
+
+        if (_player != null && _clip != null)
+        {
+            double speed = _clip.Speed;
+            if (_clip.RefSpeedPx > 0 && groundSpeed > 1) speed *= Math.Clamp(groundSpeed / _clip.RefSpeedPx, 0.5, 2.2);
+            _player.SpeedScale = (float)(speed / _clip.Speed);
+        }
+
+        var s = Vector3.One;
+        var offset = Vector3.Zero;
+        if (_clip?.Breathe == true) s = new Vector3(1, 1 + 0.03f * (float)Math.Sin(_time * 2.4), 1);
+        if (_clip?.Vibrate == true) offset = new Vector3(0.6f * (float)Math.Sin(_time * 90), 0, 0);
+        _pivot.Scale = s;
+        _pivot.Position = offset;
+    }
+
+    static IEnumerable<T> FindAll<T>(Node root) where T : Node
+    {
+        if (root is T t) yield return t;
+        foreach (var child in root.GetChildren())
+            foreach (var x in FindAll<T>(child))
+                yield return x;
+    }
+}
