@@ -118,7 +118,14 @@ public partial class Main : Node3D
 
     void RebuildMap(bool initial = false)
     {
-        var windows = Win32.EnumerateWindows(_overlay.Handle, (uint)OS.GetProcessId());
+        List<WindowInfo> windows;
+        try { windows = Win32.EnumerateWindows(_overlay.Handle, (uint)OS.GetProcessId()); }
+        catch (Exception e) when (!initial)
+        {
+            // Keep the previous map: a failed scan must not stop the cat.
+            Log.Info($"scansione finestre fallita: {e.Message}");
+            return;
+        }
         var work = _overlay.Monitors.Select(m => m.work).ToList();
         var extra = new List<Platform>();
         if (!initial && _world.Perch.Body.Mode == BodyMode.Grounded)

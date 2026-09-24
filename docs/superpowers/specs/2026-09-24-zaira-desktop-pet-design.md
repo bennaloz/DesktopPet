@@ -20,7 +20,7 @@ il modello di Zaira (Tripo, riggato) si sostituisce dopo senza toccare il codice
 | Finestra | una sola overlay trasparente, senza bordi, sempre in primo piano, grande quanto il desktop virtuale (−1 px in altezza per evitare il fullscreen esclusivo), esclusa da taskbar/Alt-Tab (WS_EX_TOOLWINDOW), non prende il focus |
 | Coordinate | pixel fisici dello schermo (y verso il basso) nella logica; camera ortografica 1 unità = 1 px nel rendering |
 | Clic | `mouse_passthrough`: la zona cliccabile è il rettangolo dell'oggetto sotto il cursore (gatto, ciotola, trespolo, bocconcino); durante un trascinamento l'intera finestra |
-| Superfici | bordi superiori scoperti delle finestre visibili + bordo superiore dell'area di lavoro di ogni monitor (pavimento = sopra la taskbar) + ripiano del trespolo; lati scoperti delle finestre come pareti (arrampicata, fase successiva) |
+| Superfici | bordi superiori scoperti delle finestre visibili + bordo superiore dell'area di lavoro di ogni monitor (pavimento = sopra la taskbar) + ripiano del trespolo; lati scoperti delle finestre come pareti per l'arrampicata |
 | Finestre | Win32 via P/Invoke, 8 Hz: EnumWindows (ordine z), IsWindowVisible, IsIconic, DWMWA_CLOAKED, DWMWA_EXTENDED_FRAME_BOUNDS, esclusione tool window e della nostra |
 | Bisogni | fame, energia, voglia di giocare (0..1), evolvono nel tempo, salvati su disco |
 | Cibo | ciotola trascinabile sul pavimento (doppio clic = riempi) + bocconcini lanciati dal menu tray |
@@ -64,19 +64,20 @@ altrimenti vagare/sedersi/saltare su una finestra vicina.
 - Premi sul gatto e trascina: lo tieni in mano (posa "held"), il movimento orizzontale del mouse lo
   fa ruotare, la rotella anche; rilasciandolo cade con la velocità del lancio.
 - Passa il mouse sopra il gatto muovendolo: carezza; dopo un po' si siede e fa le fusa, sale la contentezza.
-- Ciotola: trascinabile, doppio clic riempie. Bocconcino: dal menu tray, cade dal cursore.
+- Ciotola: trascinabile, doppio clic riempie. Bocconcino: dal menu tray, cade dall'alto vicino al gatto.
 
 ### Errori e robustezza
 
 - Finestra di appoggio chiusa/minimizzata/spostata: se sparisce il gatto cade; se si sposta la segue.
 - Gatto fuori dallo schermo o bloccato: "Chiama il gatto" dalla tray lo riporta sul pavimento del monitor principale.
-- Chiamate Win32 fallite: la mappa resta quella precedente; errori a log (user://log).
+- Scansione delle finestre fallita: la mappa resta quella precedente; errori a log (`zaira.log` nella cartella utente di Godot).
 
 ## Test
 
 - xUnit su SurfaceMap (occlusione, pavimento, finestre minimizzate), Navigator, Needs, CatBody.
-- Avvio con `--selftest N`: esegue N secondi, forza una sequenza di comportamenti, salva screenshot
-  del viewport e un log di stato.
+- Autotest in gioco: `--selftest` (giro dei comportamenti), `--selftest-windows` (finestra vera:
+  salto/arrampicata, inseguimento, caduta), `--selftest-input` (eventi mouse iniettati),
+  `--selftest-mouse` (mouse reale con tools/test-mouse.ps1); log e screenshot nella cartella utente.
 
 ## Fuori scope per ora
 
