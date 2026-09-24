@@ -7,3 +7,4 @@ tests/**/bin/
 tests/**/obj/
 export/
 run_selftest.log
+run_perf.log
