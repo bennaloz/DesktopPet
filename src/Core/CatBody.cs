@@ -3,7 +3,7 @@ using System.Linq;
 
 namespace ZairaPet.Core;
 
-public enum BodyMode { Grounded, Airborne, Held }
+public enum BodyMode { Grounded, Airborne, Held, Climbing }
 
 /// <summary>
 /// 2D kinematics of the cat in screen pixels (y down). Pos is the point between the feet.
@@ -26,6 +26,16 @@ public sealed class CatBody
 
     Vec2 _heldPrev;
     Vec2 _heldVel;
+    /// <summary>Height of the surface a targeted jump aims at: anything higher is passed in front of.</summary>
+    double? _targetY;
+
+    public const double ClimbSpeed = 170;
+    /// <summary>Horizontal distance of the climbing cat's feet from the window side.</summary>
+    public const double WallOffset = 22;
+    /// <summary>The window side being climbed, while Mode is Climbing.</summary>
+    public Wall? Wall { get; private set; }
+    Platform? _climbTop;
+    double _climbLandX;
 
     public CatBody(Vec2 pos) => Pos = pos;
 
@@ -41,7 +51,37 @@ public sealed class CatBody
             case BodyMode.Airborne:
                 StepAirborne(dt, map);
                 break;
+            case BodyMode.Climbing:
+                StepClimbing(dt);
+                break;
         }
+    }
+
+    /// <summary>Hang on a window side and go up; at the top, step onto <paramref name="top"/> at landX.</summary>
+    public void StartClimb(Wall wall, Platform top, double landX)
+    {
+        Mode = BodyMode.Climbing;
+        Support = null;
+        Wall = wall;
+        _climbTop = top;
+        _climbLandX = landX;
+        Vel = new Vec2(0, -ClimbSpeed);
+        // Grab the side a little above the feet, never below its bottom end.
+        Pos = new Vec2(wall.X + wall.Side * WallOffset, Math.Min(Pos.Y - 20, wall.Y1));
+    }
+
+    void StepClimbing(double dt)
+    {
+        var w = Wall!;
+        double y = Pos.Y - ClimbSpeed * dt;
+        if (y <= w.Y0)
+        {
+            Wall = null;
+            Land(_climbTop!, _climbLandX);
+            LandingSpeed = 0;
+            return;
+        }
+        Pos = new Vec2(w.X + w.Side * WallOffset, y);
     }
 
     void StepGrounded(double dt, SurfaceMap map, double walkVelX)
@@ -67,8 +107,9 @@ public sealed class CatBody
 
         if (vel.Y > 0)
         {
+            double minY = _targetY - 1 ?? double.MinValue;
             var landing = map.Platforms
-                .Where(p => p.SpansX(next.X) && p.Y >= Pos.Y && p.Y <= next.Y)
+                .Where(p => p.SpansX(next.X) && p.Y >= Pos.Y && p.Y <= next.Y && p.Y >= minY)
                 .OrderBy(p => p.Y)
                 .FirstOrDefault();
             if (landing != null)
@@ -93,6 +134,7 @@ public sealed class CatBody
 
     void Land(Platform p, double x)
     {
+        _targetY = null;
         Mode = BodyMode.Grounded;
         Support = p;
         Pos = new Vec2(x, p.Y);
@@ -117,6 +159,7 @@ public sealed class CatBody
         double tDown = Math.Sqrt(2 * (target.Y - apexY) / Gravity);
         double vx = (target.X - Pos.X) / (tUp + tDown);
         Vel = new Vec2(vx, vy);
+        _targetY = target.Y;
         Mode = BodyMode.Airborne;
         Support = null;
     }
@@ -124,6 +167,11 @@ public sealed class CatBody
     /// <summary>After the window map changed: ride along with the supporting window, or fall if it is gone.</summary>
     public void FollowSupport(SurfaceMap map)
     {
+        if (Mode == BodyMode.Climbing)
+        {
+            FollowWall(map);
+            return;
+        }
         if (Mode != BodyMode.Grounded || Support == null) return;
         var r = map.Relocate(Support, Pos.X);
         if (r == null)
@@ -137,8 +185,34 @@ public sealed class CatBody
         Pos = new Vec2(r.Value.x, r.Value.platform.Y);
     }
 
+    void FollowWall(SurfaceMap map)
+    {
+        var moved = map.RelocateWall(Wall!);
+        Platform? top = null;
+        if (moved != null)
+        {
+            var w = moved.Value.wall;
+            top = map.Platforms.FirstOrDefault(p => p.Owner == w.Owner && p.Kind == SurfaceKind.WindowTop
+                                                    && (w.Side < 0 ? p.X0 == w.X : p.X1 == w.X));
+        }
+        if (moved == null || top == null || !moved.Value.wall.SpansY(Pos.Y + moved.Value.dy))
+        {
+            Wall = null;
+            Mode = BodyMode.Airborne;
+            Vel = new Vec2(0, 0);
+            return;
+        }
+        var (wall, dx, dy) = moved.Value;
+        Wall = wall;
+        _climbTop = top;
+        _climbLandX += dx;
+        Pos = new Vec2(wall.X + wall.Side * WallOffset, Pos.Y + dy);
+    }
+
     public void Grab()
     {
+        _targetY = null;
+        Wall = null;
         Mode = BodyMode.Held;
         Support = null;
         _heldPrev = Pos;

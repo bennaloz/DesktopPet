@@ -20,17 +20,30 @@ public sealed record Platform(int Id, SurfaceKind Kind, int Y, int X0, int X1, l
     public double Center => (X0 + X1) / 2.0;
 }
 
+/// <summary>
+/// A climbable window side at x = X, from its top Y0 down to Y1. Side -1 is the left edge (the cat hangs
+/// on its left), +1 the right edge. Only sides whose top corner is visible are kept: climbing must end on the top.
+/// </summary>
+public sealed record Wall(int X, int Y0, int Y1, int Side, long Owner, int OwnerX, int OwnerY)
+{
+    public bool SpansY(double y) => y >= Y0 && y <= Y1;
+}
+
 public sealed class SurfaceMap
 {
     /// <summary>Window tops closer than this to the top of their screen are useless: the cat would be off-screen.</summary>
     public const int Headroom = 60;
 
+    public const int MinWall = 60;
+
     public IReadOnlyList<Platform> Platforms { get; }
+    public IReadOnlyList<Wall> Walls { get; }
     public IReadOnlyList<RectI> WorkAreas { get; }
 
-    SurfaceMap(IReadOnlyList<Platform> platforms, IReadOnlyList<RectI> workAreas)
+    SurfaceMap(IReadOnlyList<Platform> platforms, IReadOnlyList<Wall> walls, IReadOnlyList<RectI> workAreas)
     {
         Platforms = platforms;
+        Walls = walls;
         WorkAreas = workAreas;
     }
 
@@ -70,7 +83,33 @@ public sealed class SurfaceMap
         foreach (var p in extra)
             result.Add(p with { Id = id++ });
 
-        return new SurfaceMap(result, workAreas);
+        var walls = new List<Wall>();
+        for (int i = 0; i < windowsTopToBottom.Count; i++)
+        {
+            var w = windowsTopToBottom[i];
+            if (!result.Any(p => p.Owner == w.Handle)) continue;   // no reachable top: nothing to climb to
+            foreach (int side in new[] { -1, 1 })
+            {
+                int x = side < 0 ? w.Bounds.Left : w.Bounds.Right;
+                int probe = side < 0 ? x - 1 : x;     // the column the cat's body occupies
+                var wa = workAreas.FirstOrDefault(a => probe >= a.Left + 20 && probe < a.Right - 20
+                                                        && w.Bounds.Top >= a.Top + Headroom && w.Bounds.Top < a.Bottom);
+                if (wa == default) continue;
+
+                var spans = new List<(int, int)> { (w.Bounds.Top, Math.Min(w.Bounds.Bottom, wa.Bottom)) };
+                for (int j = 0; j < i && spans.Count > 0; j++)
+                {
+                    var o = windowsTopToBottom[j].Bounds;
+                    if (probe >= o.Left && probe < o.Right) spans = Subtract(spans, o.Top, o.Bottom);
+                }
+                // Only the stretch that reaches the top corner is useful.
+                var top = spans.FirstOrDefault(sp => sp.Item1 == w.Bounds.Top);
+                if (top == default || top.Item2 - top.Item1 < MinWall) continue;
+                walls.Add(new Wall(x, top.Item1, top.Item2, side, w.Handle, w.Bounds.Left, w.Bounds.Top));
+            }
+        }
+
+        return new SurfaceMap(result, walls, workAreas);
     }
 
     static List<(int, int)> Subtract(List<(int, int)> spans, int cutFrom, int cutTo)
@@ -99,6 +138,13 @@ public sealed class SurfaceMap
         Platforms.Where(p => p.Kind == SurfaceKind.Floor)
                  .OrderBy(p => p.SpansX(x) ? 0 : Math.Min(Math.Abs(p.X0 - x), Math.Abs(p.X1 - x)))
                  .First();
+
+    /// <summary>The same window side after the windows moved, and how far it moved; null if it is gone.</summary>
+    public (Wall wall, int dx, int dy)? RelocateWall(Wall old)
+    {
+        var w = Walls.FirstOrDefault(v => v.Owner == old.Owner && v.Side == old.Side);
+        return w == null ? null : (w, w.OwnerX - old.OwnerX, w.OwnerY - old.OwnerY);
+    }
 
     /// <summary>
     /// Where a cat that stood on <paramref name="old"/> at x stands now: same owner, moved by the owner's offset.

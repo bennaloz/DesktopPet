@@ -156,12 +156,15 @@ public class CatBrainTests
             new WindowInfo(2, new RectI(1000, 750, 1700, 1040)),
             new WindowInfo(3, new RectI(700, 350, 1300, 700)),
         };
-        SurfaceMap Build() => SurfaceMap.Build(windows, Work, Array.Empty<Platform>());
+        // A perch standing right under window 3: overlapping surfaces used to make the cat dither forever.
+        var perch = new[] { new Platform(0, SurfaceKind.Perch, 810, 1000, 1124, -1, 1062, 810) };
+        SurfaceMap Build() => SurfaceMap.Build(windows, Work, perch);
         var map = Build();
         world.BowlPlatform = map.Platforms.First(p => p.Kind == SurfaceKind.Floor);
         var body = new CatBody(new Vec2(100, 1040));
         body.PlaceOn(world.BowlPlatform, 100);
         bool visitedWindow = false;
+        double travelling = 0, longestTrip = 0;
 
         for (int frame = 0; frame < 30 * 1800; frame++)
         {
@@ -184,11 +187,14 @@ public class CatBrainTests
             }
             brain.Update(1 / 30.0, body, needs, map, world);
             if (body.Support?.Kind == SurfaceKind.WindowTop) visitedWindow = true;
+            travelling = brain.State is CatState.Travel or CatState.ChaseTreat ? travelling + 1 / 30.0 : 0;
+            longestTrip = Math.Max(longestTrip, travelling);
             Assert.InRange(body.Pos.X, 0, 1920);
             Assert.True(body.Pos.Y <= 1041, $"y={body.Pos.Y} at frame {frame}");
         }
 
         Assert.True(visitedWindow);
+        Assert.True(longestTrip < 30, $"a trip lasted {longestTrip:0} s");
     }
 
     [Fact]

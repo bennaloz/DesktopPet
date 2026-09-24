@@ -21,6 +21,7 @@ Doppio clic su `run.bat`. Per chiudere: icona nella system tray → **Esci**.
 | Bocconcino | tray → **Lancia un bocconcino**: cade dall'alto, lei corre a prenderlo |
 | Spostare ciotola e trespolo | trascinali; ricadono sulla superficie sotto (anche sopra una finestra) |
 | Salti sulle finestre | nessuna azione: quando esplora salta sui bordi superiori delle finestre visibili (non su quelle massimizzate). Se sposti la finestra lei la segue, se la chiudi o la minimizzi cade |
+| Arrampicata | se il bordo è troppo alto per un salto (oltre ~460 px) si aggrappa al lato della finestra, sale e ci monta sopra. Anche mentre sale, se sposti la finestra la segue e se la chiudi cade |
 | Zoomies | quando la voglia di giocare è al massimo corre avanti e indietro e salta dove capita |
 | Dormire | quando è stanca va sul trespolo e dorme (z) |
 | Stato | passa il mouse sull'icona della tray: fame, energia, voglia di giocare, contentezza, ciotola |
@@ -46,6 +47,7 @@ La cartella `cats/zaira` ha la precedenza sulla volpe; per forzarne una: `run.ba
 ```
 run.bat -- --selftest            giro dei comportamenti con screenshot
 run.bat -- --selftest-windows    serve tools/test-window.ps1 in parallelo: sale su una finestra, la segue, cade
+                                 (finestra alta, da scalare: tools/test-window.ps1 -Top 200 -Height 520 -MoveAt 22 -CloseAt 40)
 run.bat -- --selftest-input      presa, lancio, carezze, doppio clic (eventi iniettati in Godot)
 run.bat -- --selftest-mouse      mouse vero: in parallelo tools/test-mouse.ps1 (sessione sbloccata!)
 dotnet test tests/Core.Tests     test della logica (superfici, fisica, percorsi, comportamenti)

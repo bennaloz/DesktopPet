@@ -20,6 +20,7 @@
     "eat":   { "anims": ["Eating"], "loop": true },
     "meow":  { "anims": ["Idle_HitReact_Left", "Idle_HitReact_Right"], "loop": false, "speed": 0.8 },
     "purr":  { "anims": ["Idle_2_HeadLow"], "loop": true, "speed": 0.4, "vibrate": true },
-    "held":  { "anims": ["Idle_2"], "loop": true, "speed": 0.7 }
+    "held":  { "anims": ["Idle_2"], "loop": true, "speed": 0.7 },
+    "climb": { "anims": ["Walk"], "loop": true, "speed": 1.3 }
   }
 }

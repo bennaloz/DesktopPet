@@ -18,7 +18,7 @@ public interface IWorld
     void ConsumeTreat();
 }
 
-public enum CatState { Idle, Wander, Travel, Zoomies, Eat, Sleep, Sit, Meow, ChaseTreat, Petted, Held, Airborne, Landing }
+public enum CatState { Idle, Wander, Travel, Zoomies, Eat, Sleep, Sit, Meow, ChaseTreat, Petted, Held, Airborne, Landing, Climb }
 
 /// <summary>Why the cat is travelling: decides what happens on arrival.</summary>
 public enum Goal { None, Bowl, Perch, Treat, Explore, Wander, Zoom }
@@ -34,12 +34,13 @@ public sealed class CatBrain
     public const double RunSpeed = 360;
     public const double MaxJumpUp = 460;
     public const double MaxJumpGap = 340;
+    public const double TravelTimeout = 45;
 
     readonly Random _rng;
 
     public CatState State { get; private set; } = CatState.Idle;
     public Goal Goal { get; private set; }
-    /// <summary>Logical animation: idle, walk, run, jump, fall, land, sit, sleep, eat, meow, purr, held.</summary>
+    /// <summary>Logical animation: idle, walk, run, jump, fall, land, sit, sleep, eat, meow, purr, held, climb.</summary>
     public string Action { get; private set; } = "idle";
     /// <summary>+1 facing right, -1 facing left.</summary>
     public int Facing { get; private set; } = 1;
@@ -128,11 +129,18 @@ public sealed class CatBrain
         }
 
         double walk = 0;
-        if (body.Mode == BodyMode.Airborne)
+        if (body.Mode == BodyMode.Climbing)
+        {
+            if (State != CatState.Climb) Enter(CatState.Climb);
+            Action = "climb";
+            Facing = -body.Wall!.Side;   // facing the window side it hangs on
+        }
+        else if (body.Mode == BodyMode.Airborne)
         {
             if (State != CatState.Airborne)
             {
-                _afterLanding = State is CatState.Travel or CatState.Zoomies or CatState.ChaseTreat ? Goal : Goal.None;
+                _afterLanding = State is CatState.Travel or CatState.Zoomies or CatState.ChaseTreat ? Goal
+                              : State == CatState.Climb ? _afterLanding : Goal.None;
                 if (State == CatState.Zoomies) _zoomLeft = Math.Max(0, _stateDuration - _stateTime);
                 Enter(CatState.Airborne);
             }
@@ -148,7 +156,9 @@ public sealed class CatBrain
 
         if (body.JustLanded)
         {
-            if (body.LandingSpeed > 1100)
+            if (State == CatState.Climb)
+                ResumeAfterLanding();
+            else if (body.LandingSpeed > 1100)
                 Enter(CatState.Landing, 0.45);
             else
                 ResumeAfterLanding();
@@ -234,6 +244,8 @@ public sealed class CatBrain
 
             case CatState.Travel:
             case CatState.ChaseTreat:
+                // Watchdog: a trip that never ends means something unforeseen; give up and look around.
+                if (_stateTime > TravelTimeout) { Goal = Goal.None; Enter(CatState.Idle, 2); return 0; }
                 return DoTravel(dt, body, needs, map, world);
 
             case CatState.Wander:
@@ -379,8 +391,16 @@ public sealed class CatBrain
             return 0;
         }
 
-        // At the takeoff point: crouch briefly, then jump.
+        // At the takeoff point: crouch briefly, then jump (or grab the window side).
         var hop = path[1];
+        if (hop.Kind == NavStepKind.Climb)
+        {
+            Facing = -hop.Via!.Side;
+            _afterLanding = Goal;
+            body.StartClimb(hop.Via, hop.Target, hop.LandX);
+            Enter(CatState.Climb);
+            return 0;
+        }
         Facing = Math.Sign(hop.LandX - body.Pos.X) is var s && s != 0 ? s : Facing;
         Action = "idle";
         _prejump += dt;
@@ -427,7 +447,8 @@ public sealed class CatBrain
             if (_rng.NextDouble() < 0.3 && PickExplore(body, map))
             {
                 var path = Navigator.FindPath(map, s, body.Pos.X, _exploreTarget!, _exploreX, MaxJumpUp, MaxJumpGap);
-                if (path != null && path.Count >= 2 && path[1].Kind != NavStepKind.Walk && Math.Abs(path[0].X - body.Pos.X) < 400)
+                if (path != null && path.Count >= 2 && path[1].Kind is NavStepKind.Jump or NavStepKind.Drop
+                    && Math.Abs(path[0].X - body.Pos.X) < 400)
                 {
                     _zoomTarget = double.NaN;
                     var hop = path[1];
@@ -479,6 +500,7 @@ public sealed class CatBrain
             CatState.Landing => "land",
             CatState.Wander => "walk",
             CatState.Idle => "idle",
+            CatState.Climb => "climb",
             _ => Action,
         };
     }

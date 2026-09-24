@@ -207,7 +207,9 @@ public partial class Main : Node3D
         }
 
         _visual.Position = _overlay.ToWorld(_body.Pos, 40);
-        _visual.Animate(dt, _brain.Facing, Math.Abs(_body.Vel.X), _body.Mode == BodyMode.Held);
+        bool climbing = _body.Mode == BodyMode.Climbing;
+        _visual.Animate(dt, _brain.Facing, climbing ? CatBody.ClimbSpeed : Math.Abs(_body.Vel.X),
+                        _body.Mode == BodyMode.Held, climbing);
         foreach (var prop in Props())
             prop.Position = _overlay.ToWorld(prop.Body.Pos, prop is Perch ? -120 : 0);
 
@@ -234,7 +236,11 @@ public partial class Main : Node3D
     RectI CatRect()
     {
         float w = _visual.SizePx.X, h = Math.Max(_visual.SizePx.Y, 40);
-        if (_body.Mode == BodyMode.Held || _brain.State == CatState.Sleep) w = Math.Max(w, h) * 0.9f;
+        if (_body.Mode is BodyMode.Held or BodyMode.Climbing || _brain.State == CatState.Sleep)
+        {
+            w = Math.Max(w, h) * 0.9f;
+            h = Math.Max(h, _visual.SizePx.X * 0.9f);
+        }
         return new RectI((int)(_body.Pos.X - w / 2), (int)(_body.Pos.Y - h), (int)(_body.Pos.X + w / 2), (int)_body.Pos.Y + 4);
     }
 
@@ -402,7 +408,8 @@ public partial class Main : Node3D
         CatState.Idle => "si guarda intorno", CatState.Wander => "passeggia", CatState.Travel => "va da qualche parte",
         CatState.Zoomies => "zoomies!", CatState.Eat => "mangia", CatState.Sleep => "dorme", CatState.Sit => "seduta",
         CatState.Meow => "reclama la pappa", CatState.ChaseTreat => "insegue il bocconcino", CatState.Petted => "fa le fusa",
-        CatState.Held => "in braccio", CatState.Airborne => "in volo", CatState.Landing => "atterra", _ => s.ToString(),
+        CatState.Held => "in braccio", CatState.Airborne => "in volo", CatState.Landing => "atterra",
+        CatState.Climb => "si arrampica", _ => s.ToString(),
     };
 
     void SetupTray()

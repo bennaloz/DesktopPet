@@ -53,7 +53,8 @@ Azioni mancanti ricadono su un'alternativa (es. `sleep` → `sit` rallentato).
 
 ### Comportamenti (CatBrain)
 
-Stati: Idle, Wander, Travel (verso un obiettivo via Navigator), Zoomies, Eat, Sleep, Sit/Groom,
+Stati: Idle, Wander, Travel (verso un obiettivo via Navigator), Climb (sul lato di una finestra quando il
+bordo è oltre la portata di un salto), Zoomies, Eat, Sleep, Sit/Groom,
 Meow (ha fame e la ciotola è vuota), ChaseTreat, Petted, Held, Falling, Landing.
 Scelta per utilità: fame alta → ciotola; energia bassa → trespolo; voglia di giocare alta → zoomies;
 altrimenti vagare/sedersi/saltare su una finestra vicina.
@@ -79,5 +80,5 @@ altrimenti vagare/sedersi/saltare su una finestra vicina.
 
 ## Fuori scope per ora
 
-Arrampicata sulle pareti (se avanza tempo), suoni, multi-gatto, export .exe (richiede export
+Suoni, multi-gatto, export .exe (richiede export
 templates: per ora si avvia con `run.bat`).

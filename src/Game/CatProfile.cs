@@ -47,6 +47,7 @@ public sealed class CatProfile
             "fall" => "jump",
             "run" => "walk",
             "sit" => "idle",
+            "climb" => "walk",
             "eat" => "idle",
             _ => null,
         };

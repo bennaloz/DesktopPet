@@ -26,6 +26,8 @@ public partial class CatVisual : Node3D
     double _time;
 
     public const double HeldRollDeg = 60;
+    /// <summary>Body angle while going up a window side: nearly vertical, head up.</summary>
+    public const double ClimbRollDeg = 78;
 
     /// <summary>Where the scruff ends up above the feet once the cat hangs, so the cursor can hold it there.</summary>
     public float ScruffHeight => (float)(SizePx.X * 0.45 * Math.Sin(Mathf.DegToRad((float)HeldRollDeg))
@@ -124,7 +126,7 @@ public partial class CatVisual : Node3D
     }
 
     /// <summary>Per-frame pose: facing, ground speed for locomotion clips, procedural touches.</summary>
-    public void Animate(double dt, int facing, double groundSpeed, bool held)
+    public void Animate(double dt, int facing, double groundSpeed, bool held, bool climbing = false)
     {
         _time += dt;
         double target = held ? HeldSpin : facing * (90 - _profile.ThreeQuarterDeg);
@@ -132,7 +134,7 @@ public partial class CatVisual : Node3D
         // Turn quickly but not instantly, through the viewer side (the cat never shows its back while turning).
         _yaw += (target - _yaw) * Math.Min(1, dt * (held ? 20 : 10));
         // Held by the scruff: the body hangs head-up and sways; otherwise upright.
-        _roll += ((held ? HeldRollDeg : 0) - _roll) * Math.Min(1, dt * 12);
+        _roll += ((held ? HeldRollDeg : climbing ? ClimbRollDeg : 0) - _roll) * Math.Min(1, dt * 12);
         double sway = held ? 6 * Math.Sin(_time * 2.2) : 0;
         // Roll so the head (forward = +Z turned by yaw) points up, whichever side it faces.
         double headSide = Math.Sin(Mathf.DegToRad((float)_yaw)) >= 0 ? 1 : -1;
