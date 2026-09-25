@@ -75,6 +75,11 @@ public sealed class ActionClip
     [JsonPropertyName("ref_speed_px")] public double RefSpeedPx { get; set; }
     [JsonPropertyName("breathe")] public bool Breathe { get; set; }
     [JsonPropertyName("vibrate")] public bool Vibrate { get; set; }
+    /// <summary>
+    /// For poses that only read from one side (curled up: the face is inside the curl): the facing (1 or -1)
+    /// the cat turns to while the clip plays. 0 keeps the facing the brain chose.
+    /// </summary>
+    [JsonPropertyName("show_side")] public int ShowSide { get; set; }
 }
 
 public sealed class GazeBones

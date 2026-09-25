@@ -410,19 +410,6 @@ def sit(p, t, f):
     sit_pose(p, breathe=1.2 * math.sin(TAU * t), t=t)
     y, z = p.yz['Tail5']; p.yz['Tail5'] = (y, z + 12 * math.sin(TAU * 2 * t))
 
-def loaf_pose(p, head_down=0.0, breathe=0.0):
-    # lying on the belly, legs tucked under
-    p.hips = (0.0, -0.20 + breathe * 0.004)
-    p.x['Chest'] = breathe
-    p.x['Neck'] = 8 + 30 * head_down
-    p.x['Head'] = 10 + 25 * head_down
-    p.yz['Head'] = (0.0, 25 * head_down)
-    plant(p, 'FL', 0.02, 0.0, 128)
-    plant(p, 'FR', 0.02, 0.0, 128)
-    plant(p, 'HL', -0.14, 0.0, -80, toe=180)
-    plant(p, 'HR', -0.14, 0.0, -80, toe=180)
-    chain_world(p, TAILS, [-60, -35, -5, 0, 0], [0, 10, 25, 35, 35])
-
 CROUCH_DROP = -0.25
 
 def crouch(p, t, f):
@@ -464,8 +451,35 @@ def loaf(p, t, f):
     # tail lies on the ground along the flank
     chain_world(p, TAILS, [-60, -25, -3, 0, 0], [0, 0, 10, 15, 15])
 
+# curled up asleep: the back bends sideways into a ring (turns about each bone's own axis, the side-plane IK
+# stays valid for the tucked legs), she rolls a little onto her side, head tucked in towards the hind legs
+CURL_BEND, CURL_HEAD, CURL_ROLL = 60, 50, 15
+# the tail drops to the ground first, then only the bones lying flat wrap round towards the nose
+# (turning a steep bone sideways would lift the tail off the ground)
+CURL_TAIL = [-66, -58, -4, 3, 3]
+CURL_TAIL_WRAP = [0, 0, 60, 70, 70]
+
 def sleep(p, t, f):
-    loaf_pose(p, head_down=1.0, breathe=math.sin(TAU * t))
+    """Curled up in a ball: belly down, back round, head on the hind legs, tail wrapped round to the nose."""
+    breathe = math.sin(TAU * t)
+    p.hips = (0.0, LOAF_DROP + 0.003 * breathe)
+    p.x['Chest'] = breathe
+    p.x['Neck'] = 30
+    p.x['Head'] = 25
+    p.yz['Hips'] = (CURL_ROLL, -CURL_BEND * 0.6)     # turned so the ring sits over her spot
+    p.yz['Spine'] = (0.0, CURL_BEND)
+    p.yz['Chest'] = (0.0, CURL_BEND)
+    p.yz['Neck'] = (0.0, CURL_HEAD)
+    p.yz['Head'] = (0.0, CURL_HEAD)
+    for key in ('FL', 'FR'):
+        u, l, m, t_, fwd = LEGS[key]
+        H = p.point(REST[u]['parent'], REST[u]['h'])
+        p.leg(u, l, m, t_, (H[0] + 0.03, 0.07), 5, False, None)      # paws folded back under the chest
+    plant(p, 'HL', 0.02, 0.05, -80, toe=180)
+    plant(p, 'HR', 0.02, 0.05, -80, toe=180)
+    wrap = list(CURL_TAIL_WRAP)
+    wrap[-1] += 4 * math.sin(TAU * t + 1.0)          # the tip stirs with the breath
+    chain_world(p, TAILS, CURL_TAIL, wrap)
 
 EAT = dict(drop=-0.03, pitch=8, spine=4, chest=12, neck=48, head=32, paws_back=0.05)
 

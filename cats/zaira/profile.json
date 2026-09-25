@@ -89,7 +89,8 @@
         "Sleep"
       ],
       "loop": true,
-      "speed": 0.7
+      "speed": 0.7,
+      "show_side": 1
     },
     "eat": {
       "anims": [

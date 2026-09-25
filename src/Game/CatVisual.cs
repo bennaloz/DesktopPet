@@ -234,6 +234,7 @@ public partial class CatVisual : Node3D
         _time += dt;
         // Leaping steeply she turns side-on, so her stretched-out length shows instead of being foreshortened.
         double sideOn = airVel is { } av ? ZairaPet.Core.Flight.SideOn(av) : 0;
+        if (_clip?.ShowSide is 1 or -1) facing = _clip.ShowSide;
         double target = held ? HeldSpin : facing * (90 - _profile.ThreeQuarterDeg * (1 - sideOn));
         target += _profile.YawOffsetDeg;
         // Turn quickly but not instantly, through the viewer side (the cat never shows its back while turning).
