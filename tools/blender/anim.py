@@ -17,7 +17,8 @@ arm = bpy.data.objects["Rig"]
 bones = arm.data.bones
 P = arm.pose.bones
 for pb in P:
-    pb.rotation_mode = 'XYZ'
+    # side-plane bend (X) first, then the sideways turn about the already bent bone (Z): intrinsic X then Z
+    pb.rotation_mode = 'ZYX'
 
 # ---------------------------------------------------------------- rest data in the side plane
 REST = {}
@@ -71,13 +72,17 @@ class Pose:
         d = max(abs(L1 - L2) + 1e-4, min(L1 + L2 - 1e-4, d))
         base = math.atan2(v[1], v[0])
         k = math.acos(max(-1, min(1, (L1 * L1 + d * d - L2 * L2) / (2 * L1 * d))))
-        cands = []
+        # pick the bend by which side of the hip->paw line the joint sits on (stable even when the hip
+        # is almost on the ground): hind knees bend forward (-Y), front elbows backward (+Y)
+        a1 = K = None
         for s in (1, -1):
-            a1 = base + s * k
-            K = (H[0] + L1 * math.cos(a1), H[1] + L1 * math.sin(a1))
-            cands.append((K[0], a1, K))
-        cands.sort()
-        _, a1, K = cands[0] if knee_forward else cands[-1]
+            c = base + s * k
+            Kc = (H[0] + L1 * math.cos(c), H[1] + L1 * math.sin(c))
+            side = v[0] * (Kc[1] - H[1]) - v[1] * (Kc[0] - H[0])
+            if (side < 0) == knee_forward:
+                a1, K = c, Kc
+        if a1 is None:
+            a1 = base; K = (H[0] + L1 * math.cos(a1), H[1] + L1 * math.sin(a1))
         a2 = math.atan2(A[1] - K[1], A[0] - K[0])
         t1 = a1 - REST[upper]['a'] - phi
         t2 = a2 - REST[lower]['a'] - (phi + t1)
@@ -89,7 +94,7 @@ class Pose:
 
     def apply(self, frame):
         for pb in P:
-            x = self.x.get(pb.name, 0.0)
+            x = (self.x.get(pb.name, 0.0) + 180.0) % 360.0 - 180.0
             y, z = self.yz.get(pb.name, (0.0, 0.0))
             pb.rotation_euler = (D(x), D(y), D(z))
             pb.keyframe_insert("rotation_euler", frame=frame)
@@ -250,19 +255,22 @@ def sit_pose(p, breathe=0.0, t=0.0):
     # body pitched up around the hips, rump on the ground, front legs straight, hind legs folded flat
     p.hips = (0.03, SIT_DROP)
     p.x['Hips'] = SIT_PITCH
-    p.x['Spine'] = -4
-    p.x['Chest'] = -4 + breathe
+    p.x['Spine'] = SIT_SPINE
+    p.x['Chest'] = SIT_CHEST + breathe
     p.x['Neck'] = 20 - breathe
-    p.x['Head'] = -SIT_PITCH - 4
+    p.x['Head'] = -(SIT_PITCH + SIT_SPINE + SIT_CHEST) - 12
     plant_under_shoulder(p, 'FL', 12, ahead=0.015)
     plant_under_shoulder(p, 'FR', 12, ahead=0.015)
     # hind: metatarsus flat on the ground pointing forward, hock behind
-    plant(p, 'HL', -0.10, 0.0, -75, toe=180)
-    plant(p, 'HR', -0.10, 0.0, -75, toe=180)
+    plant(p, 'HL', -0.10, 0.0, SIT_HOCK, toe=180)
+    plant(p, 'HR', -0.10, 0.0, SIT_HOCK, toe=180)
     # tail drops to the ground and lies along it, curling round to the side
-    chain_world(p, TAILS, [-62, -50, -18, 0, 2], [0, 0, 20, 35, 35])
+    chain_world(p, TAILS, SIT_TAIL, SIT_TAIL_CURL)
 
-SIT_DROP, SIT_PITCH = -0.222, -29
+SIT_DROP, SIT_PITCH, SIT_SPINE, SIT_CHEST = -0.255, -30, -12, 4
+SIT_HOCK = -88
+SIT_TAIL_CURL = [0, 0, -35, -60, -55]
+SIT_TAIL = [-70, -62, -8, 2, 2]
 
 def sit(p, t, f):
     sit_pose(p, breathe=1.2 * math.sin(TAU * t), t=t)
@@ -281,8 +289,46 @@ def loaf_pose(p, head_down=0.0, breathe=0.0):
     plant(p, 'HR', -0.14, 0.0, -80, toe=180)
     chain_world(p, TAILS, [-60, -35, -5, 0, 0], [0, 10, 25, 35, 35])
 
+CROUCH_DROP = -0.25
+
+def crouch(p, t, f):
+    """Crouched: belly on the ground, forearms flat with the paws showing in front of the chest,
+    hind legs folded alongside, head up."""
+    breathe = math.sin(TAU * t)
+    p.hips = (0.0, CROUCH_DROP + 0.003 * breathe)
+    p.x['Spine'] = -3
+    p.x['Chest'] = 2 + breathe
+    p.x['Neck'] = 2
+    p.x['Head'] = 0
+    for key in ('FL', 'FR'):
+        u, l, m, t_, fwd = LEGS[key]
+        H = p.point(REST[u]['parent'], REST[u]['h'])
+        p.leg(u, l, m, t_, (H[0] - CROUCH_REACH, 0.025), 180, False, None)
+    plant(p, 'HL', -0.13, 0.0, -80, toe=180)
+    plant(p, 'HR', -0.13, 0.0, -80, toe=180)
+    chain_world(p, TAILS, [-70, -40, -5, 0, 0], [0, 15, 35, 45, 40])
+
+CROUCH_REACH = 0.20
+LOAF_DROP = -0.21
+
 def loaf(p, t, f):
-    loaf_pose(p, head_down=0.0, breathe=math.sin(TAU * t))
+    """The 'loaf': belly on the ground, every paw hidden underneath, head sunk into the shoulders."""
+    breathe = math.sin(TAU * t)
+    p.hips = (0.0, LOAF_DROP + 0.003 * breathe)
+    p.x['Spine'] = 3
+    p.x['Chest'] = 4 + breathe
+    p.x['Neck'] = 16
+    p.x['Head'] = -20
+    for key in ('FL', 'FR'):
+        u, l, m, t_, fwd = LEGS[key]
+        H = p.point(REST[u]['parent'], REST[u]['h'])
+        # paws folded back inside the chest (wrist bent, paw pointing backwards)
+        p.leg(u, l, m, t_, (H[0] + 0.03, 0.07), 5, False, None)
+    # hind feet folded forward under the belly and drawn in towards the middle
+    plant(p, 'HL', 0.02, 0.05, -80, toe=180)
+    plant(p, 'HR', 0.02, 0.05, -80, toe=180)
+    # tail lies on the ground along the flank
+    chain_world(p, TAILS, [-60, -25, -3, 0, 0], [0, 0, 10, 15, 15])
 
 def sleep(p, t, f):
     loaf_pose(p, head_down=1.0, breathe=math.sin(TAU * t))
@@ -321,6 +367,7 @@ bake("Jump", 12, jump, loop=False)
 bake("Fall", 10, fall, loop=False)
 bake("Land", 12, land, loop=False)
 bake("Sit", 90, sit)
+bake("Crouch", 90, crouch)
 bake("Loaf", 90, loaf)
 bake("Sleep", 120, sleep)
 bake("Eat", 40, eat)
