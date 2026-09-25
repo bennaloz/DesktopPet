@@ -18,6 +18,8 @@ public sealed class SelfTest
     readonly string _mode;
 
     double _t;
+    double _clock;            // script time: stands still while frame steps or a wait are pending
+    (Func<bool> done, double timeout, string what, double since)? _wait;
     double _clickY;
     double _logTimer;
     int _next;
@@ -143,6 +145,13 @@ public sealed class SelfTest
     /// <summary>A point on the cat, <paramref name="up"/> of its height above the feet, in window coordinates.</summary>
     Vector2 CatPoint(float up) => _main.OverlayWindow.ToLocal(_main.Body.Pos) - new Vector2(0, _main.Visual.SizePx.Y * up);
 
+    /// <summary>
+    /// A script step that holds the script until the cat reaches <paramref name="state"/>: the steps after it
+    /// run that much later. Not reaching it within <paramref name="timeout"/> seconds fails the check.
+    /// </summary>
+    (double, string, Action) Until(double at, CatState state, double timeout, string what) =>
+        (at, $"wait for {state}", () => _wait = (() => _main.Brain.State == state, timeout, what, _t));
+
     /// <summary>Queue a step for its own frame: steps run one per frame, in order, before the timed script goes on.</summary>
     void Frame(string what, Action act) => _frames.Enqueue((what, act));
 
@@ -232,16 +241,20 @@ public sealed class SelfTest
             (18.0, "screenshot", Shot),
             (26.0, "screenshot", Shot),
             (30.0, "restless", () => { _main.NeedsState.Hunger = 0.1; _main.NeedsState.Playfulness = 1; _main.Brain.Notice(); }),
+            // She finishes eating and sits a moment before running off.
+            Until(30.01, CatState.Zoomies, 20, "corre all'impazzata quando ha voglia di giocare"),
             (32.0, "screenshot", Shot),
             (34.0, "screenshot", Shot),
             (46.0, "tired", () => { _main.NeedsState.Playfulness = 0; _main.NeedsState.Energy = 0.1; _main.Brain.Notice(); }),
+            // She walks to the perch, possibly across the screen, and falls asleep on it.
+            Until(46.01, CatState.Sleep, 45, "stanca, va a dormire sul trespolo"),
+            (48.0, "screenshot", Shot),
+            (52.0, "grab", Grab),
+            (53.0, "screenshot", Shot),
+            (54.0, "release", () => _main.Brain.OnRelease(_main.Body, new Vec2(300, -600), _main.Map)),
+            (54.3, "screenshot", Shot),
             (58.0, "screenshot", Shot),
-            (62.0, "grab", Grab),
-            (63.0, "screenshot", Shot),
-            (64.0, "release", () => _main.Brain.OnRelease(_main.Body, new Vec2(300, -600), _main.Map)),
-            (64.3, "screenshot", Shot),
-            (68.0, "screenshot", Shot),
-            (70.0, "quit", () => _main.Quit()),
+            (60.0, "quit", () => _main.Quit()),
         };
     }
 
@@ -253,7 +266,17 @@ public sealed class SelfTest
             if (step.what != "") Log.Info($"selftest {_t:0.00}s: {step.what}");
             step.act();
         }
-        while (_frames.Count == 0 && _next < _script.Count && _script[_next].at <= _t)
+        else if (_wait is { } w)
+        {
+            bool done = w.done();
+            if (done || _t - w.since > w.timeout)
+            {
+                _wait = null;
+                Expect(done, $"{w.what} (dopo {_t - w.since:0.0}s)");
+            }
+        }
+        else _clock += dt;
+        while (_frames.Count == 0 && _wait == null && _next < _script.Count && _script[_next].at <= _clock)
         {
             var (_, what, act) = _script[_next++];
             if (what != "") Log.Info($"selftest {_t:0.0}s: {what}");
