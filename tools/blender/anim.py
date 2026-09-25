@@ -325,11 +325,15 @@ def sit_pose(p, breathe=0.0, t=0.0):
     # hind: metatarsus flat on the ground pointing forward, hock behind
     fold_hind(p, 'HL', SIT_HOCK_BACK)
     fold_hind(p, 'HR', SIT_HOCK_BACK)
+    # thighs turned a few degrees outwards, knees apart, as a cat sits
+    p.yz['Thigh.L'] = (0.0, SIT_THIGH_OUT)
+    p.yz['Thigh.R'] = (0.0, -SIT_THIGH_OUT)
     # tail drops to the ground and lies along it, curling round to the side
     chain_world(p, TAILS, SIT_TAIL, SIT_TAIL_CURL)
 
 SIT_DROP, SIT_PITCH, SIT_SPINE, SIT_CHEST = -0.245, -30, -12, 4
 SIT_HOCK_BACK = -0.04
+SIT_THIGH_OUT = -10   # negative = knees outwards
 SIT_TAIL_CURL = [0, 0, -35, -60, -55]
 SIT_TAIL = [-66, -58, -4, 3, 3]
 
