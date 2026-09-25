@@ -9,3 +9,6 @@ export/
 run_selftest.log
 run_perf.log
 run_*.log
+# textures Godot extracts from the cat GLBs on import (already inside the .glb)
+cats/*/*_Color.jpg
+cats/*/*_Color.jpg.import
