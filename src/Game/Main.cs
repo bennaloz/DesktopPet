@@ -313,6 +313,7 @@ public partial class Main : Node3D
 
     public override void _Input(InputEvent e)
     {
+        if (_selfTest?.IgnoresMouse(e) == true) return;
         switch (e)
         {
             case InputEventMouseButton { ButtonIndex: MouseButton.Left } b:

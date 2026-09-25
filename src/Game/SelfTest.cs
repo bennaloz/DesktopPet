@@ -14,6 +14,8 @@ public sealed class SelfTest
 {
     readonly Main _main;
     readonly List<(double at, string what, Action act)> _script;
+    readonly Queue<(string what, Action act)> _frames = new();
+    readonly string _mode;
 
     double _t;
     double _clickY;
@@ -27,10 +29,14 @@ public sealed class SelfTest
     public SelfTest(Main main, string mode)
     {
         _main = main;
+        _mode = mode;
         _script = mode switch
         {
             "windows" => WindowScript(), "mouse" => MouseScript(), "input" => InputScript(), _ => TourScript(),
         };
+        // Godot merges consecutive motion events without looking at the device, so a real mouse move could
+        // lend its position to an injected one: every injected event goes through on its own, right away.
+        if (mode == "input") Input.UseAccumulatedInput = false;
         Log.Info($"selftest: start ({mode})");
     }
 
@@ -52,54 +58,72 @@ public sealed class SelfTest
     /// <summary>
     /// Same gestures as test-mouse.ps1 but injected into Godot's input queue: checks the game's handling
     /// (grab, spin, throw, stroke, double-click) without the OS. Works on a locked session.
+    /// The cat starts from a fixed spot, the real mouse is ignored (see <see cref="IgnoresMouse"/>) and the
+    /// drag runs one step per frame: the hand speed is measured per event and fades per frame, so the throw
+    /// must not depend on how many frames fit between two wall-clock steps.
     /// </summary>
     List<(double, string, Action)> InputScript()
     {
         Vector2 cat = default;
         var list = new List<(double, string, Action)>
         {
-            (2.0, "sit still", () => { _main.Brain.SitFor(120); _main.World.Bowl.Food = 0; }),
-            (3.0, "press on cat", () =>
+            (1.0, "check clips", () => Expect(_main.Visual.EveryClipDrivesEveryBone(),
+                "ogni animazione muove tutte le ossa (niente zampe congelate dalla clip precedente)")),
+            (2.0, "sit still on the primary floor", () =>
             {
-                cat = _main.OverlayWindow.ToLocal(_main.Body.Pos) - new Vector2(0, _main.Visual.SizePx.Y * 0.5f);
-                Button(cat, true);
+                _main.Summon();
+                _main.Brain.SitFor(120);
+                _main.World.Bowl.Food = 0;
             }),
+            (3.0, "drag and throw", () =>
+            {
+                Frame("press on cat", () =>
+                {
+                    cat = CatPoint(0.5f);
+                    Button(cat, true);
+                });
+                for (int k = 1; k <= 15; k++)
+                {
+                    int s = k;
+                    Frame("", () => Motion(cat + new Vector2(s * 6, -s * 12), new Vector2(6, -12)));
+                    if (s != 8) continue;
+                    // Halfway through the drag: the cat is in hand and the window takes the whole mouse.
+                    Frame("check held", () => Expect(_main.Brain.State == CatState.Held, "gatto in braccio"));
+                    Frame("check region while dragging", () =>
+                        Expect(InRegion(new Vec2(_main.OverlayWindow.Origin.X + 20, _main.OverlayWindow.Origin.Y + 20)),
+                               "durante il trascinamento la finestra prende tutto il mouse"));
+                    Frame("screenshot", Shot);
+                }
+                Frame("release", () => Button(cat + new Vector2(90, -180), false));
+                Frame("check thrown", () => Expect(_main.Body.Mode == BodyMode.Airborne && _main.Body.Vel.X > 0,
+                    $"gatto lanciato (vel {_main.Body.Vel.X:0},{_main.Body.Vel.Y:0})"));
+            }),
+            // A plain click (no drag) must leave the cat where it stood.
+            (5.5, "click without moving", () =>
+            {
+                Frame("press", () =>
+                {
+                    _main.Summon();
+                    _main.Brain.SitFor(60);
+                    _clickY = _main.Body.Pos.Y;
+                    Button(CatPoint(0.5f), true);
+                });
+                Frame("release", () => Button(CatPoint(0.5f), false));
+            }),
+            (6.8, "check plain click", () =>
+                Expect(_main.Body.Mode == BodyMode.Grounded && Math.Abs(_main.Body.Pos.Y - _clickY) < 1,
+                       $"clic senza trascinare: resta in piedi dov'era (y {_clickY:0} → {_main.Body.Pos.Y:0})")),
+            (7.0, "sit again", () => _main.Brain.SitFor(120)),
+            (7.2, "check region", CheckRegion),
         };
-        for (int i = 1; i <= 15; i++)
-        {
-            int k = i;
-            list.Add((3.0 + k * 0.05, "", () => Motion(cat + new Vector2(k * 6, -k * 12), new Vector2(6, -12), false)));
-        }
-        list.Add((1.0, "check clips", () => Expect(_main.Visual.EveryClipDrivesEveryBone(),
-            "ogni animazione muove tutte le ossa (niente zampe congelate dalla clip precedente)")));
-        list.Add((4.0, "check held", () => Expect(_main.Brain.State == CatState.Held, "gatto in braccio")));
-        list.Add((4.05, "check region while dragging", () =>
-            Expect(InRegion(new Vec2(_main.OverlayWindow.Origin.X + 20, _main.OverlayWindow.Origin.Y + 20)), "durante il trascinamento la finestra prende tutto il mouse")));
-        list.Add((4.1, "screenshot", Shot));
-        list.Add((4.2, "release", () => Button(cat + new Vector2(90, -180), false)));
-        // A plain click (no drag) must leave the cat where it stood.
-        list.Add((5.5, "click without moving", () =>
-        {
-            _main.Brain.SitFor(60);
-            _clickY = _main.Body.Pos.Y;
-            var c = _main.OverlayWindow.ToLocal(_main.Body.Pos) - new Vector2(0, _main.Visual.SizePx.Y * 0.5f);
-            Button(c, true);
-            Button(c, false);
-        }));
-        list.Add((6.8, "check plain click", () =>
-            Expect(_main.Body.Mode == BodyMode.Grounded && Math.Abs(_main.Body.Pos.Y - _clickY) < 1,
-                   $"clic senza trascinare: resta in piedi dov'era (y {_clickY:0} → {_main.Body.Pos.Y:0})")));
-        list.Add((4.25, "check thrown", () => Expect(_main.Body.Mode == BodyMode.Airborne, "gatto lanciato")));
-        list.Add((7.0, "sit again", () => _main.Brain.SitFor(120)));
-        list.Add((7.2, "check region", CheckRegion));
+        // Stroking stays on the clock: petting fades per second, so it is a hand moving at a steady 30 Hz.
         for (int i = 0; i < 60; i++)
         {
             int k = i;
             list.Add((7.5 + k * 0.033, "", () =>
             {
-                var c = _main.OverlayWindow.ToLocal(_main.Body.Pos) - new Vector2(0, _main.Visual.SizePx.Y * 0.4f);
                 float dx = (k % 10 < 5 ? 1 : -1) * 12;
-                Motion(c + new Vector2(dx * (k % 5) - 24, 0), new Vector2(dx, 0), false);
+                Motion(CatPoint(0.4f) + new Vector2(dx * (k % 5) - 24, 0), new Vector2(dx, 0));
             }));
         }
         list.Add((9.6, "check purring", () => Expect(_main.Brain.State == CatState.Petted, "fusa dopo le carezze")));
@@ -108,25 +132,40 @@ public sealed class SelfTest
         {
             var bowl = _main.OverlayWindow.ToLocal(_main.World.Bowl.Body.Pos) - new Vector2(0, 10);
             Log.Info($"selftest bowl body={_main.World.Bowl.Body.Pos} rect={_main.World.Bowl.ScreenRect} click={bowl} cat={_main.Body.Pos} origin={_main.OverlayWindow.Origin}");
-            Button(bowl, true, doubleClick: true);
-            Button(bowl, false);
+            Frame("", () => Button(bowl, true, doubleClick: true));
+            Frame("", () => Button(bowl, false));
         }));
         list.Add((11.2, "check bowl", () => Expect(_main.World.Bowl.Food > 0.99, "ciotola riempita col doppio clic")));
         list.Add((12.0, "quit", () => _main.Quit()));
         return list.OrderBy(x => x.Item1).ToList();
     }
 
+    /// <summary>A point on the cat, <paramref name="up"/> of its height above the feet, in window coordinates.</summary>
+    Vector2 CatPoint(float up) => _main.OverlayWindow.ToLocal(_main.Body.Pos) - new Vector2(0, _main.Visual.SizePx.Y * up);
+
+    /// <summary>Queue a step for its own frame: steps run one per frame, in order, before the timed script goes on.</summary>
+    void Frame(string what, Action act) => _frames.Enqueue((what, act));
+
+    /// <summary>Marks injected events so the input test can tell them from the real mouse.</summary>
+    public const int InjectedDevice = 7;
+
+    /// <summary>
+    /// The input test drives the game alone: real mouse events (someone using the PC meanwhile) would drag
+    /// or throw the cat, since the window takes the whole mouse while dragging.
+    /// </summary>
+    public bool IgnoresMouse(InputEvent e) => _mode == "input" && e is InputEventMouse && e.Device != InjectedDevice;
+
     static void Button(Vector2 at, bool pressed, bool doubleClick = false) =>
         Input.ParseInputEvent(new InputEventMouseButton
         {
+            Device = InjectedDevice,
             ButtonIndex = MouseButton.Left, Pressed = pressed, DoubleClick = doubleClick, Position = at, GlobalPosition = at,
         });
 
-    static void Motion(Vector2 at, Vector2 rel, bool pressed) =>
+    static void Motion(Vector2 at, Vector2 rel) =>
         Input.ParseInputEvent(new InputEventMouseMotion
         {
-            Position = at, GlobalPosition = at, Relative = rel,
-            ButtonMask = pressed ? MouseButtonMask.Left : 0,
+            Device = InjectedDevice, Position = at, GlobalPosition = at, Relative = rel,
         });
 
     bool InRegion(Vec2 p) => ZairaPet.Windows.Win32.RegionContains(_main.OverlayWindow.Handle, (int)p.X, (int)p.Y);
@@ -209,7 +248,12 @@ public sealed class SelfTest
     public void Tick(double dt)
     {
         _t += dt;
-        while (_next < _script.Count && _script[_next].at <= _t)
+        if (_frames.TryDequeue(out var step))
+        {
+            if (step.what != "") Log.Info($"selftest {_t:0.00}s: {step.what}");
+            step.act();
+        }
+        while (_frames.Count == 0 && _next < _script.Count && _script[_next].at <= _t)
         {
             var (_, what, act) = _script[_next++];
             if (what != "") Log.Info($"selftest {_t:0.0}s: {what}");
