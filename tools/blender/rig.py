@@ -1,6 +1,7 @@
+import os,sys; sys.path.insert(0,os.path.dirname(os.path.abspath(__file__))); from paths import work_file
 import bpy, mathutils, numpy as np
 from mathutils import Vector as V3
-bpy.ops.wm.open_mainfile(filepath=r"C:/develop/personal/_assets/zaira/work/mesh.blend")
+bpy.ops.wm.open_mainfile(filepath=work_file("mesh.blend"))
 mesh=bpy.data.objects["Zaira"]
 # lighter mesh
 bpy.context.view_layer.objects.active=mesh; mesh.select_set(True)
@@ -148,7 +149,7 @@ for v in me.vertices:
         if g.weight>0: mesh.vertex_groups[g.group].add([v.index],g.weight,'REPLACE')
     filled+=1
 print("filled",filled)
-bpy.ops.wm.save_as_mainfile(filepath=r"C:/develop/personal/_assets/zaira/work/rig.blend")
+bpy.ops.wm.save_as_mainfile(filepath=work_file("rig.blend"))
 # cut the faces that glue the hanging tail to the rump (AI mesh fused them where they touched)
 import bmesh
 bm=bmesh.new(); bm.from_mesh(me)
@@ -186,4 +187,4 @@ for f in kill:
 bmesh.ops.delete(bm,geom=kill,context='FACES_ONLY')
 print("detached verts",made)
 bm.to_mesh(me); bm.free(); print("cut faces",len(kill))
-bpy.ops.wm.save_as_mainfile(filepath=r"C:/develop/personal/_assets/zaira/work/rig.blend")
+bpy.ops.wm.save_as_mainfile(filepath=work_file("rig.blend"))

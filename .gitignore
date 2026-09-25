@@ -9,3 +9,10 @@ export/
 run_selftest.log
 run_perf.log
 run_*.log
+
+# Pipeline Blender: intermedi e anteprime, rigenerati da tools/blender
+assets/zaira/work/
+*.blend1
+__pycache__/
+# Modelli di terze parti non usati dal gioco
+assets/extra/

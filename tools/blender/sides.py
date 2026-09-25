@@ -1,6 +1,7 @@
+import os,sys; sys.path.insert(0,os.path.dirname(os.path.abspath(__file__))); from paths import work_file
 import bpy, sys
 act=sys.argv[sys.argv.index("--")+1]
-bpy.ops.wm.open_mainfile(filepath=r"C:/develop/personal/_assets/zaira/work/anim.blend")
+bpy.ops.wm.open_mainfile(filepath=work_file("anim.blend"))
 arm=bpy.data.objects["Rig"]; arm.animation_data.action=bpy.data.actions[act]; bpy.context.scene.frame_set(0)
 m=bpy.data.objects["Zaira"]; em=m.evaluated_get(bpy.context.evaluated_depsgraph_get()).to_mesh()
 rest=m.data.vertices; V=[m.matrix_world@v.co for v in em.vertices]
