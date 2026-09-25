@@ -40,7 +40,7 @@ public sealed class CatBrain
 
     public CatState State { get; private set; } = CatState.Idle;
     public Goal Goal { get; private set; }
-    /// <summary>Logical animation: idle, walk, run, prejump, jump, fall, land, sit, sleep, eat, meow, purr, held, climb.</summary>
+    /// <summary>Logical animation: idle, walk, trot, run (sprint), prejump, jump, fall, land, sit, sleep, eat, meow, purr, held, climb.</summary>
     public string Action { get; private set; } = "idle";
     /// <summary>+1 facing right, -1 facing left.</summary>
     public int Facing { get; private set; } = 1;
@@ -412,7 +412,8 @@ public sealed class CatBrain
 
         if (Math.Abs(body.Pos.X - step.X) > 4)
         {
-            Action = _speed > WalkSpeed + 1 ? "run" : "walk";
+            // Two ways of running: a steady trot to get somewhere sooner, a sprint for treats.
+            Action = _speed >= RunSpeed ? "run" : _speed > WalkSpeed + 1 ? "trot" : "walk";
             _prejump = 0;
             double v = Toward(body.Pos.X, step.X, _speed);
             // Slow down on the last few pixels so we do not overshoot at 30 fps.

@@ -19,15 +19,23 @@
       ],
       "loop": true,
       "speed": 1.0,
-      "ref_speed_px": 80
+      "ref_speed_px": 102
     },
-    "run": {
+    "trot": {
       "anims": [
         "Run"
       ],
       "loop": true,
       "speed": 1.0,
       "ref_speed_px": 288
+    },
+    "run": {
+      "anims": [
+        "Sprint"
+      ],
+      "loop": true,
+      "speed": 1.0,
+      "ref_speed_px": 380
     },
     "prejump": {
       "anims": [

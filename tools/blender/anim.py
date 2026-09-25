@@ -184,7 +184,8 @@ def idle_look(p, t, f):
     p.x['Head'] = -6 * math.sin(math.pi * t)
     tail(p, lift=4, sway=6, t=TAU * t)
 
-def gait(p, t, phases, duty, reach, lift, bob, spine_flex=0.0, meta_roll=25.0, swing_curl=40.0):
+def gait(p, t, phases, duty, reach, lift, bob, spine_flex=0.0, meta_roll=25.0, swing_curl=40.0, centre=None):
+    centre = centre or {}
     for key, ph in phases.items():
         u = (t - ph) % 1.0
         if u < duty:                       # stance: paw planted, sliding back under the body
@@ -199,35 +200,57 @@ def gait(p, t, phases, duty, reach, lift, bob, spine_flex=0.0, meta_roll=25.0, s
             dz = lift * math.sin(math.pi * k)
             dm = meta_roll + swing_curl * math.sin(math.pi * k)
             toe = None
-        plant(p, key, dy, dz, dm, toe)
+        plant(p, key, dy + centre.get(key, 0.0), dz, dm, toe)
+
+WALK_REACH, WALK_HIND_SHIFT = 0.185, 0.10
 
 def walk(p, t, f):
     """A cat's walk: lateral-sequence gait, head low and steady, shoulders and hips rolling, back weaving."""
     w = TAU * t
     # weight shifts: the body dips a little twice per stride, rolls towards the leg that carries it
     p.hips = (0.0, -0.012 + 0.005 * math.cos(2 * w))
-    p.yz['Hips'] = (4.0 * math.sin(w), 3.0 * math.sin(w + 0.4))      # hip roll + sway
-    p.yz['Spine'] = (0.0, -2.5 * math.sin(w + 1.0))                   # the back weaves
-    p.yz['Chest'] = (-4.0 * math.sin(w + math.pi / 2), -2.0 * math.sin(w + 1.8))  # shoulder roll
+    # only a light weave of the back: rolling the hips or shoulders would swing the planted legs sideways
+    # (the leg IK works in the side plane only)
+    p.yz['Spine'] = (0.0, -1.2 * math.sin(w + 1.0))
     # head low, nose level, steady: the neck soaks up the body's bob
     p.x['Neck'] = 16 - 1.5 * math.cos(2 * w)
     p.x['Head'] = -14 + 1.5 * math.cos(2 * w)
     p.yz['Neck'] = (0.0, 2.0 * math.sin(w + 2.4))
-    gait(p, t, {'HL': 0.0, 'FL': 0.25, 'HR': 0.5, 'FR': 0.75}, duty=0.64, reach=0.14, lift=0.035, bob=0.0,
-         meta_roll=28, swing_curl=55)
+    # lateral sequence (LH, LF, RH, RF), with direct register: the hind paw lands in the print the front paw
+    # of the same side left. Print spacing 0.535 = 0.75 * stride + hind stance shift: stride 0.58, shift 0.10.
+    gait(p, t, {'HL': 0.0, 'FL': 0.25, 'HR': 0.5, 'FR': 0.75}, duty=0.64, reach=WALK_REACH, lift=0.035, bob=0.0,
+         meta_roll=28, swing_curl=55, centre={'HL': -WALK_HIND_SHIFT, 'HR': -WALK_HIND_SHIFT})
     tail(p, lift=6, sway=9, t=w)
 
 def run(p, t, f):
     c = math.cos(TAU * t)
     p.hips = (0.0, 0.025 * math.sin(TAU * t + 0.6))
     # the back flexes and extends with the stride
-    p.x['Hips'] = 6 * c
-    p.x['Spine'] = -5 * c
-    p.x['Chest'] = -4 * c
-    p.x['Neck'] = 6 * c
-    gait(p, t, {'HL': 0.0, 'HR': 0.08, 'FL': 0.5, 'FR': 0.58}, duty=0.38, reach=0.18, lift=0.09, bob=0.02,
+    # the back bends and stretches with every stride, a little less than in the sprint
+    p.x['Hips'] = 9 * c
+    p.x['Spine'] = -8 * c
+    p.x['Chest'] = -6 * c
+    p.x['Neck'] = 8 + 7 * c
+    p.x['Head'] = -8
+    # rotary gallop, as cats run: LH, RH, then RF, LF (the footfalls go round the body)
+    gait(p, t, {'HL': 0.0, 'HR': 0.08, 'FR': 0.5, 'FL': 0.58}, duty=0.38, reach=0.18, lift=0.09, bob=0.02,
          meta_roll=30, swing_curl=55)
     tail(p, lift=10 + 4 * c, sway=5, t=TAU * t)
+
+def sprint(p, t, f):
+    """Zoomies: a flat-out rotary gallop. The back flexes hard and stretches out at every stride (that spring
+    is where a cat's speed comes from), body low, head pushed forward and steady, tail straight back."""
+    w = TAU * t
+    c = math.cos(w)
+    p.hips = (0.0, -0.03 + 0.035 * math.sin(w + 0.6))
+    p.x['Hips'] = 12 * c
+    p.x['Spine'] = -10 * c
+    p.x['Chest'] = -8 * c
+    p.x['Neck'] = 12 + 8 * c        # soaks up the back's swing: the head stays level
+    p.x['Head'] = -10
+    gait(p, t, {'HL': 0.0, 'HR': 0.1, 'FR': 0.45, 'FL': 0.55}, duty=0.32, reach=0.2, lift=0.11, bob=0.0,
+         meta_roll=35, swing_curl=70)
+    tail(p, lift=5 + 3 * c, sway=3, t=w)
 
 # ---- jump: parametric key poses blended over time (a real cat's take-off, flight and landing)
 STAND = dict(dz=0.0, pitch=0.0, spine=0.0, chest=0.0, neck=0.0, head=0.0, tail=4.0,
@@ -296,10 +319,10 @@ def sit_pose(p, breathe=0.0, t=0.0):
     # tail drops to the ground and lies along it, curling round to the side
     chain_world(p, TAILS, SIT_TAIL, SIT_TAIL_CURL)
 
-SIT_DROP, SIT_PITCH, SIT_SPINE, SIT_CHEST = -0.255, -30, -12, 4
+SIT_DROP, SIT_PITCH, SIT_SPINE, SIT_CHEST = -0.245, -30, -12, 4
 SIT_HOCK = -88
 SIT_TAIL_CURL = [0, 0, -35, -60, -55]
-SIT_TAIL = [-70, -62, -8, 2, 2]
+SIT_TAIL = [-66, -58, -4, 3, 3]
 
 def sit(p, t, f):
     sit_pose(p, breathe=1.2 * math.sin(TAU * t), t=t)
@@ -400,6 +423,7 @@ bake("Idle", 90, idle)
 bake("Idle_Look", 120, idle_look)
 bake("Walk", 24, walk)
 bake("Run", 14, run)
+bake("Sprint", 14, sprint)
 bake("Prejump", 13, prejump, loop=False)
 bake("Jump", 10, jump, loop=False)
 bake("Fall", 9, fall, loop=False)
