@@ -66,7 +66,7 @@ public partial class Main : Node3D
         PlaceEverything(LoadSave());
         SetupTray();
 
-        _brain = new CatBrain(_rng);
+        _brain = new CatBrain(_rng) { EatReach = profile.EatReach * profile.LengthPx };
         _world.TreatEaten = RemoveTreat;
 
         var args = OS.GetCmdlineUserArgs();
@@ -164,8 +164,12 @@ public partial class Main : Node3D
         _world.Treat?.Body.FollowSupport(_map);
     }
 
+    /// <summary>Self tests start from a fresh cat and never touch the real one's save.</summary>
+    static bool Testing => OS.GetCmdlineUserArgs().Any(a => a.StartsWith("--selftest"));
+
     SaveData LoadSave()
     {
+        if (Testing) return new SaveData();
         try
         {
             if (System.IO.File.Exists(SavePath)) return SaveData.FromJson(System.IO.File.ReadAllText(SavePath));
@@ -176,6 +180,7 @@ public partial class Main : Node3D
 
     void Save()
     {
+        if (Testing) return;
         var s = SaveData.Capture(_needs, _world.Bowl.Food, _world.Bowl.Body.Pos.X, _world.Perch.Body.Pos.X, _body.Pos.X);
         try { System.IO.File.WriteAllText(SavePath, s.ToJson()); }
         catch (System.IO.IOException e) { Log.Info($"save fallito: {e.Message}"); }

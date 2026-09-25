@@ -40,12 +40,14 @@ public sealed class CatBrain
 
     public CatState State { get; private set; } = CatState.Idle;
     public Goal Goal { get; private set; }
-    /// <summary>Logical animation: idle, walk, run, jump, fall, land, sit, sleep, eat, meow, purr, held, climb.</summary>
+    /// <summary>Logical animation: idle, walk, run, prejump, jump, fall, land, sit, sleep, eat, meow, purr, held, climb.</summary>
     public string Action { get; private set; } = "idle";
     /// <summary>+1 facing right, -1 facing left.</summary>
     public int Facing { get; private set; } = 1;
     /// <summary>Short symbol shown over the cat: ♥ z ! or null.</summary>
     public string? Emote { get; private set; }
+    /// <summary>How far ahead of the body centre the mouth reaches when eating (px): where to stop before food.</summary>
+    public double EatReach { get; init; } = 45;
 
     double _stateTime;        // time spent in the current state
     double _stateDuration;    // planned length for timed states
@@ -164,6 +166,8 @@ public sealed class CatBrain
                 ResumeAfterLanding();
             else if (body.LandingSpeed > 1100)
                 Enter(CatState.Landing, 0.45);
+            else if (body.LandingSpeed > 450)
+                Enter(CatState.Landing, 0.3);   // an ordinary jump: a quick absorb on the front legs
             else
                 ResumeAfterLanding();
         }
@@ -356,16 +360,18 @@ public sealed class CatBrain
         switch (Goal)
         {
             case Goal.Bowl when world.BowlPlatform != null:
-                // Stand beside the bowl, on the side we come from.
+                // Stand beside the bowl, on the side we come from, with the mouth over it.
                 double side = body.Pos.X < world.BowlX ? -1 : 1;
-                return (Current(map, world.BowlPlatform) ?? world.BowlPlatform, world.BowlX + side * 45);
+                return (Current(map, world.BowlPlatform) ?? world.BowlPlatform, world.BowlX + side * EatReach);
             case Goal.Perch when world.PerchTop != null:
                 return (Current(map, world.PerchTop) ?? world.PerchTop, world.PerchX);
             case Goal.Perch:
                 return (body.Support!, body.Pos.X);   // no perch: sleep where we are
             case Goal.Treat when world.TreatPos is { } t && world.TreatLanded:
                 var tp = map.SupportAt(t.X, t.Y, 4);
-                return tp == null ? null : (tp, t.X);
+                if (tp == null) return null;
+                double tside = body.Pos.X < t.X ? -1 : 1;
+                return (tp, MathX.SafeClamp(t.X + tside * EatReach, tp.X0 + 1, tp.X1 - 1));
             case Goal.Explore when _exploreTarget != null:
                 return (Current(map, _exploreTarget) ?? _exploreTarget, _exploreX);
             default:
@@ -432,9 +438,9 @@ public sealed class CatBrain
             return 0;
         }
         Facing = Math.Sign(hop.LandX - body.Pos.X) is var s && s != 0 ? s : Facing;
-        Action = "idle";
+        Action = "prejump";   // load the hind legs, eyes on the target
         _prejump += dt;
-        if (_prejump < 0.25) return 0;
+        if (_prejump < 0.27) return 0;
         _prejump = 0;
         double dx = Math.Abs(hop.LandX - body.Pos.X);
         double apex = hop.Kind == NavStepKind.Jump ? 35 + dx * 0.12 : 15;

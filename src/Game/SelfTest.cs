@@ -21,6 +21,8 @@ public sealed class SelfTest
     int _next;
     int _shot;
     string _lastState = "";
+    double _eatTime;
+    bool _eatChecked;
 
     public SelfTest(Main main, string mode)
     {
@@ -212,6 +214,22 @@ public sealed class SelfTest
             var (_, what, act) = _script[_next++];
             if (what != "") Log.Info($"selftest {_t:0.0}s: {what}");
             act();
+        }
+
+        // Whenever the cat eats: the mouth must be over the bowl, and a picture shows it.
+        _eatTime = _main.Brain.State == CatState.Eat ? _eatTime + dt : 0;
+        if (!_eatChecked && _eatTime > 0.8)
+        {
+            _eatChecked = true;
+            // The real nose tip from the posed skeleton (1 world unit = 1 px, y up), in screen pixels.
+            var nose = _main.Visual.BonePoint("Head", 0.14f);
+            double bowl = _main.World.Bowl.Body.Pos.X;
+            if (nose is { } n)
+            {
+                double mouth = _main.OverlayWindow.ToScreen(new Vector2(n.X, -n.Y)).X;
+                Expect(Math.Abs(mouth - bowl) < 18, $"mangia con il muso sopra la ciotola (muso {mouth:0}, ciotola {bowl:0})");
+            }
+            Shot();
         }
 
         string state = $"{_main.Brain.State}/{_main.Brain.Action}";

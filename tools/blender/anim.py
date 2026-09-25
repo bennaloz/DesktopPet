@@ -156,7 +156,7 @@ def new_action(name):
 def bake(name, frames, fn, loop=True):
     new_action(name)
     for f in range(frames + (1 if loop else 0)):
-        t = f / frames
+        t = f / frames if loop else f / (frames - 1)   # one-shot clips end exactly on their last pose
         p = Pose()
         fn(p, t, f)
         p.apply(f)
@@ -221,35 +221,56 @@ def run(p, t, f):
          meta_roll=30, swing_curl=55)
     tail(p, lift=10 + 4 * c, sway=5, t=TAU * t)
 
+# ---- jump: parametric key poses blended over time (a real cat's take-off, flight and landing)
+STAND = dict(dz=0.0, pitch=0.0, spine=0.0, chest=0.0, neck=0.0, head=0.0, tail=4.0,
+             legs={k: (0.0, 0.0, 0.0) for k in ('FL', 'FR', 'HL', 'HR')})
+# loading: rump sinks on the hind legs, front stays up, head points at the target
+LOAD = dict(dz=-0.07, pitch=-8.0, spine=2.0, chest=0.0, neck=6.0, head=-4.0, tail=-4.0,
+            legs={'FL': (0.0, 0.0, 0.0), 'FR': (0.0, 0.0, 0.0), 'HL': (0.02, 0.0, -10.0), 'HR': (0.02, 0.0, -10.0)})
+# push-off: hind legs straighten against the ground, front paws already folded up under the chest
+PUSH = dict(dz=0.03, pitch=-16.0, spine=-3.0, chest=-2.0, neck=-2.0, head=2.0, tail=6.0,
+            legs={'FL': (0.03, 0.15, 70.0), 'FR': (0.05, 0.14, 70.0), 'HL': (0.24, 0.02, 70.0), 'HR': (0.25, 0.02, 70.0)})
+# flight: body long, front legs reaching forward, hind legs trailing, tail straight back
+FLY = dict(dz=0.0, pitch=-5.0, spine=-4.0, chest=-3.0, neck=-6.0, head=4.0, tail=12.0,
+           legs={'FL': (-0.25, 0.22, -75.0), 'FR': (-0.23, 0.24, -75.0), 'HL': (0.27, 0.13, 85.0), 'HR': (0.29, 0.14, 85.0)})
+# coming down: nose down, front legs reaching for the ground, hind legs drawn in under the belly
+DOWN = dict(dz=0.0, pitch=10.0, spine=2.0, chest=2.0, neck=4.0, head=-6.0, tail=10.0,
+            legs={'FL': (-0.09, 0.02, -15.0), 'FR': (-0.07, 0.04, -15.0), 'HL': (-0.03, 0.17, 30.0), 'HR': (-0.01, 0.18, 30.0)})
+# touch-down: chest dips as the front legs take the weight
+ABSORB = dict(dz=-0.05, pitch=6.0, spine=2.0, chest=6.0, neck=-6.0, head=4.0, tail=6.0,
+              legs={'FL': (0.0, 0.0, 0.0), 'FR': (0.0, 0.0, 0.0), 'HL': (0.0, 0.0, 0.0), 'HR': (0.0, 0.0, 0.0)})
+
+def mix(a, b, t):
+    out = {k: lerp(a[k], b[k], t) for k in a if k != 'legs'}
+    out['legs'] = {k: tuple(lerp(x, y, t) for x, y in zip(a['legs'][k], b['legs'][k])) for k in a['legs']}
+    return out
+
+def pose_from(p, q):
+    p.hips = (0.0, q['dz'])
+    p.x['Hips'] = q['pitch']; p.x['Spine'] = q['spine']; p.x['Chest'] = q['chest']
+    p.x['Neck'] = q['neck']; p.x['Head'] = q['head']
+    for k, (dy, dz, dm) in q['legs'].items():
+        plant(p, k, dy, dz, dm)
+    tail(p, lift=q['tail'], sway=0, t=0)
+
+def keys(t, seq):
+    """seq: [(time, pose), ...] with times 0..1; smooth blend between neighbours."""
+    for (t0, a), (t1, b) in zip(seq, seq[1:]):
+        if t <= t1:
+            return mix(a, b, smooth((t - t0) / (t1 - t0)))
+    return seq[-1][1]
+
+def prejump(p, t, f):
+    pose_from(p, keys(t, [(0, STAND), (1, LOAD)]))
+
 def jump(p, t, f):
-    # crouch (t<0.3) then stretch out: hind legs push back, front legs reach forward
-    c = smooth(t / 0.3) * (1 - smooth((t - 0.3) / 0.25))
-    e = smooth((t - 0.3) / 0.35)
-    p.hips = (0.0, -0.06 * c)
-    p.x['Hips'] = -12 * e
-    p.x['Neck'] = 10 * e
-    plant(p, 'HL', 0.18 * e, 0.04 * e + 0.0, 55 * e)
-    plant(p, 'HR', 0.19 * e, 0.05 * e, 55 * e)
-    plant(p, 'FL', -0.16 * e, 0.16 * e, -40 * e)
-    plant(p, 'FR', -0.14 * e, 0.18 * e, -40 * e)
-    tail(p, lift=-10 * e + 5, sway=0, t=0)
+    pose_from(p, keys(t, [(0, LOAD), (0.4, PUSH), (1, FLY)]))
 
 def fall(p, t, f):
-    e = smooth(t / 0.6)
-    p.x['Hips'] = 8 * e
-    p.x['Neck'] = -8 * e
-    plant(p, 'HL', -0.06 * e, 0.07 * e, 20 * e)
-    plant(p, 'HR', -0.05 * e, 0.09 * e, 20 * e)
-    plant(p, 'FL', -0.10 * e, 0.05 * e, -30 * e)
-    plant(p, 'FR', -0.08 * e, 0.07 * e, -30 * e)
-    tail(p, lift=12 * e, sway=0, t=0)
+    pose_from(p, keys(t, [(0, FLY), (1, DOWN)]))
 
 def land(p, t, f):
-    c = math.sin(math.pi * min(1, t / 0.8))
-    p.hips = (0.0, -0.07 * c)
-    p.x['Neck'] = -8 * c
-    stand(p)
-    tail(p, lift=10, sway=0, t=0)
+    pose_from(p, keys(t, [(0, DOWN), (0.3, ABSORB), (1, STAND)]))
 
 def sit_pose(p, breathe=0.0, t=0.0):
     # body pitched up around the hips, rump on the ground, front legs straight, hind legs folded flat
@@ -333,12 +354,20 @@ def loaf(p, t, f):
 def sleep(p, t, f):
     loaf_pose(p, head_down=1.0, breathe=math.sin(TAU * t))
 
+EAT = dict(drop=-0.03, pitch=8, spine=4, chest=12, neck=48, head=32, paws_back=0.05)
+
 def eat(p, t, f):
-    p.hips = (0.0, -0.01)
-    p.x['Chest'] = 10
-    p.x['Neck'] = 38
-    p.x['Head'] = 28 + 5 * math.sin(TAU * 3 * t)
-    stand(p)
+    """Head down in the bowl: chest lowered on slightly bent front legs, paws kept behind the bowl, chewing."""
+    e = EAT
+    p.hips = (0.0, e['drop'])
+    p.x['Hips'] = e['pitch']
+    p.x['Spine'] = e['spine']
+    p.x['Chest'] = e['chest']
+    p.x['Neck'] = e['neck']
+    p.x['Head'] = e['head'] + 4 * math.sin(TAU * 3 * t)
+    plant(p, 'FL', e['paws_back'], 0.0)
+    plant(p, 'FR', e['paws_back'], 0.0)
+    plant(p, 'HL'); plant(p, 'HR')
     tail(p, lift=4, sway=8, t=TAU * t)
 
 def meow(p, t, f):
@@ -363,9 +392,10 @@ bake("Idle", 90, idle)
 bake("Idle_Look", 120, idle_look)
 bake("Walk", 24, walk)
 bake("Run", 14, run)
-bake("Jump", 12, jump, loop=False)
-bake("Fall", 10, fall, loop=False)
-bake("Land", 12, land, loop=False)
+bake("Prejump", 8, prejump, loop=False)
+bake("Jump", 10, jump, loop=False)
+bake("Fall", 9, fall, loop=False)
+bake("Land", 9, land, loop=False)
 bake("Sit", 90, sit)
 bake("Crouch", 90, crouch)
 bake("Loaf", 90, loaf)

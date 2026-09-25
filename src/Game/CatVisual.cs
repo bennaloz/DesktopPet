@@ -100,6 +100,19 @@ public partial class CatVisual : Node3D
         }
     }
 
+    /// <summary>
+    /// Self-test: world position of a point `along` model units down a bone's axis in its current pose
+    /// (e.g. the tip of the nose past the head bone), or null if the model has no such bone.
+    /// </summary>
+    internal Vector3? BonePoint(string bone, float along)
+    {
+        var skeleton = FindAll<Skeleton3D>(_model).FirstOrDefault();
+        int i = skeleton?.FindBone(bone) ?? -1;
+        if (skeleton == null || i < 0) return null;
+        var pose = skeleton.GetBoneGlobalPose(i);
+        return skeleton.GlobalTransform * (pose.Origin + pose.Basis.Y.Normalized() * along);
+    }
+
     /// <summary>Self-test: every clip drives every bone (see <see cref="FillRestTracks"/>).</summary>
     internal bool EveryClipDrivesEveryBone()
     {

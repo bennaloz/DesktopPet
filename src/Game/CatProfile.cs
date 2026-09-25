@@ -18,6 +18,8 @@ public sealed class CatProfile
     [JsonPropertyName("yaw_offset_deg")] public double YawOffsetDeg { get; set; }
     /// <summary>How much of its face the cat turns toward the viewer while walking sideways.</summary>
     [JsonPropertyName("three_quarter_deg")] public double ThreeQuarterDeg { get; set; } = 25;
+    /// <summary>How far ahead of the body centre the mouth reaches when eating, as a fraction of the length.</summary>
+    [JsonPropertyName("eat_reach")] public double EatReach { get; set; } = 0.3;
     [JsonPropertyName("material_colors")] public Dictionary<string, float[]> MaterialColors { get; set; } = new();
     [JsonPropertyName("actions")] public Dictionary<string, ActionClip> Actions { get; set; } = new();
 
@@ -44,6 +46,7 @@ public sealed class CatProfile
             "meow" => "idle",
             "held" => "idle",
             "land" => "idle",
+            "prejump" => "idle",
             "fall" => "jump",
             "run" => "walk",
             "sit" => "idle",
