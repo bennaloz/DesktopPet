@@ -126,6 +126,15 @@ def plant_under_shoulder(p, key, dmeta=0.0, ahead=0.0):
     H = p.point(par, REST[u]['h'])
     p.leg(u, l, m, t, (H[0] - ahead, PAW[key][1]), META[key] + dmeta, fwd, None)
 
+def fold_hind(p, key, back=0.02, hock_z=0.03):
+    """Sitting hind leg: hock just behind the hip on the ground, foot flat forward under the thigh, so the leg
+    folds completely and the thigh rests on the floor with the knee forward."""
+    u, l, m, t, fwd = LEGS[key]
+    H = p.point(REST[u]['parent'], REST[u]['h'])
+    L3 = REST[m]['L']
+    hock = (H[0] + back, hock_z)
+    p.leg(u, l, m, t, (hock[0] - L3, PAW[key][1]), 180, fwd, 180)
+
 def stand(p):
     for k in LEGS: plant(p, k)
 
@@ -314,13 +323,13 @@ def sit_pose(p, breathe=0.0, t=0.0):
     plant_under_shoulder(p, 'FL', 12, ahead=0.015)
     plant_under_shoulder(p, 'FR', 12, ahead=0.015)
     # hind: metatarsus flat on the ground pointing forward, hock behind
-    plant(p, 'HL', -0.10, 0.0, SIT_HOCK, toe=180)
-    plant(p, 'HR', -0.10, 0.0, SIT_HOCK, toe=180)
+    fold_hind(p, 'HL', SIT_HOCK_BACK)
+    fold_hind(p, 'HR', SIT_HOCK_BACK)
     # tail drops to the ground and lies along it, curling round to the side
     chain_world(p, TAILS, SIT_TAIL, SIT_TAIL_CURL)
 
 SIT_DROP, SIT_PITCH, SIT_SPINE, SIT_CHEST = -0.245, -30, -12, 4
-SIT_HOCK = -88
+SIT_HOCK_BACK = 0.02
 SIT_TAIL_CURL = [0, 0, -35, -60, -55]
 SIT_TAIL = [-66, -58, -4, 3, 3]
 

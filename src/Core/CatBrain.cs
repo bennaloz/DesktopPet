@@ -35,6 +35,8 @@ public sealed class CatBrain
     public const double MaxJumpUp = 460;
     public const double MaxJumpGap = 340;
     public const double TravelTimeout = 45;
+    /// <summary>Time to stop and turn round before running the other way (the model turns through the viewer side).</summary>
+    public const double TurnTime = 0.3;
 
     readonly Random _rng;
 
@@ -64,6 +66,7 @@ public sealed class CatBrain
     Vec2? _treatIgnored;      // a treat we could not reach: leave it alone
     int _bowlFails;           // failed trips to the bowl in a row
     double _bowlCooldown;     // seconds before trying the bowl again after giving up
+    double _turnLeft;         // stopped, turning round
 
     public CatBrain(Random rng) => _rng = rng;
 
@@ -124,6 +127,7 @@ public sealed class CatBrain
         _stateTime += dt;
         _petting = Math.Max(0, _petting - dt);
         _bowlCooldown = Math.Max(0, _bowlCooldown - dt);
+        _turnLeft = Math.Max(0, _turnLeft - dt);
         needs.Tick(dt, State == CatState.Sleep);
         Emote = null;
 
@@ -156,6 +160,7 @@ public sealed class CatBrain
         else
         {
             walk = Think(dt, body, needs, map, world);
+            if (_turnLeft > 0 && Action is "run" or "trot") Action = "idle";   // stopped for a moment, turning
         }
 
         body.Step(dt, map, walk);
@@ -174,6 +179,7 @@ public sealed class CatBrain
         if (body.HitWall && State is CatState.Wander or CatState.Zoomies)
         {
             Facing = -Facing;
+            if (State == CatState.Zoomies) _turnLeft = TurnTime;
             _zoomTarget = double.NaN;
             _wanderX = body.Pos.X + Facing * 150;
         }
@@ -521,8 +527,10 @@ public sealed class CatBrain
     {
         double d = to - from;
         if (double.IsNaN(d) || Math.Abs(d) < 1) return 0;
-        Facing = Math.Sign(d);
-        return Facing * speed;
+        int dir = Math.Sign(d);
+        if (dir != Facing && speed > WalkSpeed + 1) _turnLeft = TurnTime;   // running the other way: turn first
+        Facing = dir;
+        return _turnLeft > 0 ? 0 : Facing * speed;
     }
 
     void Enter(CatState s, double duration = 0)
