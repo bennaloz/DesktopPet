@@ -20,6 +20,7 @@ public partial class Main : Node3D
     readonly Needs _needs = new();
     readonly GameWorld _world = new();
     CatBrain _brain = null!;
+    Gaze _gaze = null!;
     CatBody _body = null!;
     CatVisual _visual = null!;
     Label3D _emote = null!;
@@ -67,11 +68,13 @@ public partial class Main : Node3D
         SetupTray();
 
         _brain = new CatBrain(_rng) { EatReach = profile.EatReach * profile.LengthPx };
+        _gaze = new Gaze(_rng);
         _world.TreatEaten = RemoveTreat;
 
         var args = OS.GetCmdlineUserArgs();
         string? mode = args.Contains("--selftest") ? "tour" : args.Contains("--selftest-windows") ? "windows"
-                     : args.Contains("--selftest-mouse") ? "mouse" : args.Contains("--selftest-input") ? "input" : null;
+                     : args.Contains("--selftest-mouse") ? "mouse" : args.Contains("--selftest-input") ? "input"
+                     : args.Contains("--selftest-gaze") ? "gaze" : null;
         if (mode != null) _selfTest = new SelfTest(this, mode);
     }
 
@@ -129,6 +132,25 @@ public partial class Main : Node3D
         _overlay.Setup(GetWindow());
         FitCamera();
         RebuildMap();
+    }
+
+    /// <summary>Screen position of the head, roughly: in front of the body centre, high up.</summary>
+    Vec2 HeadPos => _body.Pos + new Vec2(_brain.Facing * _visual.SizePx.X * 0.38, -_visual.SizePx.Y * 0.8);
+
+    void UpdateGaze(double dt)
+    {
+        var cursor = Win32.CursorPos();
+        var head = HeadPos;
+        _gaze.Update(dt, new GazeInput(_paused ? CatState.Sit : _brain.State, head, _brain.Facing,
+            cursor is { } c ? new Vec2(c.x, c.y) : null, _brain.JumpTarget, _world.Treat?.Body.Pos));
+        Vector3? target = _gaze.Kind switch
+        {
+            // The viewer sits in front of the screen: straight out of it, level with the head.
+            GazeKind.Viewer => _overlay.ToWorld(head, 900),
+            GazeKind.Point => _overlay.ToWorld(_gaze.Point, 40),
+            _ => null,
+        };
+        _visual.Look(target, dt);
     }
 
     // ------------------------------------------------------------------ world state
@@ -257,6 +279,7 @@ public partial class Main : Node3D
         bool climbing = _body.Mode == BodyMode.Climbing;
         _visual.Animate(dt, _brain.Facing, climbing ? CatBody.ClimbSpeed : Math.Abs(_body.Vel.X),
                         _body.Mode == BodyMode.Held, climbing);
+        UpdateGaze(dt);
         foreach (var prop in Props())
             prop.Position = _overlay.ToWorld(prop.Body.Pos, prop is Perch ? -120 : 0);
 
@@ -511,4 +534,6 @@ public partial class Main : Node3D
     internal GameWorld World => _world;
     internal Overlay OverlayWindow => _overlay;
     internal CatVisual Visual => _visual;
+    internal Gaze GazeState => _gaze;
+    internal Vec2 HeadScreenPos => HeadPos;
 }

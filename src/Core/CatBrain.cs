@@ -50,6 +50,8 @@ public sealed class CatBrain
     public string? Emote { get; private set; }
     /// <summary>How far ahead of the body centre the mouth reaches when eating (px): where to stop before food.</summary>
     public double EatReach { get; init; } = 45;
+    /// <summary>Where the jump being prepared or flown will land (screen px), for the eyes; null otherwise.</summary>
+    public Vec2? JumpTarget { get; private set; }
 
     double _stateTime;        // time spent in the current state
     double _stateDuration;    // planned length for timed states
@@ -164,6 +166,7 @@ public sealed class CatBrain
         }
 
         body.Step(dt, map, walk);
+        if (body.Mode != BodyMode.Airborne && Action != "prejump") JumpTarget = null;
 
         if (body.JustLanded)
         {
@@ -446,6 +449,7 @@ public sealed class CatBrain
         }
         Facing = Math.Sign(hop.LandX - body.Pos.X) is var s && s != 0 ? s : Facing;
         Action = "prejump";   // load the hind legs, eyes on the target
+        JumpTarget = new Vec2(hop.LandX, hop.Target.Y);
         _prejump += dt;
         if (_prejump < 0.45) return 0;
         _prejump = 0;
@@ -498,7 +502,8 @@ public sealed class CatBrain
                     var hop = path[1];
                     if (Math.Abs(body.Pos.X - path[0].X) < 10)
                     {
-                        body.JumpTo(new Vec2(hop.LandX, hop.Target.Y), 40 + Math.Abs(hop.LandX - body.Pos.X) * 0.1);
+                        JumpTarget = new Vec2(hop.LandX, hop.Target.Y);
+                        body.JumpTo(JumpTarget.Value, 40 + Math.Abs(hop.LandX - body.Pos.X) * 0.1);
                         return 0;
                     }
                     _zoomTarget = path[0].X;

@@ -24,6 +24,12 @@ internal static partial class Win32
     delegate bool EnumWindowsProc(IntPtr hWnd, IntPtr lParam);
     delegate bool MonitorEnumProc(IntPtr hMonitor, IntPtr hdc, ref RECT rect, IntPtr data);
 
+    [DllImport("user32.dll")] static extern bool GetCursorPos(out POINT p);
+    struct POINT { public int X, Y; }
+
+    /// <summary>Mouse cursor on the virtual desktop, even when it is over other applications' windows.</summary>
+    public static (int x, int y)? CursorPos() => GetCursorPos(out var p) ? (p.X, p.Y) : null;
+
     [DllImport("user32.dll")] static extern bool EnumWindows(EnumWindowsProc cb, IntPtr lParam);
     [DllImport("user32.dll")] static extern bool IsWindowVisible(IntPtr hWnd);
     [DllImport("user32.dll")] static extern bool IsIconic(IntPtr hWnd);

@@ -25,6 +25,30 @@ public partial class CatVisual : Node3D
     double _roll;
     double _time;
 
+    GazeModifier? _gaze;
+    bool _gazeActive;
+
+    /// <summary>
+    /// Look at a world point (null: let the animation lead). Eyes move fast, the head follows smoothly and
+    /// turns back to the animation's pose when there is nothing to look at.
+    /// </summary>
+    public void Look(Vector3? target, double dt)
+    {
+        if (_gaze == null) return;
+        float want = target == null ? 0 : 1;
+        _gaze.Weight = Mathf.MoveToward(_gaze.Weight, want, (float)dt * 3.5f);
+        if (target is { } t)
+        {
+            // Snap when starting from rest, then follow the target smoothly.
+            _gaze.Target = _gazeActive ? _gaze.Target.Lerp(t, Math.Min(1f, (float)dt * 7)) : t;
+            _gazeActive = true;
+        }
+        else if (_gaze.Weight <= 0) _gazeActive = false;
+    }
+
+    /// <summary>Self-test: head position and direction after the gaze turned it (null if not looking).</summary>
+    internal (Vector3 pos, Vector3 dir)? GazeHead => _gaze is { Weight: > 0.001f } g ? (g.HeadPos, g.HeadDir) : null;
+
     public const double HeldRollDeg = 60;
     /// <summary>Body angle while going up a window side: nearly vertical, head up.</summary>
     public const double ClimbRollDeg = 78;
@@ -60,6 +84,18 @@ public partial class CatVisual : Node3D
                 _resolved.TryAdd(name.ToString().ToLowerInvariant(), name);
                 FillRestTracks(_player.GetAnimation(name));
             }
+
+        var skeleton = FindAll<Skeleton3D>(_model).FirstOrDefault();
+        if (skeleton != null && skeleton.FindBone(profile.GazeBones.Head) >= 0)
+        {
+            _gaze = new GazeModifier
+            {
+                Name = "Gaze",
+                Neck = skeleton.FindBone(profile.GazeBones.Neck),
+                Head = skeleton.FindBone(profile.GazeBones.Head),
+            };
+            skeleton.AddChild(_gaze);
+        }
 
         Recolor();
         FitToLength();

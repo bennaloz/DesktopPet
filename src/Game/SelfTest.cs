@@ -34,7 +34,7 @@ public sealed class SelfTest
         _mode = mode;
         _script = mode switch
         {
-            "windows" => WindowScript(), "mouse" => MouseScript(), "input" => InputScript(), _ => TourScript(),
+            "windows" => WindowScript(), "mouse" => MouseScript(), "input" => InputScript(), "gaze" => GazeScript(), _ => TourScript(),
         };
         // Godot merges consecutive motion events without looking at the device, so a real mouse move could
         // lend its position to an injected one: every injected event goes through on its own, right away.
@@ -140,6 +140,45 @@ public sealed class SelfTest
         list.Add((11.2, "check bowl", () => Expect(_main.World.Bowl.Food > 0.99, "ciotola riempita col doppio clic")));
         list.Add((12.0, "quit", () => _main.Quit()));
         return list.OrderBy(x => x.Item1).ToList();
+    }
+
+    /// <summary>
+    /// `-- --selftest-gaze`: the sitting cat looks at the viewer, then at a spot up ahead, then down at the floor
+    /// ahead; each time the real head direction (from the posed skeleton) must point there.
+    /// </summary>
+    List<(double, string, Action)> GazeScript()
+    {
+        Vec2 target = default;
+        void LookAt(GazeKind kind, Vec2 offset)
+        {
+            target = _main.HeadScreenPos + new Vec2(_main.Brain.Facing * offset.X, offset.Y);
+            _main.GazeState.Force(kind, target, 3);
+        }
+        return new List<(double, string, Action)>
+        {
+            (1.0, "sit", () => { _main.Summon(); _main.Brain.SitFor(60); }),
+            (1.5, "screenshot", Shot),
+            (2.0, "look at the viewer", () => LookAt(GazeKind.Viewer, new Vec2(0, 0))),
+            (4.0, "check viewer", () => CheckHead(new Vector3(0, 0, 1), 40, "guarda verso chi sta davanti allo schermo")),
+            (4.1, "screenshot", Shot),
+            (5.0, "look up ahead", () => LookAt(GazeKind.Point, new Vec2(220, -260))),
+            (7.0, "check up", () => CheckHead(null, 30, "guarda un punto in alto davanti", target)),
+            (7.1, "screenshot", Shot),
+            (8.0, "look down ahead", () => LookAt(GazeKind.Point, new Vec2(260, 160))),
+            (10.0, "check down", () => CheckHead(null, 30, "guarda un punto in basso davanti", target)),
+            (10.1, "screenshot", Shot),
+            (11.0, "quit", () => _main.Quit()),
+        };
+    }
+
+    /// <summary>Angle between where the head bone points and a direction (or a screen point) must be small.</summary>
+    void CheckHead(Vector3? dir, double maxDeg, string what, Vec2? point = null)
+    {
+        if (_main.Visual.GazeHead is not { } h) { Expect(false, what + " (la testa non si gira)"); return; }
+        var head = h.dir;
+        var want = dir ?? (_main.OverlayWindow.ToWorld(point!.Value, 40) - h.pos).Normalized();
+        double deg = Mathf.RadToDeg(head.AngleTo(want));
+        Expect(deg <= maxDeg, $"{what} (scarto {deg:0}°)");
     }
 
     /// <summary>A point on the cat, <paramref name="up"/> of its height above the feet, in window coordinates.</summary>

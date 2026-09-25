@@ -20,6 +20,8 @@ public sealed class CatProfile
     [JsonPropertyName("three_quarter_deg")] public double ThreeQuarterDeg { get; set; } = 25;
     /// <summary>How far ahead of the body centre the mouth reaches when eating, as a fraction of the length.</summary>
     [JsonPropertyName("eat_reach")] public double EatReach { get; set; } = 0.3;
+    /// <summary>Bones turned to look at things (neck optional). Models without them simply do not look around.</summary>
+    [JsonPropertyName("gaze_bones")] public GazeBones GazeBones { get; set; } = new();
     [JsonPropertyName("material_colors")] public Dictionary<string, float[]> MaterialColors { get; set; } = new();
     [JsonPropertyName("actions")] public Dictionary<string, ActionClip> Actions { get; set; } = new();
 
@@ -68,4 +70,10 @@ public sealed class ActionClip
     [JsonPropertyName("ref_speed_px")] public double RefSpeedPx { get; set; }
     [JsonPropertyName("breathe")] public bool Breathe { get; set; }
     [JsonPropertyName("vibrate")] public bool Vibrate { get; set; }
+}
+
+public sealed class GazeBones
+{
+    [JsonPropertyName("neck")] public string Neck { get; set; } = "Neck";
+    [JsonPropertyName("head")] public string Head { get; set; } = "Head";
 }
