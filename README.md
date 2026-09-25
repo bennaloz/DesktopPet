@@ -28,6 +28,19 @@ Doppio clic su `run.bat`. Per chiudere: icona nella system tray → **Esci**.
 
 Primi 2 minuti di prova, se qualcosa non va: `%APPDATA%\Godotpp_userdata\Zaira Desktop Pet\zaira.log`.
 
+## Da fare
+
+- **Coda in base all'umore** (approvato 25/09): quando cammina o corre la coda segue l'umore, ricavato dai
+  bisogni che ci sono gia' (fame, energia, voglia di giocare, felicita' dopo le carezze).
+  Contenta: alta con la punta a uncino. Tranquilla: bassa e morbida, onda lenta. Voglia di giocare: alta,
+  vibra e ondeggia piu' veloce. Stanca: bassa, quasi trascinata. Affamata o scocciata: orizzontale, la
+  punta frusta a scatti. Negli zoomies resta dritta indietro (equilibrio).
+  Come: un SkeletonModifier3D sulle ossa Tail1-5 sopra l'animazione (come GazeModifier), valido per tutte
+  le andature; la logica dell'umore in Core con i suoi test.
+- **Salto**: la pancia penzola ancora in volo (le cosce tirano giu' la pelle della pancia: pesi o posa).
+- **Coda**: frangia alla base quando si alza (difetto del modello, per ora si tiene).
+- **Pose accovacciata, pagnotta, acciambellata**: dai GLB Tripo senza rig, con testa e coda animate.
+
 ## Cosa provare
 
 | Azione | Come |

@@ -330,14 +330,15 @@ PUSH = dict(dz=0.03, pitch=4.0, spine=-3.0, chest=-2.0, neck=-2.0, head=2.0, tai
             legs={'FL': (0.03, 0.15, 70.0), 'FR': (0.05, 0.14, 70.0), 'HL': (0.24, 0.02, 70.0), 'HR': (0.25, 0.02, 70.0)})
 # flight: stretched out by the push - back extended, front legs reaching forward and up for the ledge, hind legs
 # extended back after the push, tail out behind and a little raised (the counterweight)
-FLY = dict(dz=0.0, pitch=10.0, spine=-8.0, chest=-6.0, neck=-6.0, head=4.0, tail=65.0,
-           legs={'FL': (-0.32, 0.28, -90.0), 'FR': (-0.30, 0.30, -90.0), 'HL': (0.33, 0.18, 90.0), 'HR': (0.35, 0.19, 90.0)})
-# coming down: nose down, front legs reaching for the ground, hind legs drawn in under the belly
-DOWN = dict(dz=0.0, pitch=10.0, spine=2.0, chest=2.0, neck=4.0, head=-6.0, tail=50.0,
-            legs={'FL': (-0.09, 0.02, -15.0), 'FR': (-0.07, 0.04, -15.0), 'HL': (-0.03, 0.17, 30.0), 'HR': (-0.01, 0.18, 30.0)})
-# touch-down: chest dips as the front legs take the weight
-ABSORB = dict(dz=-0.05, pitch=6.0, spine=2.0, chest=6.0, neck=-6.0, head=4.0, tail=6.0,
-              legs={'FL': (0.0, 0.0, 0.0), 'FR': (0.0, 0.0, 0.0), 'HL': (0.0, 0.0, 0.0), 'HR': (0.0, 0.0, 0.0)})
+FLY = dict(dz=0.0, pitch=10.0, spine=-5.0, chest=-4.0, neck=-6.0, head=4.0, tail=65.0,
+           legs={'FL': (-0.32, 0.28, -90.0), 'FR': (-0.30, 0.30, -90.0), 'HL': (0.27, 0.12, 75.0), 'HR': (0.29, 0.13, 75.0)})
+# coming down: back arched, front legs stretched forward and down for the ground, hind legs brought forward
+# under the belly, tail out behind for balance
+DOWN = dict(dz=0.0, pitch=10.0, spine=12.0, chest=6.0, neck=-6.0, head=2.0, tail=50.0,
+            legs={'FL': (-0.13, 0.0, -25.0), 'FR': (-0.11, 0.02, -25.0), 'HL': (-0.08, 0.14, 40.0), 'HR': (-0.06, 0.15, 40.0)})
+# touch-down: the front legs take the weight and give, chest dips, back still curved, hind paws come down
+ABSORB = dict(dz=-0.07, pitch=6.0, spine=10.0, chest=10.0, neck=-8.0, head=4.0, tail=20.0,
+              legs={'FL': (0.0, 0.0, 0.0), 'FR': (0.0, 0.0, 0.0), 'HL': (-0.04, 0.0, 0.0), 'HR': (-0.04, 0.0, 0.0)})
 
 def mix(a, b, t):
     out = {k: lerp(a[k], b[k], t) for k in a if k != 'legs'}
