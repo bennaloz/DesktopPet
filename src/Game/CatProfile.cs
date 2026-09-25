@@ -49,6 +49,7 @@ public sealed class CatProfile
             "held" => "idle",
             "land" => "idle",
             "prejump" => "idle",
+            "aim" => "prejump",
             "fall" => "jump",
             "run" => "walk",
             "lope" => "run",

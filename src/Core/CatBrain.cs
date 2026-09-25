@@ -40,6 +40,10 @@ public sealed class CatBrain
     public const double TravelTimeout = 45;
     /// <summary>Time to stop and turn round before running the other way (the model turns through the viewer side).</summary>
     public const double TurnTime = 0.3;
+    /// <summary>A target this close behind her counts as reached rather than worth turning round for.</summary>
+    public const double TurnSlack = 24;
+    /// <summary>Loading the hind legs before a jump, and each extra "taking aim" after it.</summary>
+    public const double CrouchTime = 0.45, AimTime = 0.5;
     /// <summary>How close (px from the body) a moving cursor must come to catch her eye.</summary>
     public const double HuntRange = 260;
     /// <summary>Playfulness above which she crouches and follows the cursor, and above which she pounces.</summary>
@@ -49,7 +53,7 @@ public sealed class CatBrain
 
     public CatState State { get; private set; } = CatState.Idle;
     public Goal Goal { get; private set; }
-    /// <summary>Logical animation: idle, walk, trot (happy), lope, run (sprint), stalk, wiggle, swat, prejump, jump, fall, land, sit, sleep, eat, meow, purr, held, climb.</summary>
+    /// <summary>Logical animation: idle, walk, trot (happy), lope, run (sprint), stalk, wiggle, swat, prejump, aim, jump, fall, land, sit, sleep, eat, meow, purr, held, climb.</summary>
     public string Action { get; private set; } = "idle";
     /// <summary>+1 facing right, -1 facing left.</summary>
     public int Facing { get; private set; } = 1;
@@ -68,6 +72,7 @@ public sealed class CatBrain
     double _stateDuration;    // planned length for timed states
     double _petting;          // recent petting, decays
     double _prejump;          // crouch before a jump
+    double _prejumpPlan = -1; // how long this take-off lasts: 0 straight away, a crouch, or taking aim
     double _speed = WalkSpeed;
     double _zoomTarget = double.NaN;
     Platform? _exploreTarget;
@@ -302,7 +307,7 @@ public sealed class CatBrain
                     Enter(CatState.Sit, 5);
                     return 0;
                 }
-                return DoZoomies(body, map);
+                return DoZoomies(dt, body, map);
 
             case CatState.Travel:
             case CatState.ChaseTreat:
@@ -318,7 +323,9 @@ public sealed class CatBrain
                     Enter(CatState.Idle, 1 + _rng.NextDouble() * 3);
                     return 0;
                 }
-                return Toward(body.Pos.X, _wanderX, _speed);
+                double wv = Toward(body.Pos.X, _wanderX, _speed, TurnSlack);
+                if (wv == 0 && _turnLeft <= 0) Enter(CatState.Idle, 1 + _rng.NextDouble() * 3);   // close enough: no walking on the spot
+                return wv;
 
             case CatState.Hunt:
                 return DoHunt(dt, body, needs);
@@ -490,11 +497,20 @@ public sealed class CatBrain
             return 0;
         }
         Facing = Math.Sign(hop.LandX - body.Pos.X) is var s && s != 0 ? s : Facing;
-        Action = "prejump";   // load the hind legs, eyes on the target
         JumpTarget = new Vec2(hop.LandX, hop.Target.Y);
+        if (_prejumpPlan < 0)
+        {
+            // Every jump its own way: sometimes she just goes, sometimes she crouches first,
+            // sometimes she takes aim two or three times before leaping.
+            double r = _rng.NextDouble();
+            _prejumpPlan = r < 0.3 ? 0 : r < 0.65 ? CrouchTime : CrouchTime + AimTime * (2 + _rng.Next(2));
+        }
         _prejump += dt;
-        if (_prejump < 0.45) return 0;
+        // load the hind legs, eyes on the target; then, if she is taking aim, measure it a few more times
+        Action = _prejump <= CrouchTime ? "prejump" : "aim";
+        if (_prejump < _prejumpPlan) return 0;
         _prejump = 0;
+        _prejumpPlan = -1;
         double dx = Math.Abs(hop.LandX - body.Pos.X);
         double apex = hop.Kind == NavStepKind.Jump ? 35 + dx * 0.12 : 15;
         body.JumpTo(new Vec2(hop.LandX, hop.Target.Y), apex);
@@ -527,7 +543,7 @@ public sealed class CatBrain
         }
     }
 
-    double DoZoomies(CatBody body, SurfaceMap map)
+    double DoZoomies(double dt, CatBody body, SurfaceMap map)
     {
         Action = "run";
         var s = body.Support!;
@@ -565,7 +581,11 @@ public sealed class CatBrain
             _stuckFrames = 0;
             return 0;
         }
-        return Toward(body.Pos.X, _zoomTarget, RunSpeed);
+        double v = Toward(body.Pos.X, _zoomTarget, RunSpeed, TurnSlack);
+        // Brake on the last few pixels: at 12 px a frame she would overshoot and turn back, again and again.
+        double remaining = Math.Abs(body.Pos.X - _zoomTarget);
+        if (remaining < Math.Abs(v) * dt) v = Math.Sign(v) * remaining / dt;
+        return v;
     }
 
     // ---------------------------------------------------------------- hunting the cursor
@@ -640,11 +660,13 @@ public sealed class CatBrain
     static string Gait(double speed) =>
         speed >= RunSpeed ? "run" : speed >= LopeSpeed ? "lope" : speed > WalkSpeed + 1 ? "trot" : "walk";
 
-    double Toward(double from, double to, double speed)
+    double Toward(double from, double to, double speed, double slack = 0)
     {
         double d = to - from;
         if (double.IsNaN(d) || Math.Abs(d) < 1) return 0;
         int dir = Math.Sign(d);
+        // A cat does not turn round for a few pixels behind it: close enough.
+        if (dir != Facing && Math.Abs(d) < slack) return 0;
         if (dir != Facing && speed > WalkSpeed + 1) _turnLeft = TurnTime;   // running the other way: turn first
         Facing = dir;
         return _turnLeft > 0 ? 0 : Facing * speed;
@@ -657,6 +679,7 @@ public sealed class CatBrain
         _stateDuration = duration;
         if (s != CatState.Zoomies) _zoomTarget = double.NaN;
         _prejump = 0;
+        _prejumpPlan = -1;
         Action = s switch
         {
             CatState.Sleep => "sleep",

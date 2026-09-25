@@ -27,6 +27,7 @@ public sealed class SelfTest
     string _lastState = "";
     double _eatTime;
     bool _eatChecked;
+    bool _shotAim, _shotLeap;
     Vec2? _prey;              // the pretend cursor, jiggling like a hand on the mouse
 
     public SelfTest(Main main, string mode)
@@ -388,6 +389,16 @@ public sealed class SelfTest
                 double mouth = _main.OverlayWindow.ToScreen(new Vector2(n.X, -n.Y)).X;
                 Expect(Math.Abs(mouth - bowl) < 18, $"mangia con il muso sopra la ciotola (muso {mouth:0}, ciotola {bowl:0})");
             }
+            Shot();
+        }
+
+        // Pictures of the take-off: taking aim, and rising steeply (the body should be nearly upright).
+        if (_mode == "tour" && !_shotAim && _main.Brain.Action == "aim") { _shotAim = true; Shot(); }
+        if (_mode == "tour" && !_shotLeap && _main.Body.Mode == BodyMode.Airborne && _main.Body.Vel.Y < -700
+            && Math.Abs(_main.Body.Vel.X) < 400 && _main.Brain.State != CatState.Held)
+        {
+            _shotLeap = true;
+            Log.Info($"selftest leap vel=({_main.Body.Vel.X:0},{_main.Body.Vel.Y:0}) pitch={Flight.PitchDeg(_main.Body.Vel):0}");
             Shot();
         }
 

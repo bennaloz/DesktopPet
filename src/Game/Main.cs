@@ -289,7 +289,8 @@ public partial class Main : Node3D
         _visual.Position = _overlay.ToWorld(_body.Pos, 40);
         bool climbing = _body.Mode == BodyMode.Climbing;
         _visual.Animate(dt, _brain.Facing, climbing ? CatBody.ClimbSpeed : Math.Abs(_body.Vel.X),
-                        _body.Mode == BodyMode.Held, climbing);
+                        _body.Mode == BodyMode.Held, climbing,
+                        _body.Mode == BodyMode.Airborne ? _body.Vel : null);
         UpdateGaze(dt);
         foreach (var prop in Props())
             prop.Position = _overlay.ToWorld(prop.Body.Pos, prop is Perch ? -120 : 0);

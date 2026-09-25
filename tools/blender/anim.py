@@ -358,6 +358,19 @@ def keys(t, seq):
 def prejump(p, t, f):
     pose_from(p, keys(t, [(0, STAND), (1, LOAD)]))
 
+def aim(p, t, f):
+    """Taking aim from the crouch: she rises a little and looks up at the landing spot, sinks back,
+    shifts her weight, hind paws treading."""
+    w = TAU * t
+    up = max(0.0, math.sin(w))
+    q = dict(LOAD)
+    q['dz'] = LOAD['dz'] + 0.035 * up
+    q['neck'] = LOAD['neck'] - 12 * up
+    q['head'] = LOAD['head'] + 6 * up
+    pose_from(p, q)
+    plant(p, 'HL', 0.03, 0.012 * max(0.0, math.sin(2 * w)), -18)
+    plant(p, 'HR', 0.03, 0.012 * max(0.0, -math.sin(2 * w)), -18)
+
 def jump(p, t, f):
     pose_from(p, keys(t, [(0, LOAD), (0.4, PUSH), (1, FLY)]))
 
@@ -497,6 +510,7 @@ bake("Stalk", 60, stalk)
 bake("Wiggle", 15, wiggle)
 bake("Swat", 15, swat, loop=False)
 bake("Prejump", 13, prejump, loop=False)
+bake("Aim", 15, aim)
 bake("Jump", 10, jump, loop=False)
 bake("Fall", 9, fall, loop=False)
 bake("Land", 9, land, loop=False)

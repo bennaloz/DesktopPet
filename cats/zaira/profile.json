@@ -51,6 +51,12 @@
       ],
       "loop": false
     },
+    "aim": {
+      "anims": [
+        "Aim"
+      ],
+      "loop": true
+    },
     "jump": {
       "anims": [
         "Jump"
