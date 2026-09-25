@@ -232,7 +232,9 @@ public partial class CatVisual : Node3D
     public void Animate(double dt, int facing, double groundSpeed, bool held, bool climbing = false, ZairaPet.Core.Vec2? airVel = null)
     {
         _time += dt;
-        double target = held ? HeldSpin : facing * (90 - _profile.ThreeQuarterDeg);
+        // Leaping steeply she turns side-on, so her stretched-out length shows instead of being foreshortened.
+        double sideOn = airVel is { } av ? ZairaPet.Core.Flight.SideOn(av) : 0;
+        double target = held ? HeldSpin : facing * (90 - _profile.ThreeQuarterDeg * (1 - sideOn));
         target += _profile.YawOffsetDeg;
         // Turn quickly but not instantly, through the viewer side (the cat never shows its back while turning).
         _yaw += (target - _yaw) * Math.Min(1, dt * (held ? 20 : 10));

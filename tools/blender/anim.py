@@ -325,9 +325,10 @@ LOAD = dict(dz=-0.12, pitch=-10.0, spine=3.0, chest=2.0, neck=10.0, head=-6.0, t
 # push-off: hind legs straighten against the ground, front paws already folded up under the chest
 PUSH = dict(dz=0.03, pitch=-16.0, spine=-3.0, chest=-2.0, neck=-2.0, head=2.0, tail=6.0,
             legs={'FL': (0.03, 0.15, 70.0), 'FR': (0.05, 0.14, 70.0), 'HL': (0.24, 0.02, 70.0), 'HR': (0.25, 0.02, 70.0)})
-# flight: body long, front legs reaching forward, hind legs trailing, tail straight back
-FLY = dict(dz=0.0, pitch=-5.0, spine=-4.0, chest=-3.0, neck=-6.0, head=4.0, tail=12.0,
-           legs={'FL': (-0.25, 0.22, -75.0), 'FR': (-0.23, 0.24, -75.0), 'HL': (0.27, 0.13, 85.0), 'HR': (0.29, 0.14, 85.0)})
+# flight: stretched out like a cat reaching for a ledge - back extended, front legs reaching forward and up
+# past the head, hind legs extended back in line with the spine after the push, tail straight back
+FLY = dict(dz=0.0, pitch=-5.0, spine=-9.0, chest=-7.0, neck=-8.0, head=4.0, tail=4.0,
+           legs={'FL': (-0.33, 0.34, -95.0), 'FR': (-0.31, 0.36, -95.0), 'HL': (0.35, 0.20, 95.0), 'HR': (0.37, 0.21, 95.0)})
 # coming down: nose down, front legs reaching for the ground, hind legs drawn in under the belly
 DOWN = dict(dz=0.0, pitch=10.0, spine=2.0, chest=2.0, neck=4.0, head=-6.0, tail=10.0,
             legs={'FL': (-0.09, 0.02, -15.0), 'FR': (-0.07, 0.04, -15.0), 'HL': (-0.03, 0.17, 30.0), 'HR': (-0.01, 0.18, 30.0)})

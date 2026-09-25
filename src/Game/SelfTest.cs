@@ -28,6 +28,7 @@ public sealed class SelfTest
     double _eatTime;
     bool _eatChecked;
     bool _shotAim, _shotLeap;
+    double _leapSince = -1;
     Vec2? _prey;              // the pretend cursor, jiggling like a hand on the mouse
 
     public SelfTest(Main main, string mode)
@@ -394,12 +395,18 @@ public sealed class SelfTest
 
         // Pictures of the take-off: taking aim, and rising steeply (the body should be nearly upright).
         if (_mode == "tour" && !_shotAim && _main.Brain.Action == "aim") { _shotAim = true; Shot(); }
-        if (_mode == "tour" && !_shotLeap && _main.Body.Mode == BodyMode.Airborne && _main.Body.Vel.Y < -700
-            && Math.Abs(_main.Body.Vel.X) < 400 && _main.Brain.State != CatState.Held)
+        // Shot a moment into the leap, once the body has had time to turn upright.
+        bool rising = _main.Body.Mode == BodyMode.Airborne && _main.Body.Vel.Y < -450
+                      && Math.Abs(_main.Body.Vel.X) < 400 && _main.Brain.State != CatState.Held;
+        if (_mode == "tour" && !_shotLeap)
         {
-            _shotLeap = true;
-            Log.Info($"selftest leap vel=({_main.Body.Vel.X:0},{_main.Body.Vel.Y:0}) pitch={Flight.PitchDeg(_main.Body.Vel):0}");
-            Shot();
+            _leapSince = rising ? (_leapSince < 0 ? 0 : _leapSince + dt) : -1;
+            if (_leapSince >= 0.2)
+            {
+                _shotLeap = true;
+                Log.Info($"selftest leap vel=({_main.Body.Vel.X:0},{_main.Body.Vel.Y:0}) pitch={Flight.PitchDeg(_main.Body.Vel):0} side-on={Flight.SideOn(_main.Body.Vel):0.00}");
+                Shot();
+            }
         }
 
         string state = $"{_main.Brain.State}/{_main.Brain.Action}";
