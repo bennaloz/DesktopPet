@@ -114,6 +114,13 @@ def plant(p, key, dy=0.0, dz=0.0, dmeta=0.0, toe=None):
     paw = (PAW[key][0] + dy, PAW[key][1] + dz)
     p.leg(u, l, m, t, paw, META[key] + dmeta, fwd, toe)
 
+def plant_under_shoulder(p, key, dmeta=0.0, ahead=0.0):
+    """Front leg straight down: the paw goes right under the shoulder, wherever the body pose put it."""
+    u, l, m, t, fwd = LEGS[key]
+    par = REST[u]['parent']
+    H = p.point(par, REST[u]['h'])
+    p.leg(u, l, m, t, (H[0] - ahead, PAW[key][1]), META[key] + dmeta, fwd, None)
+
 def stand(p):
     for k in LEGS: plant(p, k)
 
@@ -241,19 +248,21 @@ def land(p, t, f):
 
 def sit_pose(p, breathe=0.0, t=0.0):
     # body pitched up around the hips, rump on the ground, front legs straight, hind legs folded flat
-    p.hips = (0.03, -0.222)
-    p.x['Hips'] = -24
+    p.hips = (0.03, SIT_DROP)
+    p.x['Hips'] = SIT_PITCH
     p.x['Spine'] = -4
     p.x['Chest'] = -4 + breathe
-    p.x['Neck'] = 14 - breathe
-    p.x['Head'] = 18
-    plant(p, 'FL', 0.11, 0.0, 12)
-    plant(p, 'FR', 0.11, 0.0, 12)
+    p.x['Neck'] = 20 - breathe
+    p.x['Head'] = -SIT_PITCH - 4
+    plant_under_shoulder(p, 'FL', 12, ahead=0.015)
+    plant_under_shoulder(p, 'FR', 12, ahead=0.015)
     # hind: metatarsus flat on the ground pointing forward, hock behind
     plant(p, 'HL', -0.10, 0.0, -75, toe=180)
     plant(p, 'HR', -0.10, 0.0, -75, toe=180)
     # tail drops to the ground and lies along it, curling round to the side
-    chain_world(p, TAILS, [-70, -55, -20, 0, 2], [0, 0, 20, 35, 35])
+    chain_world(p, TAILS, [-62, -50, -18, 0, 2], [0, 0, 20, 35, 35])
+
+SIT_DROP, SIT_PITCH = -0.222, -29
 
 def sit(p, t, f):
     sit_pose(p, breathe=1.2 * math.sin(TAU * t), t=t)

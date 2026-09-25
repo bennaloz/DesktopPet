@@ -8,12 +8,31 @@ dec=mesh.modifiers.new("dec",'DECIMATE'); dec.ratio=0.28
 bpy.ops.object.modifier_apply(modifier="dec")
 print("polys after decimate", len(mesh.data.polygons))
 
+# ---- proportions: the single-photo reconstruction squashed the neck and pushed the chest out
+def sstep(x,a,b):
+    t=max(0.0,min(1.0,(x-a)/(b-a))); return t*t*(3-2*t)
+NECK_UP, NECK_FWD, CHEST_IN, NAPE_DOWN = 0.035, 0.015, 0.042, 0.035
+for v in mesh.data.vertices:
+    x,y,z=v.co
+    wy=sstep(-y,0.27,0.39)          # 0 behind the shoulders, 1 from the neck forward
+    wz=sstep(z,0.33,0.45)           # only the upper body, never the front legs
+    w=wy*wz
+    dz=NECK_UP*w; dy=-NECK_FWD*w
+    # chest bulge under the chin: pull it back
+    wc=sstep(-y,0.33,0.42)*max(0.0,1-abs(z-0.39)/0.10)*(1-wz)
+    dy+=CHEST_IN*wc
+    # soften the hump behind the head (measured after the neck is raised)
+    zz=z+dz; yy=y+dy
+    wn=max(0.0,1-abs(yy+0.25)/0.09)*sstep(zz,0.52,0.60)
+    dz-=NAPE_DOWN*wn
+    v.co.y+=dy; v.co.z+=dz
+
 B={ # name: (head, tail, parent, connected)
  'Hips':((0,0.22,0.45),(0,0.08,0.47),None,False),
  'Spine':((0,0.08,0.47),(0,-0.08,0.47),'Hips',True),
  'Chest':((0,-0.08,0.47),(0,-0.24,0.47),'Spine',True),
- 'Neck':((0,-0.24,0.47),(0,-0.36,0.56),'Chest',True),
- 'Head':((0,-0.36,0.56),(0,-0.50,0.57),'Neck',True),
+ 'Neck':((0,-0.24,0.47),(0,-0.375,0.595),'Chest',True),
+ 'Head':((0,-0.375,0.595),(0,-0.515,0.605),'Neck',True),
  'Tail1':((0,0.29,0.47),(0,0.335,0.40),'Hips',False),
  'Tail2':((0,0.335,0.40),(0.01,0.36,0.31),'Tail1',True),
  'Tail3':((0.01,0.36,0.31),(0.03,0.385,0.23),'Tail2',True),

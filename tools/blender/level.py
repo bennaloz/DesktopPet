@@ -12,3 +12,9 @@ for name,f in regions.items():
     zs=[V[i].z for i,v in enumerate(rest) if f(v.co)]
     print(act,name,"min z",round(min(zs),3))
 print(act,"overall min z",round(min(v.z for v in V),3))
+P=arm.pose.bones
+for s in ('L','R'):
+    sh=arm.matrix_world@P['UpperArm.'+s].head; el=arm.matrix_world@P['Forearm.'+s].head; wr=arm.matrix_world@P['Hand.'+s].head
+    import math
+    tilt=lambda a,b: round(math.degrees(math.atan2(b.y-a.y, a.z-b.z)),1)
+    print(act,"front",s,"shoulder->elbow tilt",tilt(sh,el),"elbow->wrist tilt",tilt(el,wr),"(0 = vertical, + = paw behind)")
