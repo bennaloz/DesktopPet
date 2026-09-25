@@ -88,4 +88,13 @@ public class GazeTests
         Assert.True(ahead > seen.Count * 0.7);
         Assert.Contains(GazeKind.Viewer, seen);
     }
+
+    [Fact]
+    public void Hunting_it_never_takes_its_eyes_off_the_cursor()
+    {
+        var far = new Vec2(1500, 700);   // beyond the idle watching range
+        var g = Run(new Gaze(new Random(8)), Resting(far) with { State = CatState.Hunt }, 2);
+        Assert.Equal(GazeKind.Point, g.Kind);
+        Assert.Equal(far, g.Point);
+    }
 }

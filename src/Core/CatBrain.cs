@@ -18,7 +18,7 @@ public interface IWorld
     void ConsumeTreat();
 }
 
-public enum CatState { Idle, Wander, Travel, Zoomies, Eat, Sleep, Sit, Meow, ChaseTreat, Petted, Held, Airborne, Landing, Climb }
+public enum CatState { Idle, Wander, Travel, Zoomies, Eat, Sleep, Sit, Meow, ChaseTreat, Petted, Held, Airborne, Landing, Climb, Hunt }
 
 /// <summary>Why the cat is travelling: decides what happens on arrival.</summary>
 public enum Goal { None, Bowl, Perch, Treat, Explore, Wander, Zoom }
@@ -40,12 +40,16 @@ public sealed class CatBrain
     public const double TravelTimeout = 45;
     /// <summary>Time to stop and turn round before running the other way (the model turns through the viewer side).</summary>
     public const double TurnTime = 0.3;
+    /// <summary>How close (px from the body) a moving cursor must come to catch her eye.</summary>
+    public const double HuntRange = 260;
+    /// <summary>Playfulness above which she crouches and follows the cursor, and above which she pounces.</summary>
+    public const double StalkFrom = 0.35, PounceFrom = 0.7;
 
     readonly Random _rng;
 
     public CatState State { get; private set; } = CatState.Idle;
     public Goal Goal { get; private set; }
-    /// <summary>Logical animation: idle, walk, trot (happy), lope, run (sprint), prejump, jump, fall, land, sit, sleep, eat, meow, purr, held, climb.</summary>
+    /// <summary>Logical animation: idle, walk, trot (happy), lope, run (sprint), stalk, wiggle, swat, prejump, jump, fall, land, sit, sleep, eat, meow, purr, held, climb.</summary>
     public string Action { get; private set; } = "idle";
     /// <summary>+1 facing right, -1 facing left.</summary>
     public int Facing { get; private set; } = 1;
@@ -55,6 +59,8 @@ public sealed class CatBrain
     public double EatReach { get; init; } = 45;
     /// <summary>Seconds of good mood left (after petting, when called): it trots about instead of walking.</summary>
     public double Happy { get; private set; }
+    /// <summary>The mouse cursor on the desktop (screen px), set by the game every frame; null if unknown.</summary>
+    public Vec2? Cursor { get; set; }
     /// <summary>Where the jump being prepared or flown will land (screen px), for the eyes; null otherwise.</summary>
     public Vec2? JumpTarget { get; private set; }
 
@@ -74,6 +80,14 @@ public sealed class CatBrain
     int _bowlFails;           // failed trips to the bowl in a row
     double _bowlCooldown;     // seconds before trying the bowl again after giving up
     double _turnLeft;         // stopped, turning round
+    Vec2? _lastCursor;
+    double _cursorStill = 99; // seconds since the cursor last moved
+    double _huntCooldown;     // leave the cursor alone until this runs out
+    int _huntLevel;           // 0 watch, 1 stalk, 2 stalk + wiggle + pounce
+    double _swatLeft;         // a swat in progress
+    int _swats;
+    double _wiggleAt;         // when (state time) the rump wiggle starts
+    double _pounceAt;         // when (state time) she leaps
 
     public CatBrain(Random rng) => _rng = rng;
 
@@ -144,6 +158,11 @@ public sealed class CatBrain
         _bowlCooldown = Math.Max(0, _bowlCooldown - dt);
         _turnLeft = Math.Max(0, _turnLeft - dt);
         Happy = Math.Max(0, Happy - dt);
+        _huntCooldown = Math.Max(0, _huntCooldown - dt);
+        _swatLeft = Math.Max(0, _swatLeft - dt);
+        bool moved = Cursor is { } cur && _lastCursor is { } last && (cur - last).Length > 0.5;
+        _cursorStill = moved ? 0 : _cursorStill + dt;
+        _lastCursor = Cursor;
         needs.Tick(dt, State == CatState.Sleep);
         Emote = null;
 
@@ -223,6 +242,9 @@ public sealed class CatBrain
                     || State == CatState.Travel && Goal == Goal.Explore;
         if (_petting > 0.6 && calm && State != CatState.Petted)
             Enter(CatState.Petted);
+        else if (calm && State is not (CatState.Petted or CatState.Meow) && _petting <= 0 && _huntCooldown <= 0
+                 && _cursorStill < 0.5 && CursorDistance(body) is > 45 and < HuntRange)
+            StartHunt(needs);
 
         switch (State)
         {
@@ -297,6 +319,9 @@ public sealed class CatBrain
                     return 0;
                 }
                 return Toward(body.Pos.X, _wanderX, _speed);
+
+            case CatState.Hunt:
+                return DoHunt(dt, body, needs);
 
             case CatState.Sit:
                 Action = "sit";
@@ -543,6 +568,72 @@ public sealed class CatBrain
         return Toward(body.Pos.X, _zoomTarget, RunSpeed);
     }
 
+    // ---------------------------------------------------------------- hunting the cursor
+
+    /// <summary>Distance from the cursor to the middle of the body (it moves the head, not the feet).</summary>
+    /// <summary>Forget the last hunt so the next moving cursor is chased at once (self test).</summary>
+    public void ForgetHunt() => _huntCooldown = 0;
+
+    double CursorDistance(CatBody body) =>
+        Cursor is { } c ? (c - (body.Pos + new Vec2(0, -40))).Length : double.MaxValue;
+
+    void StartHunt(Needs needs)
+    {
+        _huntLevel = needs.Playfulness >= PounceFrom ? 2 : needs.Playfulness >= StalkFrom ? 1 : 0;
+        _swats = 0;
+        _swatLeft = 0;
+        _wiggleAt = 0.8 + _rng.NextDouble() * 0.6;
+        _pounceAt = _wiggleAt + 1.2 + _rng.NextDouble();
+        Goal = Goal.None;
+        Enter(CatState.Hunt);
+    }
+
+    void EndHunt(Needs needs, double played)
+    {
+        needs.Play(played);
+        _huntCooldown = 25 + _rng.NextDouble() * 35;
+        Enter(CatState.Sit, 3 + _rng.NextDouble() * 3);
+    }
+
+    double DoHunt(double dt, CatBody body, Needs needs)
+    {
+        var c = Cursor;
+        // Gone, gone still for long, or simply over: back to her business.
+        if (c == null || CursorDistance(body) > HuntRange * 1.4 || _stateTime > 15 || _cursorStill > 6)
+        {
+            EndHunt(needs, 0.05 + 0.1 * _huntLevel);
+            return 0;
+        }
+        double dx = c.Value.X - body.Pos.X;
+        if (Math.Abs(dx) > 12 && Math.Sign(dx) != Facing) Facing = Math.Sign(dx);   // keep it in front
+
+        if (_huntLevel == 0) { Action = "idle"; return 0; }   // stops and watches it
+
+        if (_swatLeft > 0) { Action = "swat"; return 0; }
+        double ahead = dx * Facing;
+        bool inReach = ahead > 20 && ahead < EatReach + 60 && c.Value.Y > body.Pos.Y - 110 && c.Value.Y < body.Pos.Y + 10;
+        if (inReach && _stateTime > 0.4)
+        {
+            if (++_swats > 3) { EndHunt(needs, 0.3); return 0; }
+            _swatLeft = 0.5;
+            Action = "swat";
+            return 0;
+        }
+
+        if (_huntLevel == 1 || _stateTime < _wiggleAt) { Action = "stalk"; return 0; }
+        if (_stateTime < _pounceAt) { Action = "wiggle"; return 0; }
+
+        // Pounce: land with the head on the cursor, if it is low enough to reach and on this surface.
+        var s = body.Support!;
+        double landX = MathX.SafeClamp(c.Value.X - Facing * EatReach, s.X0 + 1, s.X1 - 1);
+        if (c.Value.Y < body.Pos.Y - 260 || Math.Abs(landX - body.Pos.X) < 30) { Action = "stalk"; return 0; }
+        JumpTarget = new Vec2(landX, s.Y);
+        body.JumpTo(JumpTarget.Value, 25 + Math.Abs(landX - body.Pos.X) * 0.12);
+        needs.Play(0.4);
+        _huntCooldown = 25 + _rng.NextDouble() * 35;
+        return 0;
+    }
+
     // ---------------------------------------------------------------- helpers
 
     /// <summary>The animation for a ground speed: walk, happy trot, lope, sprint.</summary>
@@ -579,6 +670,7 @@ public sealed class CatBrain
             CatState.Wander => "walk",
             CatState.Idle => "idle",
             CatState.Climb => "climb",
+            CatState.Hunt => "idle",
             _ => Action,
         };
     }

@@ -117,6 +117,24 @@
       ],
       "loop": true,
       "speed": 1.3
+    },
+    "stalk": {
+      "anims": [
+        "Stalk"
+      ],
+      "loop": true
+    },
+    "wiggle": {
+      "anims": [
+        "Wiggle"
+      ],
+      "loop": true
+    },
+    "swat": {
+      "anims": [
+        "Swat"
+      ],
+      "loop": false
     }
   }
 }

@@ -27,14 +27,17 @@ public sealed class SelfTest
     string _lastState = "";
     double _eatTime;
     bool _eatChecked;
+    Vec2? _prey;              // the pretend cursor, jiggling like a hand on the mouse
 
     public SelfTest(Main main, string mode)
     {
         _main = main;
         _mode = mode;
+        // The real mouse belongs to whoever is at the PC: tests use a pretend cursor (none unless a test sets it).
+        _main.UseCursorOverride = true;
         _script = mode switch
         {
-            "windows" => WindowScript(), "mouse" => MouseScript(), "input" => InputScript(), "gaze" => GazeScript(), _ => TourScript(),
+            "windows" => WindowScript(), "mouse" => MouseScript(), "input" => InputScript(), "gaze" => GazeScript(), "hunt" => HuntScript(), _ => TourScript(),
         };
         // Godot merges consecutive motion events without looking at the device, so a real mouse move could
         // lend its position to an injected one: every injected event goes through on its own, right away.
@@ -171,6 +174,55 @@ public sealed class SelfTest
         };
     }
 
+    /// <summary>
+    /// `-- --selftest-hunt`: a pretend cursor near the sitting cat at three levels of playfulness: she watches,
+    /// crouches and follows it, then wiggles and pounces on it; within paw reach she swats it.
+    /// </summary>
+    List<(double, string, Action)> HuntScript()
+    {
+        Vec2 at(double ahead, double up) => _main.Body.Pos + new Vec2(_main.Brain.Facing * ahead, -up);
+        void Round(double play)
+        {
+            _prey = null;
+            _main.CursorOverride = null;
+            _main.Summon();
+            _main.Brain.SitFor(60);
+            _main.NeedsState.Playfulness = play;
+        }
+        void Show(Vec2 p)
+        {
+            _main.Brain.ForgetHunt();   // each round starts fresh, without the pause after the previous hunt
+            _prey = p;
+        }
+        return new List<(double, string, Action)>
+        {
+            (1.0, "a little playful", () => Round(0.1)),
+            (1.5, "cursor near", () => Show(at(170, 60))),
+            (3.5, "check watch", () => Expect(_main.Brain.State == CatState.Hunt && _main.Brain.Action == "idle", "poca voglia: si ferma e guarda il cursore")),
+            (3.6, "screenshot", Shot),
+            (4.0, "somewhat playful", () => Round(0.5)),
+            (4.5, "cursor near", () => Show(at(200, 50))),
+            (6.5, "check stalk", () => Expect(_main.Brain.Action == "stalk", "media voglia: acquattata, lo segue con lo sguardo")),
+            (6.6, "screenshot", Shot),
+            (7.0, "cursor in paw reach", () => _prey = at(75, 30)),
+            (7.6, "check swat", () => Expect(_main.Brain.Action == "swat", "a portata di zampa: zampata")),
+            (7.65, "screenshot", Shot),
+            (9.0, "very playful", () => Round(0.9)),
+            (9.5, "cursor ahead", () => Show(at(230, 40))),
+            (11.3, "check wiggle", () => Expect(_main.Brain.Action == "wiggle", "tanta voglia: dondola il sedere")),
+            (11.35, "screenshot", Shot),
+            (13.5, "check pounce", () =>
+            {
+                var landed = _main.Body.Mode == BodyMode.Grounded;
+                double head = _main.Body.Pos.X + _main.Brain.Facing * _main.Brain.EatReach;
+                Expect(landed && Math.Abs(head - _prey!.Value.X) < 40,
+                       $"balza sul cursore (testa a {head:0}, cursore a {_prey.Value.X:0})");
+            }),
+            (13.6, "screenshot", Shot),
+            (14.5, "quit", () => _main.Quit()),
+        };
+    }
+
     /// <summary>Angle between where the head bone points and a direction (or a screen point) must be small.</summary>
     void CheckHead(Vector3? dir, double maxDeg, string what, Vec2? point = null)
     {
@@ -300,6 +352,7 @@ public sealed class SelfTest
     public void Tick(double dt)
     {
         _t += dt;
+        _main.CursorOverride = _prey is { } p ? p + new Vec2(5 * Math.Sin(_t * 9), 3 * Math.Cos(_t * 7)) : null;
         if (_frames.TryDequeue(out var step))
         {
             if (step.what != "") Log.Info($"selftest {_t:0.00}s: {step.what}");

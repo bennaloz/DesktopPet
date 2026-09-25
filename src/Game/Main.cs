@@ -74,7 +74,8 @@ public partial class Main : Node3D
         var args = OS.GetCmdlineUserArgs();
         string? mode = args.Contains("--selftest") ? "tour" : args.Contains("--selftest-windows") ? "windows"
                      : args.Contains("--selftest-mouse") ? "mouse" : args.Contains("--selftest-input") ? "input"
-                     : args.Contains("--selftest-gaze") ? "gaze" : null;
+                     : args.Contains("--selftest-gaze") ? "gaze"
+                     : args.Contains("--selftest-hunt") ? "hunt" : null;
         if (mode != null) _selfTest = new SelfTest(this, mode);
     }
 
@@ -137,12 +138,21 @@ public partial class Main : Node3D
     /// <summary>Screen position of the head, roughly: in front of the body centre, high up.</summary>
     Vec2 HeadPos => _body.Pos + new Vec2(_brain.Facing * _visual.SizePx.X * 0.38, -_visual.SizePx.Y * 0.8);
 
+    /// <summary>Self tests move a pretend cursor instead of the real one.</summary>
+    internal Vec2? CursorOverride;
+    internal bool UseCursorOverride;
+
+    Vec2? CursorScreen()
+    {
+        if (UseCursorOverride) return CursorOverride;
+        return Win32.CursorPos() is { } c ? new Vec2(c.x, c.y) : null;
+    }
+
     void UpdateGaze(double dt)
     {
-        var cursor = Win32.CursorPos();
         var head = HeadPos;
         _gaze.Update(dt, new GazeInput(_paused ? CatState.Sit : _brain.State, head, _brain.Facing,
-            cursor is { } c ? new Vec2(c.x, c.y) : null, _brain.JumpTarget, _world.Treat?.Body.Pos));
+            CursorScreen(), _brain.JumpTarget, _world.Treat?.Body.Pos));
         Vector3? target = _gaze.Kind switch
         {
             // The viewer sits in front of the screen: straight out of it, level with the head.
@@ -271,6 +281,7 @@ public partial class Main : Node3D
         }
         else
         {
+            _brain.Cursor = CursorScreen();
             _brain.Update(dt, _body, _needs, _map, _world);
             _visual.Play(_brain.Action);
         }

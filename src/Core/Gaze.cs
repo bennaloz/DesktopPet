@@ -49,6 +49,7 @@ public sealed class Gaze
             return;
         }
         if (i.JumpTarget is { } landing) { Set(GazeKind.Point, landing); return; }
+        if (i.State == CatState.Hunt && i.Mouse is { } prey) { Set(GazeKind.Point, prey); return; }
         if (i.State == CatState.ChaseTreat && i.Treat is { } treat) { Set(GazeKind.Point, treat); return; }
 
         bool resting = i.State is CatState.Idle or CatState.Sit or CatState.Petted or CatState.Meow or CatState.Landing;

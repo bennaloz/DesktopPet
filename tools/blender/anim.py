@@ -260,6 +260,47 @@ def trot(p, t, f):
     sway = 4 * math.sin(w)
     chain_world(p, TAILS, TROT_TAIL, [0, sway * 0.5, sway, sway * 1.5, 6 + 10 * math.sin(2 * w)])
 
+# ---- hunting the cursor
+STALK_DROP = -0.14
+
+def stalk_pose(p, t, lash=1.0, drop=STALK_DROP):
+    """Hunting crouch: belly close to the ground, shoulder blades up, head low and dead level on the prey,
+    hind legs gathered under, tail low along the ground with only the tip twitching."""
+    w = TAU * t
+    p.hips = (0.0, drop + 0.002 * math.sin(w))
+    p.x['Hips'] = 3
+    p.x['Spine'] = -2
+    p.x['Chest'] = 4
+    p.x['Neck'] = 10
+    p.x['Head'] = -14
+    plant(p, 'FL', 0.03, 0.0, 22)
+    plant(p, 'FR', 0.03, 0.0, 22)
+    plant(p, 'HL', 0.04, 0.0, -30)
+    plant(p, 'HR', 0.04, 0.0, -30)
+    tw = lash * 12 * math.sin(3 * w)
+    chain_world(p, TAILS, [-18, -10, -5, 2, 6], [0, 0, 0, tw * 0.6, tw])
+
+def stalk(p, t, f):
+    stalk_pose(p, t)
+
+def wiggle(p, t, f):
+    """The rump wiggle before a pounce: hips shimmy side to side, hind paws tread, tail tip lashes."""
+    w = TAU * t
+    stalk_pose(p, t * 0.5, lash=1.8)
+    p.hips = (0.0, STALK_DROP + 0.012 + 0.006 * math.sin(2 * w))   # rump a touch higher, ready
+    p.yz['Hips'] = (5.0 * math.sin(w), 4.0 * math.sin(w))
+    plant(p, 'HL', 0.04, 0.012 * max(0.0, math.sin(w)), -30)
+    plant(p, 'HR', 0.04, 0.012 * max(0.0, -math.sin(w)), -30)
+
+def swat(p, t, f):
+    """A quick swat from a half crouch: one fore paw comes up, strikes forward and down, and is set back."""
+    stalk_pose(p, 0.0, lash=0.5, drop=-0.07)
+    up = smooth(t / 0.3) * (1 - smooth((t - 0.3) / 0.25))      # raise, then strike
+    hit = smooth((t - 0.3) / 0.25) * (1 - smooth((t - 0.6) / 0.4))
+    p.x['Hips'] = 3 - 6 * up + 4 * hit                        # rock back to raise, forward to strike
+    p.x['Neck'] = 10 - 6 * up + 4 * hit
+    plant(p, 'FL', 0.03 - 0.10 * up - 0.24 * hit, 0.26 * up + 0.02 * hit, 22 - 110 * up - 95 * hit)
+
 def sprint(p, t, f):
     """Zoomies: a flat-out rotary gallop. The back flexes hard and stretches out at every stride (that spring
     is where a cat's speed comes from), body low, head pushed forward and steady, tail straight back."""
@@ -452,6 +493,9 @@ bake("Walk", 24, walk)
 bake("Run", 14, run)
 bake("Sprint", 14, sprint)
 bake("Trot", 18, trot)
+bake("Stalk", 60, stalk)
+bake("Wiggle", 15, wiggle)
+bake("Swat", 15, swat, loop=False)
 bake("Prejump", 13, prejump, loop=False)
 bake("Jump", 10, jump, loop=False)
 bake("Fall", 9, fall, loop=False)
