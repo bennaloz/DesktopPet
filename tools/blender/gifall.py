@@ -1,8 +1,9 @@
+import os,sys; sys.path.insert(0,os.path.dirname(os.path.abspath(__file__))); from paths import work_file
 import bpy, sys, math, json
 out=sys.argv[sys.argv.index("--")+1]
 SETS=[('camminata',['Walk'],1),('corsa',['Run'],1),('salto',['Prejump','Jump','Fall','Land'],1),('ferma',['Idle'],3),
       ('guarda',['Idle_Look'],4),('seduta',['Sit'],3),('dorme',['Sleep'],4),('mangia',['Eat'],1),('miagola',['Meow'],1),('in_braccio',['Held'],2)]
-bpy.ops.wm.open_mainfile(filepath=r"C:/develop/personal/_assets/zaira/work/anim.blend")
+bpy.ops.wm.open_mainfile(filepath=work_file("anim.blend"))
 sc=bpy.context.scene; arm=bpy.data.objects["Rig"]
 sc.render.engine='BLENDER_WORKBENCH'; sc.display.shading.light='STUDIO'; sc.display.shading.color_type='TEXTURE'
 sc.render.resolution_x=360; sc.render.resolution_y=300; sc.render.film_transparent=True

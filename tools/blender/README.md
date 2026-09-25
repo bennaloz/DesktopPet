@@ -1,7 +1,9 @@
 # Pipeline Blender di Zaira
 
-Blender 5.2 portable in `C:\develop\personal\tools\`. Sorgente: GLB esportato da Tripo in
-`C:\develop\personal\_assets\zaira\` (lo scheletro di Tripo viene buttato).
+Blender 5.2 portable in `C:\develop\personal\tools\`. Sorgente: `assets/zaira/tripo.glb`, il GLB
+esportato da Tripo (lo scheletro di Tripo viene buttato); `assets/zaira/multiview/` sono le viste da cui
+Tripo l'ha generato. Intermedi e anteprime finiscono in `assets/zaira/work/`, ignorata da git.
+I percorsi sono relativi al repo (`paths.py`), gli script si lanciano da qualunque cartella.
 
 1. `prep.py` – importa, raddrizza (muso verso -Y), centra, piedi a z=0 → `work/mesh.blend`
 2. `rig.py` – decimazione a ~25k facce, scheletro da gatto, pesi via proxy voxel,

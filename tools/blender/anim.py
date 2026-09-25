@@ -1,3 +1,4 @@
+import os,sys; sys.path.insert(0,os.path.dirname(os.path.abspath(__file__))); from paths import work_file
 """Procedural animation library for the Zaira rig (Blender, head towards -Y, Z up).
 
 Every bone's local X axis is world +X, so a rotation about local X is a bend in the side (YZ) plane.
@@ -10,7 +11,7 @@ from mathutils import Vector, Matrix
 FPS = 30
 D = math.radians
 
-bpy.ops.wm.open_mainfile(filepath=r"C:/develop/personal/_assets/zaira/work/rig.blend")
+bpy.ops.wm.open_mainfile(filepath=work_file("rig.blend"))
 scene = bpy.context.scene
 scene.render.fps = FPS
 arm = bpy.data.objects["Rig"]
@@ -464,4 +465,4 @@ bake("Eat", 40, eat)
 bake("Meow", 30, meow, loop=False)
 bake("Held", 60, held)
 arm.animation_data.action = bpy.data.actions["Idle"]
-bpy.ops.wm.save_as_mainfile(filepath=r"C:/develop/personal/_assets/zaira/work/anim.blend")
+bpy.ops.wm.save_as_mainfile(filepath=work_file("anim.blend"))
