@@ -329,7 +329,7 @@ def sit_pose(p, breathe=0.0, t=0.0):
     chain_world(p, TAILS, SIT_TAIL, SIT_TAIL_CURL)
 
 SIT_DROP, SIT_PITCH, SIT_SPINE, SIT_CHEST = -0.245, -30, -12, 4
-SIT_HOCK_BACK = 0.02
+SIT_HOCK_BACK = -0.04
 SIT_TAIL_CURL = [0, 0, -35, -60, -55]
 SIT_TAIL = [-66, -58, -4, 3, 3]
 
