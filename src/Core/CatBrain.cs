@@ -440,7 +440,7 @@ public sealed class CatBrain
         Facing = Math.Sign(hop.LandX - body.Pos.X) is var s && s != 0 ? s : Facing;
         Action = "prejump";   // load the hind legs, eyes on the target
         _prejump += dt;
-        if (_prejump < 0.27) return 0;
+        if (_prejump < 0.45) return 0;
         _prejump = 0;
         double dx = Math.Abs(hop.LandX - body.Pos.X);
         double apex = hop.Kind == NavStepKind.Jump ? 35 + dx * 0.12 : 15;

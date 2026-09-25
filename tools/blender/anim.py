@@ -202,12 +202,20 @@ def gait(p, t, phases, duty, reach, lift, bob, spine_flex=0.0, meta_roll=25.0, s
         plant(p, key, dy, dz, dm, toe)
 
 def walk(p, t, f):
-    p.hips = (0.0, 0.006 * math.cos(2 * TAU * t))
-    p.yz['Spine'] = (0.0, 2.5 * math.sin(TAU * t))
-    p.yz['Chest'] = (0.0, -2.5 * math.sin(TAU * t))
-    p.x['Neck'] = 2 * math.cos(2 * TAU * t)
-    gait(p, t, {'HL': 0.0, 'FL': 0.25, 'HR': 0.5, 'FR': 0.75}, duty=0.62, reach=0.14, lift=0.05, bob=0.006)
-    tail(p, lift=8, sway=8, t=TAU * t)
+    """A cat's walk: lateral-sequence gait, head low and steady, shoulders and hips rolling, back weaving."""
+    w = TAU * t
+    # weight shifts: the body dips a little twice per stride, rolls towards the leg that carries it
+    p.hips = (0.0, -0.012 + 0.005 * math.cos(2 * w))
+    p.yz['Hips'] = (4.0 * math.sin(w), 3.0 * math.sin(w + 0.4))      # hip roll + sway
+    p.yz['Spine'] = (0.0, -2.5 * math.sin(w + 1.0))                   # the back weaves
+    p.yz['Chest'] = (-4.0 * math.sin(w + math.pi / 2), -2.0 * math.sin(w + 1.8))  # shoulder roll
+    # head low, nose level, steady: the neck soaks up the body's bob
+    p.x['Neck'] = 16 - 1.5 * math.cos(2 * w)
+    p.x['Head'] = -14 + 1.5 * math.cos(2 * w)
+    p.yz['Neck'] = (0.0, 2.0 * math.sin(w + 2.4))
+    gait(p, t, {'HL': 0.0, 'FL': 0.25, 'HR': 0.5, 'FR': 0.75}, duty=0.64, reach=0.14, lift=0.035, bob=0.0,
+         meta_roll=28, swing_curl=55)
+    tail(p, lift=6, sway=9, t=w)
 
 def run(p, t, f):
     c = math.cos(TAU * t)
@@ -225,8 +233,8 @@ def run(p, t, f):
 STAND = dict(dz=0.0, pitch=0.0, spine=0.0, chest=0.0, neck=0.0, head=0.0, tail=4.0,
              legs={k: (0.0, 0.0, 0.0) for k in ('FL', 'FR', 'HL', 'HR')})
 # loading: rump sinks on the hind legs, front stays up, head points at the target
-LOAD = dict(dz=-0.07, pitch=-8.0, spine=2.0, chest=0.0, neck=6.0, head=-4.0, tail=-4.0,
-            legs={'FL': (0.0, 0.0, 0.0), 'FR': (0.0, 0.0, 0.0), 'HL': (0.02, 0.0, -10.0), 'HR': (0.02, 0.0, -10.0)})
+LOAD = dict(dz=-0.12, pitch=-10.0, spine=3.0, chest=2.0, neck=10.0, head=-6.0, tail=-4.0,
+            legs={'FL': (0.02, 0.0, 5.0), 'FR': (0.02, 0.0, 5.0), 'HL': (0.03, 0.0, -18.0), 'HR': (0.03, 0.0, -18.0)})
 # push-off: hind legs straighten against the ground, front paws already folded up under the chest
 PUSH = dict(dz=0.03, pitch=-16.0, spine=-3.0, chest=-2.0, neck=-2.0, head=2.0, tail=6.0,
             legs={'FL': (0.03, 0.15, 70.0), 'FR': (0.05, 0.14, 70.0), 'HL': (0.24, 0.02, 70.0), 'HR': (0.25, 0.02, 70.0)})
@@ -392,7 +400,7 @@ bake("Idle", 90, idle)
 bake("Idle_Look", 120, idle_look)
 bake("Walk", 24, walk)
 bake("Run", 14, run)
-bake("Prejump", 8, prejump, loop=False)
+bake("Prejump", 13, prejump, loop=False)
 bake("Jump", 10, jump, loop=False)
 bake("Fall", 9, fall, loop=False)
 bake("Land", 9, land, loop=False)
