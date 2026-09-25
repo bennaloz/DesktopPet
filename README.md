@@ -40,7 +40,7 @@ Primi 2 minuti di prova, se qualcosa non va: `%APPDATA%\Godotpp_userdata\Zaira 
 | Salti sulle finestre | nessuna azione: quando esplora salta sui bordi superiori delle finestre visibili (non su quelle massimizzate). Se sposti la finestra lei la segue, se la chiudi o la minimizzi cade |
 | Arrampicata | se il bordo è troppo alto per un salto (oltre ~460 px) si aggrappa al lato della finestra, sale e ci monta sopra. Anche mentre sale, se sposti la finestra la segue e se la chiudi cade |
 | Zoomies | quando la voglia di giocare è al massimo corre avanti e indietro e salta dove capita |
-| Dormire | quando è stanca va sul trespolo e dorme (z) |
+| Dormire | quando è stanca va sul trespolo e dorme acciambellata, girata col muso verso di te (z) |
 | Stato | passa il mouse sull'icona della tray: fame, energia, voglia di giocare, contentezza, ciotola |
 | Se sparisce | tray → **Chiama Zaira** |
 | Pausa | tray → **Pausa** |
