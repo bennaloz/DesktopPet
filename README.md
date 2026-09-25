@@ -39,7 +39,14 @@ Primi 2 minuti di prova, se qualcosa non va: `%APPDATA%\Godotpp_userdata\Zaira 
   le andature; la logica dell'umore in Core con i suoi test.
 - **Salto**: la pancia penzola ancora in volo (le cosce tirano giu' la pelle della pancia: pesi o posa).
 - **Coda**: frangia alla base quando si alza (difetto del modello, per ora si tiene).
-- **Pose accovacciata, pagnotta, acciambellata**: dai GLB Tripo senza rig, con testa e coda animate.
+- **Pose accovacciata e pagnotta**: dai GLB Tripo senza rig, con testa e coda animate (l'acciambellata per dormire c'e' gia', fatta col rig).
+- **"z" del sonno troppo in alto**: l'altezza viene dalla taglia del gatto in piedi (`SizePx.Y` in `Main`),
+  la posa acciambellata e' molto piu' bassa.
+- **Autotest del giro**: il controllo "mangia con il muso sopra la ciotola" a volte non scatta (serve che
+  mangi piu' di 0,8 s, e "restless" porta subito la fame a 0,1): aspettare `Eat` con `Until` come per
+  zoomies e sonno.
+- **Pipeline Blender**: percorsi fissi (`_assets/zaira/work/anim.blend`, `export.py` scrive nel `zaira.glb`
+  di questa cartella): da un worktree va lanciata sostituendo i percorsi di uscita, meglio renderli parametri.
 
 ## Cosa provare
 
@@ -53,7 +60,7 @@ Primi 2 minuti di prova, se qualcosa non va: `%APPDATA%\Godotpp_userdata\Zaira 
 | Salti sulle finestre | nessuna azione: quando esplora salta sui bordi superiori delle finestre visibili (non su quelle massimizzate). Se sposti la finestra lei la segue, se la chiudi o la minimizzi cade |
 | Arrampicata | se il bordo è troppo alto per un salto (oltre ~460 px) si aggrappa al lato della finestra, sale e ci monta sopra. Anche mentre sale, se sposti la finestra la segue e se la chiudi cade |
 | Zoomies | quando la voglia di giocare è al massimo corre avanti e indietro e salta dove capita |
-| Dormire | quando è stanca va sul trespolo e dorme (z) |
+| Dormire | quando è stanca va sul trespolo e dorme acciambellata, girata col muso verso di te (z) |
 | Stato | passa il mouse sull'icona della tray: fame, energia, voglia di giocare, contentezza, ciotola |
 | Se sparisce | tray → **Chiama Zaira** |
 | Pausa | tray → **Pausa** |
