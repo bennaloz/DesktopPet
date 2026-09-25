@@ -30,7 +30,10 @@ public enum Goal { None, Bowl, Perch, Treat, Explore, Wander, Zoom }
 public sealed class CatBrain
 {
     public const double WalkSpeed = 110;
-    public const double TrotSpeed = 190;
+    /// <summary>The happy trot: diagonal legs, bouncy, tail straight up.</summary>
+    public const double TrotSpeed = 150;
+    /// <summary>The lope: getting somewhere fast without sprinting (starving, on the way to the bowl).</summary>
+    public const double LopeSpeed = 190;
     public const double RunSpeed = 360;
     public const double MaxJumpUp = 460;
     public const double MaxJumpGap = 340;
@@ -42,7 +45,7 @@ public sealed class CatBrain
 
     public CatState State { get; private set; } = CatState.Idle;
     public Goal Goal { get; private set; }
-    /// <summary>Logical animation: idle, walk, trot, run (sprint), prejump, jump, fall, land, sit, sleep, eat, meow, purr, held, climb.</summary>
+    /// <summary>Logical animation: idle, walk, trot (happy), lope, run (sprint), prejump, jump, fall, land, sit, sleep, eat, meow, purr, held, climb.</summary>
     public string Action { get; private set; } = "idle";
     /// <summary>+1 facing right, -1 facing left.</summary>
     public int Facing { get; private set; } = 1;
@@ -50,6 +53,8 @@ public sealed class CatBrain
     public string? Emote { get; private set; }
     /// <summary>How far ahead of the body centre the mouth reaches when eating (px): where to stop before food.</summary>
     public double EatReach { get; init; } = 45;
+    /// <summary>Seconds of good mood left (after petting, when called): it trots about instead of walking.</summary>
+    public double Happy { get; private set; }
     /// <summary>Where the jump being prepared or flown will land (screen px), for the eyes; null otherwise.</summary>
     public Vec2? JumpTarget { get; private set; }
 
@@ -89,7 +94,14 @@ public sealed class CatBrain
     }
 
     /// <summary>Called every frame the cursor strokes the cat.</summary>
-    public void OnPetting(double dt) => _petting = Math.Min(_petting + dt * 2, 3);
+    public void OnPetting(double dt)
+    {
+        _petting = Math.Min(_petting + dt * 2, 3);
+        Cheer(25);
+    }
+
+    /// <summary>Put the cat in a good mood for a while.</summary>
+    public void Cheer(double seconds) => Happy = Math.Max(Happy, seconds);
 
     /// <summary>Something happened (a treat appeared, needs changed): a resting cat reconsiders right away.</summary>
     public void Notice()
@@ -119,6 +131,7 @@ public sealed class CatBrain
     {
         body.PlaceOn(floor, x);
         Goal = Goal.None;
+        Cheer(15);
         Enter(CatState.Idle, 2);
     }
 
@@ -130,6 +143,7 @@ public sealed class CatBrain
         _petting = Math.Max(0, _petting - dt);
         _bowlCooldown = Math.Max(0, _bowlCooldown - dt);
         _turnLeft = Math.Max(0, _turnLeft - dt);
+        Happy = Math.Max(0, Happy - dt);
         needs.Tick(dt, State == CatState.Sleep);
         Emote = null;
 
@@ -162,7 +176,7 @@ public sealed class CatBrain
         else
         {
             walk = Think(dt, body, needs, map, world);
-            if (_turnLeft > 0 && Action is "run" or "trot") Action = "idle";   // stopped for a moment, turning
+            if (_turnLeft > 0 && Action is "run" or "lope" or "trot") Action = "idle";   // stopped for a moment, turning
         }
 
         body.Step(dt, map, walk);
@@ -275,14 +289,14 @@ public sealed class CatBrain
                 return DoTravel(dt, body, needs, map, world);
 
             case CatState.Wander:
-                Action = "walk";
-                _speed = WalkSpeed;
+                _speed = Happy > 0 ? TrotSpeed : WalkSpeed;
+                Action = Gait(_speed);
                 if (Math.Abs(body.Pos.X - _wanderX) < 4 || _stateTime > _stateDuration || !body.Support!.SpansX(_wanderX))
                 {
                     Enter(CatState.Idle, 1 + _rng.NextDouble() * 3);
                     return 0;
                 }
-                return Toward(body.Pos.X, _wanderX, WalkSpeed);
+                return Toward(body.Pos.X, _wanderX, _speed);
 
             case CatState.Sit:
                 Action = "sit";
@@ -322,6 +336,7 @@ public sealed class CatBrain
         if (needs.Playfulness > 0.75) { Goal = Goal.Zoom; Enter(CatState.Zoomies, 8 + _rng.NextDouble() * 5); return; }
 
         double r = _rng.NextDouble();
+        if (Happy > 0) r *= 0.6;   // in a good mood: more strolling about, less sitting
         if (r < 0.35)
         {
             var s = body.Support!;
@@ -415,14 +430,16 @@ public sealed class CatBrain
             return 0;
         }
 
-        _speed = State == CatState.ChaseTreat ? RunSpeed : Goal == Goal.Bowl && needs.Hunger > 0.8 ? TrotSpeed : WalkSpeed;
+        _speed = State == CatState.ChaseTreat ? RunSpeed
+               : Goal == Goal.Bowl && needs.Hunger > 0.8 ? LopeSpeed
+               : Goal == Goal.Bowl && world.BowlFood > 0.02 || Happy > 0 ? TrotSpeed   // pleased: food waiting, or cheered up
+               : WalkSpeed;
         var step = path[0];
         bool final = path.Count == 1;
 
         if (Math.Abs(body.Pos.X - step.X) > 4)
         {
-            // Two ways of running: a steady trot to get somewhere sooner, a sprint for treats.
-            Action = _speed >= RunSpeed ? "run" : _speed > WalkSpeed + 1 ? "trot" : "walk";
+            Action = Gait(_speed);
             _prejump = 0;
             double v = Toward(body.Pos.X, step.X, _speed);
             // Slow down on the last few pixels so we do not overshoot at 30 fps.
@@ -527,6 +544,10 @@ public sealed class CatBrain
     }
 
     // ---------------------------------------------------------------- helpers
+
+    /// <summary>The animation for a ground speed: walk, happy trot, lope, sprint.</summary>
+    static string Gait(double speed) =>
+        speed >= RunSpeed ? "run" : speed >= LopeSpeed ? "lope" : speed > WalkSpeed + 1 ? "trot" : "walk";
 
     double Toward(double from, double to, double speed)
     {

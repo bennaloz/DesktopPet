@@ -23,6 +23,14 @@
     },
     "trot": {
       "anims": [
+        "Trot"
+      ],
+      "loop": true,
+      "speed": 1.0,
+      "ref_speed_px": 150
+    },
+    "lope": {
+      "anims": [
         "Run"
       ],
       "loop": true,

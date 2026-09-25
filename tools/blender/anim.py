@@ -246,6 +246,20 @@ def run(p, t, f):
          meta_roll=30, swing_curl=55)
     tail(p, lift=10 + 4 * c, sway=5, t=TAU * t)
 
+TROT_TAIL = [55, 80, 95, 125, 155]
+
+def trot(p, t, f):
+    """The happy trot: diagonal pairs (left hind with right fore), a bouncy step, head up,
+    tail straight up with the tip hooked forward, the way a pleased cat comes over."""
+    w = TAU * t
+    p.hips = (0.0, -0.004 + 0.011 * math.cos(2 * w))     # a bounce at every diagonal push
+    p.x['Neck'] = -6 + 2 * math.cos(2 * w)
+    p.x['Head'] = 10 - 2 * math.cos(2 * w)
+    gait(p, t, {'HL': 0.0, 'FR': 0.02, 'HR': 0.5, 'FL': 0.52}, duty=0.45, reach=0.143, lift=0.05, bob=0.0,
+         meta_roll=28, swing_curl=50)
+    sway = 4 * math.sin(w)
+    chain_world(p, TAILS, TROT_TAIL, [0, sway * 0.5, sway, sway * 1.5, 6 + 10 * math.sin(2 * w)])
+
 def sprint(p, t, f):
     """Zoomies: a flat-out rotary gallop. The back flexes hard and stretches out at every stride (that spring
     is where a cat's speed comes from), body low, head pushed forward and steady, tail straight back."""
@@ -437,6 +451,7 @@ bake("Idle_Look", 120, idle_look)
 bake("Walk", 24, walk)
 bake("Run", 14, run)
 bake("Sprint", 14, sprint)
+bake("Trot", 18, trot)
 bake("Prejump", 13, prejump, loop=False)
 bake("Jump", 10, jump, loop=False)
 bake("Fall", 9, fall, loop=False)
