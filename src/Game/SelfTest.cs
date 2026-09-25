@@ -68,6 +68,8 @@ public sealed class SelfTest
             int k = i;
             list.Add((3.0 + k * 0.05, "", () => Motion(cat + new Vector2(k * 6, -k * 12), new Vector2(6, -12), false)));
         }
+        list.Add((1.0, "check clips", () => Expect(_main.Visual.EveryClipDrivesEveryBone(),
+            "ogni animazione muove tutte le ossa (niente zampe congelate dalla clip precedente)")));
         list.Add((4.0, "check held", () => Expect(_main.Brain.State == CatState.Held, "gatto in braccio")));
         list.Add((4.05, "check region while dragging", () =>
             Expect(InRegion(new Vec2(_main.OverlayWindow.Origin.X + 20, _main.OverlayWindow.Origin.Y + 20)), "durante il trascinamento la finestra prende tutto il mouse")));

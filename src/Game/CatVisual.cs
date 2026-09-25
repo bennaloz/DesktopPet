@@ -56,11 +56,65 @@ public partial class CatVisual : Node3D
         _player = FindAll<AnimationPlayer>(_model).FirstOrDefault();
         if (_player != null)
             foreach (var name in _player.GetAnimationList())
+            {
                 _resolved.TryAdd(name.ToString().ToLowerInvariant(), name);
+                FillRestTracks(_player.GetAnimation(name));
+            }
 
         Recolor();
         FitToLength();
         Play("idle");
+    }
+
+    /// <summary>
+    /// Exporters drop tracks for bones that stay at rest for a whole clip. Without them a bone keeps the pose of
+    /// the previous clip (legs frozen mid-stride after walking), so give every clip every bone, at rest if unanimated.
+    /// </summary>
+    void FillRestTracks(Animation anim)
+    {
+        var skeleton = FindAll<Skeleton3D>(_model).FirstOrDefault();
+        if (skeleton == null || _player == null) return;
+        var root = _player.GetNode(_player.RootNode);
+        string skelPath = root.GetPathTo(skeleton).ToString();
+
+        var present = new HashSet<(string, Animation.TrackType)>();
+        for (int t = 0; t < anim.GetTrackCount(); t++)
+            present.Add((anim.TrackGetPath(t).GetConcatenatedSubNames(), anim.TrackGetType(t)));
+
+        for (int b = 0; b < skeleton.GetBoneCount(); b++)
+        {
+            string bone = skeleton.GetBoneName(b);
+            var rest = skeleton.GetBoneRest(b);
+            if (!present.Contains((bone, Animation.TrackType.Rotation3D)))
+            {
+                int t = anim.AddTrack(Animation.TrackType.Rotation3D);
+                anim.TrackSetPath(t, $"{skelPath}:{bone}");
+                anim.RotationTrackInsertKey(t, 0, rest.Basis.GetRotationQuaternion());
+            }
+            if (!present.Contains((bone, Animation.TrackType.Position3D)))
+            {
+                int t = anim.AddTrack(Animation.TrackType.Position3D);
+                anim.TrackSetPath(t, $"{skelPath}:{bone}");
+                anim.PositionTrackInsertKey(t, 0, rest.Origin);
+            }
+        }
+    }
+
+    /// <summary>Self-test: every clip drives every bone (see <see cref="FillRestTracks"/>).</summary>
+    internal bool EveryClipDrivesEveryBone()
+    {
+        var skeleton = FindAll<Skeleton3D>(_model).FirstOrDefault();
+        if (skeleton == null || _player == null) return true;
+        foreach (var name in _player.GetAnimationList())
+        {
+            var anim = _player.GetAnimation(name);
+            var bones = Enumerable.Range(0, anim.GetTrackCount())
+                .Where(t => anim.TrackGetType(t) == Animation.TrackType.Rotation3D)
+                .Select(t => anim.TrackGetPath(t).GetConcatenatedSubNames().ToString()).ToHashSet();
+            for (int b = 0; b < skeleton.GetBoneCount(); b++)
+                if (!bones.Contains(skeleton.GetBoneName(b))) return false;
+        }
+        return true;
     }
 
     void Recolor()
