@@ -241,19 +241,19 @@ def land(p, t, f):
 
 def sit_pose(p, breathe=0.0, t=0.0):
     # body pitched up around the hips, rump on the ground, front legs straight, hind legs folded flat
-    p.hips = (0.03, -0.24)
-    p.x['Hips'] = -38
-    p.x['Spine'] = -8
+    p.hips = (0.03, -0.222)
+    p.x['Hips'] = -24
+    p.x['Spine'] = -4
     p.x['Chest'] = -4 + breathe
-    p.x['Neck'] = 26 - breathe
-    p.x['Head'] = 22
-    plant(p, 'FL', 0.07, 0.0, 10)
-    plant(p, 'FR', 0.07, 0.0, 10)
+    p.x['Neck'] = 14 - breathe
+    p.x['Head'] = 18
+    plant(p, 'FL', 0.11, 0.0, 12)
+    plant(p, 'FR', 0.11, 0.0, 12)
     # hind: metatarsus flat on the ground pointing forward, hock behind
     plant(p, 'HL', -0.10, 0.0, -75, toe=180)
     plant(p, 'HR', -0.10, 0.0, -75, toe=180)
     # tail drops to the ground and lies along it, curling round to the side
-    chain_world(p, TAILS, [-80, -70, -35, -2, 0], [0, 0, 20, 35, 35])
+    chain_world(p, TAILS, [-70, -55, -20, 0, 2], [0, 0, 20, 35, 35])
 
 def sit(p, t, f):
     sit_pose(p, breathe=1.2 * math.sin(TAU * t), t=t)
