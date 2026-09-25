@@ -207,7 +207,10 @@ def gait(p, t, phases, duty, reach, lift, bob, spine_flex=0.0, meta_roll=25.0, s
             k = (u - duty) / (1 - duty)
             dy = lerp(reach, -reach, smooth(k))
             dz = lift * math.sin(math.pi * k)
-            dm = meta_roll + swing_curl * math.sin(math.pi * k)
+            # rolls from the push-off angle back to the touch-down angle (the stance start), curling on the way:
+            # no jump at either end, or the paw snaps round and seems to twist
+            # the curl peaks early and is gone before touch-down: the paw reaches out flat to land
+            dm = lerp(meta_roll, -meta_roll, smooth(k)) + swing_curl * math.sin(math.pi * min(1.0, k / 0.8))
             toe = None
         plant(p, key, dy + centre.get(key, 0.0), dz, dm, toe)
 
@@ -228,7 +231,7 @@ def walk(p, t, f):
     # lateral sequence (LH, LF, RH, RF), with direct register: the hind paw lands in the print the front paw
     # of the same side left. Print spacing 0.535 = 0.75 * stride + hind stance shift: stride 0.58, shift 0.10.
     gait(p, t, {'HL': 0.0, 'FL': 0.25, 'HR': 0.5, 'FR': 0.75}, duty=0.64, reach=WALK_REACH, lift=0.035, bob=0.0,
-         meta_roll=28, swing_curl=55, centre={'HL': -WALK_HIND_SHIFT, 'HR': -WALK_HIND_SHIFT})
+         meta_roll=28, swing_curl=40, centre={'HL': -WALK_HIND_SHIFT, 'HR': -WALK_HIND_SHIFT})
     tail(p, lift=6, sway=9, t=w)
 
 def run(p, t, f):
@@ -323,14 +326,14 @@ STAND = dict(dz=0.0, pitch=0.0, spine=0.0, chest=0.0, neck=0.0, head=0.0, tail=4
 LOAD = dict(dz=-0.12, pitch=-10.0, spine=3.0, chest=2.0, neck=10.0, head=-6.0, tail=-4.0,
             legs={'FL': (0.02, 0.0, 5.0), 'FR': (0.02, 0.0, 5.0), 'HL': (0.03, 0.0, -18.0), 'HR': (0.03, 0.0, -18.0)})
 # push-off: hind legs straighten against the ground, front paws already folded up under the chest
-PUSH = dict(dz=0.03, pitch=-16.0, spine=-3.0, chest=-2.0, neck=-2.0, head=2.0, tail=6.0,
+PUSH = dict(dz=0.03, pitch=4.0, spine=-3.0, chest=-2.0, neck=-2.0, head=2.0, tail=6.0,
             legs={'FL': (0.03, 0.15, 70.0), 'FR': (0.05, 0.14, 70.0), 'HL': (0.24, 0.02, 70.0), 'HR': (0.25, 0.02, 70.0)})
-# flight: stretched out like a cat reaching for a ledge - back extended, front legs reaching forward and up
-# past the head, hind legs extended back in line with the spine after the push, tail straight back
-FLY = dict(dz=0.0, pitch=-5.0, spine=-9.0, chest=-7.0, neck=-8.0, head=4.0, tail=4.0,
-           legs={'FL': (-0.33, 0.34, -95.0), 'FR': (-0.31, 0.36, -95.0), 'HL': (0.35, 0.20, 95.0), 'HR': (0.37, 0.21, 95.0)})
+# flight: stretched out by the push - back extended, front legs reaching forward and up for the ledge, hind legs
+# extended back after the push, tail out behind and a little raised (the counterweight)
+FLY = dict(dz=0.0, pitch=10.0, spine=-8.0, chest=-6.0, neck=-6.0, head=4.0, tail=65.0,
+           legs={'FL': (-0.32, 0.28, -90.0), 'FR': (-0.30, 0.30, -90.0), 'HL': (0.33, 0.18, 90.0), 'HR': (0.35, 0.19, 90.0)})
 # coming down: nose down, front legs reaching for the ground, hind legs drawn in under the belly
-DOWN = dict(dz=0.0, pitch=10.0, spine=2.0, chest=2.0, neck=4.0, head=-6.0, tail=10.0,
+DOWN = dict(dz=0.0, pitch=10.0, spine=2.0, chest=2.0, neck=4.0, head=-6.0, tail=50.0,
             legs={'FL': (-0.09, 0.02, -15.0), 'FR': (-0.07, 0.04, -15.0), 'HL': (-0.03, 0.17, 30.0), 'HR': (-0.01, 0.18, 30.0)})
 # touch-down: chest dips as the front legs take the weight
 ABSORB = dict(dz=-0.05, pitch=6.0, spine=2.0, chest=6.0, neck=-6.0, head=4.0, tail=6.0,
@@ -373,7 +376,7 @@ def aim(p, t, f):
     plant(p, 'HR', 0.03, 0.012 * max(0.0, -math.sin(2 * w)), -18)
 
 def jump(p, t, f):
-    pose_from(p, keys(t, [(0, LOAD), (0.4, PUSH), (1, FLY)]))
+    pose_from(p, keys(t, [(0, LOAD), (0.2, PUSH), (0.6, FLY), (1, FLY)]))
 
 def fall(p, t, f):
     pose_from(p, keys(t, [(0, FLY), (1, DOWN)]))

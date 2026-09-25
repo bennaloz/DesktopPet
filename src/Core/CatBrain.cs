@@ -194,7 +194,7 @@ public sealed class CatBrain
                 if (State == CatState.Zoomies) _zoomLeft = Math.Max(0, _stateDuration - _stateTime);
                 Enter(CatState.Airborne);
             }
-            Action = body.Vel.Y < 0 ? "jump" : "fall";
+            Action = Flight.Stretched(body.Vel) ? "jump" : "fall";
             if (Math.Abs(body.Vel.X) > 20) Facing = Math.Sign(body.Vel.X);
         }
         else
