@@ -238,8 +238,14 @@ def idle_look(p, t, f):
     p.x['Head'] = -6 * math.sin(math.pi * t)
     tail(p, lift=4, sway=6, t=TAU * t)
 
-def gait(p, t, phases, duty, reach, lift, bob, spine_flex=0.0, meta_roll=25.0, swing_curl=40.0, centre=None):
+SCAPULA = {'FL': 'Scapula.L', 'FR': 'Scapula.R'}
+SCAPULA_SWING = 18   # degrees each way at the ends of the stride (running: SCAPULA_RUN)
+SCAPULA_RUN = 24
+
+def gait(p, t, phases, duty, reach, lift, bob, spine_flex=0.0, meta_roll=25.0, swing_curl=40.0, centre=None,
+         blade=None):
     centre = centre or {}
+    blade = SCAPULA_SWING if blade is None else blade
     for key, ph in phases.items():
         u = (t - ph) % 1.0
         if u < duty:                       # stance: paw planted, sliding back under the body
@@ -257,15 +263,22 @@ def gait(p, t, phases, duty, reach, lift, bob, spine_flex=0.0, meta_roll=25.0, s
             # the curl peaks early and is gone before touch-down: the paw reaches out flat to land
             dm = lerp(meta_roll, -meta_roll, smooth(k)) + swing_curl * math.sin(math.pi * min(1.0, k / 0.8))
             toe = None
+        if key in SCAPULA:
+            # the shoulder blade swings with its leg: shoulder joint forward with the paw reaching out, back
+            # (the top of the blade rising) as the paw pushes off behind
+            p.x[SCAPULA[key]] = blade * dy / reach
         plant(p, key, dy + centre.get(key, 0.0), dz, dm, toe)
 
 WALK_REACH, WALK_HIND_SHIFT = 0.185, 0.10
+WALK_DROP, TROT_DROP, RUN_DROP = -0.035, -0.02, -0.03
 
 def walk(p, t, f):
     """A cat's walk: lateral-sequence gait, head low and steady, shoulders and hips rolling, back weaving."""
     w = TAU * t
     # weight shifts: the body dips a little twice per stride, rolls towards the leg that carries it
-    p.hips = (0.0, -0.012 + 0.005 * math.cos(2 * w))
+    # a walking cat carries itself lower than standing still, knees and elbows bent (legs straight like
+    # pillars look stiff)
+    p.hips = (0.0, WALK_DROP + 0.005 * math.cos(2 * w))
     # only a light weave of the back: rolling the hips or shoulders would swing the planted legs sideways
     # (the leg IK works in the side plane only)
     p.yz['Spine'] = (0.0, -1.2 * math.sin(w + 1.0))
@@ -283,7 +296,7 @@ def walk(p, t, f):
 
 def run(p, t, f):
     c = math.cos(TAU * t)
-    p.hips = (0.0, 0.025 * math.sin(TAU * t + 0.6))
+    p.hips = (0.0, RUN_DROP + 0.025 * math.sin(TAU * t + 0.6))
     # the back flexes and extends with the stride
     # the back bends and stretches with every stride, a little less than in the sprint
     p.x['Hips'] = 9 * c
@@ -292,7 +305,7 @@ def run(p, t, f):
     p.x['Neck'] = 8 + 7 * c
     p.x['Head'] = -8
     # rotary gallop, as cats run: LH, RH, then RF, LF (the footfalls go round the body)
-    gait(p, t, {'HL': 0.0, 'HR': 0.08, 'FR': 0.5, 'FL': 0.58}, duty=0.38, reach=0.18, lift=0.09, bob=0.02,
+    gait(p, t, {'HL': 0.0, 'HR': 0.08, 'FR': 0.5, 'FL': 0.58}, duty=0.38, reach=0.18, lift=0.09, bob=0.02, blade=SCAPULA_RUN,
          meta_roll=30, swing_curl=55)
     tail(p, lift=10 + 4 * c, sway=5, t=TAU * t)
 
@@ -302,7 +315,7 @@ def trot(p, t, f):
     """The happy trot: diagonal pairs (left hind with right fore), a bouncy step, head up,
     tail straight up with the tip hooked forward, the way a pleased cat comes over."""
     w = TAU * t
-    p.hips = (0.0, -0.004 + 0.011 * math.cos(2 * w))     # a bounce at every diagonal push
+    p.hips = (0.0, TROT_DROP + 0.011 * math.cos(2 * w))     # a bounce at every diagonal push
     p.x['Neck'] = -6 + 2 * math.cos(2 * w)
     p.x['Head'] = 10 - 2 * math.cos(2 * w)
     gait(p, t, {'HL': 0.0, 'FR': 0.02, 'HR': 0.5, 'FL': 0.52}, duty=0.45, reach=0.143, lift=0.07, bob=0.0,
@@ -534,7 +547,7 @@ def loaf(p, t, f):
     for name in ('Hand.L', 'Hand.R'): p.shrink[name] = LOAF_PAW_SHRINK
     for name in ('Foot.L', 'Foot.R'): p.shrink[name] = LOAF_FOOT_SHRINK
 
-LOAF_NECK, LOAF_HEAD = -14, -16   # the neck lifts the head back up off the lowered chest
+LOAF_NECK, LOAF_HEAD = -22, -18   # the neck lifts the head back up off the lowered chest and draws it in
 # front paws folded back under the chest, hind feet tucked back into the thighs
 LOAF_PAW_Z, LOAF_TOES, LOAF_FOOT_Z = 0.06, -70, 0.02
 LOAF_PAW_BACK = 0.09
@@ -542,7 +555,7 @@ LOAF_BELLY = (0.05, 1.15)
 LOAF_PITCH, LOAF_SPINE, LOAF_CHEST, LOAF_FOOT_Y = 0, 3, 26, 0.03   # chest down on the floor over the tucked paws
 # (kept mild: shrinking more, together with the body drawing in, looked like the cat morphing)
 LOAF_PAW_SHRINK, LOAF_FOOT_SHRINK = 0.5, 0.6
-LOAF_SQUASH = 0.9   # the middle of the back draws in a little (the tail tucked in does most of the shortening)   # the loaf spreads sideways
+LOAF_SQUASH = 0.72   # the middle of the back draws in: a loaf is compact, much shorter than the cat lying out   # the loaf spreads sideways
 LOAF_SINK = 0.045   # the loaf settles lower than the curl: chest front on the floor (the game clips what goes under it)
 # the tail drops straight down behind the rump and turns at once, forward along the flank: nothing sticks out
 # behind her (the length of a loaf is nose to rump)
