@@ -428,36 +428,43 @@ def sit(p, t, f):
     sit_pose(p, breathe=1.2 * math.sin(TAU * t), t=t)
     y, z = p.yz['Tail5']; p.yz['Tail5'] = (y, z + 12 * math.sin(TAU * 2 * t))
 
-CROUCH_DROP = -0.29   # belly down on the floor
+CROUCH_DROP = -0.31   # hips and thighs down on the floor
 
 def crouch(p, t, f):
-    """Crouched: belly on the ground, forearms flat with the paws showing in front of the chest,
-    hind legs folded alongside, head up."""
+    """Crouched like a sphinx: belly and hips on the floor, chest held up on the forearms (elbows under the
+    shoulders, forearms flat, paws just in front of the chest, toes flat), neck up, head level, hind legs folded
+    under the thighs with the feet forward, tail wrapped along the flank."""
     breathe = math.sin(TAU * t)
     p.hips = (0.0, CROUCH_DROP + 0.003 * breathe)
-    p.x['Spine'] = -3
-    p.x['Chest'] = 2 + breathe
-    p.x['Neck'] = 2
-    p.x['Head'] = 0
+    p.x['Hips'] = CROUCH_PITCH
+    p.x['Spine'] = CROUCH_SPINE
+    p.x['Chest'] = CROUCH_CHEST + breathe
+    p.x['Neck'] = CROUCH_NECK
+    p.x['Head'] = -(CROUCH_PITCH + CROUCH_SPINE + CROUCH_CHEST + CROUCH_NECK) + CROUCH_HEAD
     for key in ('FL', 'FR'):
         u, l, m, t_, fwd = LEGS[key]
         H = p.point(REST[u]['parent'], REST[u]['h'])
-        # elbow down on the floor under the shoulder's reach, forearm lying flat forward from it, toes flat:
-        # the paw goes as far forward as the arm then reaches (a paw placed short of it would push the elbow
-        # through the floor)
+        # the upper arm slopes down and back from the shoulder, the elbow rests on the floor behind it and the
+        # forearm lies flat forward from there: the paws end just in front of the chest
         L1, L2 = REST[u]['L'], REST[l]['L']
-        to_elbow = math.sqrt(max(0.0, L1 * L1 - (H[1] - CROUCH_WRIST_Z) ** 2))
-        wrist = (H[0] - (to_elbow + L2) * CROUCH_ARM_OUT, CROUCH_WRIST_Z)
+        behind = math.sqrt(max(0.0, L1 * L1 - (H[1] - CROUCH_WRIST_Z) ** 2))
+        wrist = (H[0] + behind - L2 * CROUCH_ARM_OUT, CROUCH_WRIST_Z)
         g = D(CROUCH_META)
         paw = (wrist[0] + REST[m]['L'] * math.cos(g), wrist[1] + REST[m]['L'] * math.sin(g))
         p.leg(u, l, m, t_, paw, CROUCH_META, False, CROUCH_TOES)
-    plant(p, 'HL', -0.13, 0.0, -80, toe=180)
-    plant(p, 'HR', -0.13, 0.0, -80, toe=180)
-    chain_world(p, TAILS, [-70, -40, -5, 0, 0], [0, 15, 35, 45, 40])
+    plant(p, 'HL', CROUCH_FOOT[0], CROUCH_FOOT[1], CROUCH_FOOT[2], toe=180)
+    plant(p, 'HR', CROUCH_FOOT[0], CROUCH_FOOT[1], CROUCH_FOOT[2], toe=180)
+    chain_world(p, TAILS, CROUCH_TAIL, CROUCH_TAIL_WRAP)
 
-CROUCH_REACH = 0.20
+# the back sinks in the middle and the chest curves up onto the forearms (a Tripo model of Zaira crouching
+# was the reference: compact, paws just in front of the chest, head close to the shoulders)
+CROUCH_PITCH, CROUCH_SPINE, CROUCH_CHEST, CROUCH_NECK, CROUCH_HEAD = 0, 6, -14, -2, 6
+CROUCH_FOOT = (-0.13, 0.0, -80)
+# hips this low: the tail leaves them less steeply than sitting, or it goes through the floor
+CROUCH_TAIL = [-45, -32, -4, 3, 3]
+CROUCH_TAIL_WRAP = [0, 0, -45, -45, -35]
 CROUCH_WRIST_Z, CROUCH_META, CROUCH_TOES = 0.05, 190, 185
-CROUCH_ARM_OUT = 0.98   # a hair short of straight, so the elbow stays bent the right way
+CROUCH_ARM_OUT = 0.98   # the forearm a hair short of its length, so the elbow stays bent the right way
 LOAF_DROP = -0.21
 
 def loaf(p, t, f):
