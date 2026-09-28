@@ -547,16 +547,18 @@ def loaf(p, t, f):
     for name in ('Hand.L', 'Hand.R'): p.shrink[name] = LOAF_PAW_SHRINK
     for name in ('Foot.L', 'Foot.R'): p.shrink[name] = LOAF_FOOT_SHRINK
 
-LOAF_NECK, LOAF_HEAD = -22, -18   # the neck lifts the head back up off the lowered chest and draws it in
+LOAF_NECK, LOAF_HEAD = -25, 10   # head up above the shoulders (the highest point of a loaf), nose level
 # front paws folded back under the chest, hind feet tucked back into the thighs
-LOAF_PAW_Z, LOAF_TOES, LOAF_FOOT_Z = 0.06, -70, 0.02
+LOAF_PAW_Z, LOAF_TOES, LOAF_FOOT_Z = 0.02, -70, -0.015   # sunk with the body (the game clips under the floor)
 LOAF_PAW_BACK = 0.09
 LOAF_BELLY = (0.05, 1.15)
-LOAF_PITCH, LOAF_SPINE, LOAF_CHEST, LOAF_FOOT_Y = 0, 3, 26, 0.03   # chest down on the floor over the tucked paws
+LOAF_PITCH, LOAF_SPINE, LOAF_CHEST, LOAF_FOOT_Y = 0, 3, 10, 0.03
 # (kept mild: shrinking more, together with the body drawing in, looked like the cat morphing)
 LOAF_PAW_SHRINK, LOAF_FOOT_SHRINK = 0.5, 0.6
 LOAF_SQUASH = 0.72   # the middle of the back draws in: a loaf is compact, much shorter than the cat lying out   # the loaf spreads sideways
-LOAF_SINK = 0.045   # the loaf settles lower than the curl: chest front on the floor (the game clips what goes under it)
+# the whole loaf sits low, chest front on the floor over the paws: tilting the chest down instead dropped the
+# head below the back like a tortoise's; the game clips whatever goes under the floor
+LOAF_SINK = 0.08
 # the tail drops straight down behind the rump and turns at once, forward along the flank: nothing sticks out
 # behind her (the length of a loaf is nose to rump)
 LOAF_TAIL = [-70, -85, -3, 2, 2]
