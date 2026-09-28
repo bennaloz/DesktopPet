@@ -34,9 +34,9 @@ public sealed class CatBrain
     public const double TrotSpeed = 150;
     /// <summary>The lope: getting somewhere fast without sprinting (starving, on the way to the bowl).</summary>
     public const double LopeSpeed = 300;
-    /// <summary>Zoomies: flat out. ~2.5 m/s at her scale (a real cat gallops at 5-10 m/s; slower looked like slow
-    /// motion), strides about one and a half body lengths.</summary>
-    public const double RunSpeed = 800;
+    /// <summary>Zoomies: flat out. ~2.2 m/s at her scale (a real cat gallops at 5-10 m/s; much slower looked like
+    /// slow motion), 3 strides a second of about one and a half body lengths.</summary>
+    public const double RunSpeed = 720;
     /// <summary>Zoomies speed up and slow down like a cat (px/s²): flat out in about a third of a second, stopping in
     /// a quarter. Stopping dead from a gallop to turn round looked like a stutter.</summary>
     public const double ZoomAccel = 2400, ZoomBrake = 3200, ZoomCreep = 40;

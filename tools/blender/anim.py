@@ -281,9 +281,9 @@ def gait(p, t, phases, duty, reach, lift, bob, spine_flex=0.0, meta_roll=25.0, s
 WALK_REACH, WALK_HIND_SHIFT = 0.185, 0.10
 # Running strides at a cat's pace (a gallop is 3+ strides a second; 14 frames looked like slow motion). The reach
 # goes with it so the paws still keep pace with the ground: 2 * reach / (duty * stride time) is the speed the
-# profile's ref_speed_px (lope 300 px/s, sprint 800 px/s; ~118 px per metre of rig), which is the brain's speed.
+# profile's ref_speed_px (lope 300 px/s, sprint 720 px/s; ~118 px per metre of rig), which is the brain's speed.
 RUN_FRAMES, RUN_REACH = 10, 0.152       # lope, 300 px/s
-SPRINT_FRAMES, SPRINT_REACH = 8, 0.271   # zoomies, 800 px/s: long strides
+SPRINT_FRAMES, SPRINT_REACH = 10, 0.305   # zoomies, 720 px/s: 3 long strides a second
 # A cat's gallop: the front legs are thrown out well ahead of the shoulders before they land and the stance
 # happens ahead of them; the hind legs come forward under the belly (the gathered phase) and push back behind.
 RUN_EXTEND, RUN_CENTRE = (0.10, 0.06), {'FL': -0.05, 'FR': -0.05, 'HL': -0.04, 'HR': -0.04}

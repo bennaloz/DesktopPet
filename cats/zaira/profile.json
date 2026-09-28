@@ -52,7 +52,7 @@
       ],
       "loop": true,
       "speed": 1.0,
-      "ref_speed_px": 800
+      "ref_speed_px": 720
     },
     "prejump": {
       "anims": [
