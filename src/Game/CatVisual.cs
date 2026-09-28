@@ -100,6 +100,7 @@ public partial class CatVisual : Node3D
         }
 
         Recolor();
+        UseFloorClipMaterials();
         FitToLength();
         Play("idle");
     }
@@ -166,6 +167,54 @@ public partial class CatVisual : Node3D
                 if (!bones.Contains(skeleton.GetBoneName(b))) return false;
         }
         return true;
+    }
+
+    /// <summary>
+    /// While she rests on a surface nothing of her is drawn below it: a body lying on the floor flattens against
+    /// it, and the rig can only bend her, so a pose that sits a little into the floor (a round belly, a thigh)
+    /// looks planted instead of hovering or poking through the window edge. Off in the air and when held.
+    /// </summary>
+    public bool FloorClip { get; set; }
+
+    const string FloorClipShader = @"
+shader_type spatial;
+uniform sampler2D albedo_tex : source_color, filter_linear_mipmap, repeat_enable;
+uniform vec4 albedo_color : source_color = vec4(1.0);
+uniform float roughness = 0.9;
+uniform float metallic = 0.0;
+uniform float floor_y = -1e9;
+varying float world_y;
+void vertex() { world_y = (MODEL_MATRIX * vec4(VERTEX, 1.0)).y; }
+void fragment() {
+    if (world_y < floor_y) discard;
+    vec4 c = texture(albedo_tex, UV) * albedo_color;
+    ALBEDO = c.rgb;
+    ROUGHNESS = roughness;
+    METALLIC = metallic;
+}";
+    static Shader? _floorClipShader;
+    readonly List<ShaderMaterial> _clipMaterials = new();
+
+    /// <summary>The model's materials (a colour texture, roughness, metallic) as the same look plus the floor clip.</summary>
+    void UseFloorClipMaterials()
+    {
+        _floorClipShader ??= new Shader { Code = FloorClipShader };
+        foreach (var mi in FindAll<MeshInstance3D>(_model))
+        {
+            var mesh = mi.Mesh;
+            if (mesh == null) continue;
+            for (int s = 0; s < mesh.GetSurfaceCount(); s++)
+            {
+                if ((mi.GetSurfaceOverrideMaterial(s) ?? mesh.SurfaceGetMaterial(s)) is not StandardMaterial3D std) continue;
+                var clip = new ShaderMaterial { Shader = _floorClipShader };
+                clip.SetShaderParameter("albedo_tex", std.AlbedoTexture);
+                clip.SetShaderParameter("albedo_color", std.AlbedoColor);
+                clip.SetShaderParameter("roughness", std.Roughness);
+                clip.SetShaderParameter("metallic", std.Metallic);
+                mi.SetSurfaceOverrideMaterial(s, clip);
+                _clipMaterials.Add(clip);
+            }
+        }
     }
 
     void Recolor()
@@ -284,6 +333,10 @@ public partial class CatVisual : Node3D
         if (_clip?.Vibrate == true) offset = new Vector3(0.6f * (float)Math.Sin(_time * 90), 0, 0);
         _pivot.Scale = s;
         _pivot.Position = offset;
+
+        // the feet are on the node origin: clip just under it (half a pixel, so paws standing on it stay whole)
+        float floorY = FloorClip ? GlobalPosition.Y - 0.5f : -1e9f;
+        foreach (var m in _clipMaterials) m.SetShaderParameter("floor_y", floorY);
     }
 
     static IEnumerable<T> FindAll<T>(Node root) where T : Node

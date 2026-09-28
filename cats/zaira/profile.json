@@ -108,14 +108,12 @@
     },
     "tuck": {
       "anims": [
-        "Tuck",
-        "Tuck_Pair"
+        "Tuck"
       ],
       "loop": false,
       "blend": 0.1,
       "anims_right": [
-        "Tuck_R",
-        "Tuck_Pair_R"
+        "Tuck_R"
       ]
     },
     "loaf": {

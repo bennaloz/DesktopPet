@@ -43,6 +43,7 @@ class Pose:
         self.hips = (0.0, 0.0)   # world (dy, dz) offset of the whole body
         self.belly = (0.0, 1.0)  # Belly bone: how far the belly skin drops (m, towards the floor), how wide it spreads
         self.squash = 1.0        # length of the middle of the back (Spine) as a fraction: a loafing cat draws in
+        self.shrink = {}         # bone -> uniform scale: paws tucked out of sight under a lean body
 
     def cum(self, name):
         a = 0.0
@@ -97,7 +98,11 @@ class Pose:
         t2 = a2 - REST[lower]['a'] - (phi + t1)
         t3 = g - REST[meta]['a'] - (phi + t1 + t2)
         self.x[upper], self.x[lower], self.x[meta] = map(math.degrees, (t1, t2, t3))
-        if toe:
+        if toe and toe_angle is None and toe.startswith('Finger'):
+            # front toes follow the paw unless a pose lays them down (walking they roll with it, as before
+            # the rig had them: kept flat they looked stiff and seemed to twist outwards)
+            self.x[toe] = 0.0
+        elif toe:
             ta = REST[toe]['a'] if toe_angle is None else D(toe_angle)
             self.x[toe] = math.degrees(ta - REST[toe]['a'] - (phi + t1 + t2 + t3))
 
@@ -119,6 +124,12 @@ class Pose:
         for name, k in (('Spine', self.squash), ('Chest', 1 / self.squash)):
             P[name].scale = (1.0, k, 1.0)
             P[name].keyframe_insert("scale", frame=frame)
+        # every other bone keys its scale too (1 unless shrunk), or a clip would keep the last clip's shrunk paws
+        for pb in P:
+            if pb.name in ('Belly', 'Spine', 'Chest'): continue
+            k = self.shrink.get(pb.name, 1.0)
+            pb.scale = (k, k, k)
+            pb.keyframe_insert("scale", frame=frame)
         # hips offset: world delta -> hips bone local space
         R = bones['Hips'].matrix_local.to_3x3()
         pb = P['Hips']
@@ -264,8 +275,10 @@ def walk(p, t, f):
     p.yz['Neck'] = (0.0, 2.0 * math.sin(w + 2.4))
     # lateral sequence (LH, LF, RH, RF), with direct register: the hind paw lands in the print the front paw
     # of the same side left. Print spacing 0.535 = 0.75 * stride + hind stance shift: stride 0.58, shift 0.10.
-    gait(p, t, {'HL': 0.0, 'FL': 0.25, 'HR': 0.5, 'FR': 0.75}, duty=0.64, reach=WALK_REACH, lift=0.035, bob=0.0,
-         meta_roll=28, swing_curl=40, centre={'HL': -WALK_HIND_SHIFT, 'HR': -WALK_HIND_SHIFT})
+    # the paw lifts from the elbow/knee (lift) more than it curls at the wrist (swing_curl): a big curl shows the
+    # pad sideways to a three-quarter view and reads as the foot twisting outwards
+    gait(p, t, {'HL': 0.0, 'FL': 0.25, 'HR': 0.5, 'FR': 0.75}, duty=0.64, reach=WALK_REACH, lift=0.055, bob=0.0,
+         meta_roll=20, swing_curl=15, centre={'HL': -WALK_HIND_SHIFT, 'HR': -WALK_HIND_SHIFT})
     tail(p, lift=6, sway=9, t=w)
 
 def run(p, t, f):
@@ -292,8 +305,8 @@ def trot(p, t, f):
     p.hips = (0.0, -0.004 + 0.011 * math.cos(2 * w))     # a bounce at every diagonal push
     p.x['Neck'] = -6 + 2 * math.cos(2 * w)
     p.x['Head'] = 10 - 2 * math.cos(2 * w)
-    gait(p, t, {'HL': 0.0, 'FR': 0.02, 'HR': 0.5, 'FL': 0.52}, duty=0.45, reach=0.143, lift=0.05, bob=0.0,
-         meta_roll=28, swing_curl=50)
+    gait(p, t, {'HL': 0.0, 'FR': 0.02, 'HR': 0.5, 'FL': 0.52}, duty=0.45, reach=0.143, lift=0.07, bob=0.0,
+         meta_roll=20, swing_curl=20)   # lift more than curl, as in the walk
     sway = 4 * math.sin(w)
     chain_world(p, TAILS, TROT_TAIL, [0, sway * 0.5, sway, sway * 1.5, 6 + 10 * math.sin(2 * w)])
 
@@ -504,7 +517,7 @@ def loaf(p, t, f):
         u, l, m, t_, fwd = LEGS[key]
         H = p.point(REST[u]['parent'], REST[u]['h'])
         # paws folded back inside the chest (wrist bent, paw pointing backwards, toes curled under), on the floor
-        p.leg(u, l, m, t_, (H[0] + 0.03, LOAF_PAW_Z), 5, False, LOAF_TOES)
+        p.leg(u, l, m, t_, (H[0] + LOAF_PAW_BACK, LOAF_PAW_Z), 5, False, LOAF_TOES)
     # hind feet folded forward under the belly and drawn in towards the middle
     plant(p, 'HL', LOAF_FOOT_Y, LOAF_FOOT_Z, -80, toe=180)
     plant(p, 'HR', LOAF_FOOT_Y, LOAF_FOOT_Z, -80, toe=180)
@@ -517,13 +530,20 @@ def loaf(p, t, f):
     chain_world(p, TAILS, LOAF_TAIL, wrap)
     p.belly = LOAF_BELLY
     p.squash = LOAF_SQUASH
+    # the rig's body is too lean to hide tucked paws: they fold away small under the chest and thighs
+    for name in ('Hand.L', 'Hand.R'): p.shrink[name] = LOAF_PAW_SHRINK
+    for name in ('Foot.L', 'Foot.R'): p.shrink[name] = LOAF_FOOT_SHRINK
 
-LOAF_NECK, LOAF_HEAD = 4, -8
-LOAF_PAW_Z, LOAF_TOES, LOAF_FOOT_Z = 0.05, -40, 0.005   # paws tucked in but down on the floor
-LOAF_BELLY = (0.02, 1.2)
-LOAF_PITCH, LOAF_SPINE, LOAF_CHEST, LOAF_FOOT_Y = 0, 3, 4, 0.02
-LOAF_SQUASH = 0.8   # the middle of the back draws in: nose to rump a few cm shorter than lying stretched out   # the loaf spreads sideways
-LOAF_SINK = 0.015   # the loaf settles a little lower than the curl, belly on the floor
+LOAF_NECK, LOAF_HEAD = -14, -16   # the neck lifts the head back up off the lowered chest
+# front paws folded back under the chest, hind feet tucked back into the thighs
+LOAF_PAW_Z, LOAF_TOES, LOAF_FOOT_Z = 0.06, -70, 0.02
+LOAF_PAW_BACK = 0.09
+LOAF_BELLY = (0.05, 1.15)
+LOAF_PITCH, LOAF_SPINE, LOAF_CHEST, LOAF_FOOT_Y = 0, 3, 26, 0.03   # chest down on the floor over the tucked paws
+# (kept mild: shrinking more, together with the body drawing in, looked like the cat morphing)
+LOAF_PAW_SHRINK, LOAF_FOOT_SHRINK = 0.5, 0.6
+LOAF_SQUASH = 0.9   # the middle of the back draws in a little (the tail tucked in does most of the shortening)   # the loaf spreads sideways
+LOAF_SINK = 0.045   # the loaf settles lower than the curl: chest front on the floor (the game clips what goes under it)
 # the tail drops straight down behind the rump and turns at once, forward along the flank: nothing sticks out
 # behind her (the length of a loaf is nose to rump)
 LOAF_TAIL = [-70, -85, -3, 2, 2]
@@ -605,6 +625,8 @@ def blend_body(p, a, b, parts):
     p.hips = (lerp(a.hips[0], b.hips[0], hips_w), lerp(a.hips[1], b.hips[1], hips_w))
     p.belly = (lerp(a.belly[0], b.belly[0], hips_w), lerp(a.belly[1], b.belly[1], hips_w))
     p.squash = lerp(a.squash, b.squash, hips_w)
+    for name in set(a.shrink) | set(b.shrink):   # paws shrink as they go under: with the legs, not the body
+        p.shrink[name] = lerp(a.shrink.get(name, 1.0), b.shrink.get(name, 1.0), default)
     for name in LEG_BONES:   # sideways turns of the legs (knees apart when sitting) blend with the body
         ya, za = a.yz.get(name, (0.0, 0.0)); yb, zb = b.yz.get(name, (0.0, 0.0))
         p.yz[name] = (lerp(ya, yb, default), lerp(za, zb, default))
@@ -633,19 +655,27 @@ def lie_down(p, t, f):
     step_leg(p, 'HL', a, b, stage(t, 0.55, 1.0), 0.01)
     step_leg(p, 'HR', a, b, stage(t, 0.6, 1.0), 0.01)
 
+TUCK_CHEST, TUCK_BODY = (0.1, 0.95), (0.1, 0.95)   # when the chest comes down, when the body settles
+
 def tuck_paws(front_times):
     """Lying with the paws out -> the loaf: each front paw lifts, curls under at the wrist (the long way
     round, pointing down on the way) and slides back under the chest; the body rises onto them and settles."""
     def fn(p, t, f):
         a, b = snapshot(crouch), snapshot(loaf)
-        blend_body(p, a, b, [(BODY, stage(t, 0.1, 0.95)), (HEAD, stage(t, 0.2, 0.8)),
-                             (set(TAILS), stage(t, 0.3, 1.0)), (None, stage(t, 0.4, 1.0))])
+        # the chest comes down over the paws as they go under it, and only then does the body settle to the
+        # loaf's height (rising first would lift her front off the floor on half-folded paws)
+        blend_body(p, a, b, [({'Chest'}, stage(t, TUCK_CHEST[0], TUCK_CHEST[1])), ({'Hips', 'Spine', 'hips'}, stage(t, TUCK_BODY[0], TUCK_BODY[1])),
+                             (HEAD, stage(t, 0.2, 0.8)), (set(TAILS), stage(t, 0.3, 1.0)), (None, stage(t, 0.4, 1.0))])
         for key, (t0, t1) in front_times.items():
             ma = world_leg(a, key)[1]
             mb = world_leg(b, key)[1]
             # curl downwards: the end angle past the start one going clockwise in the side plane
             curl = mb + 360 * math.ceil((ma - mb) / 360) if mb < ma else mb
-            step_leg(p, key, a, b, stage(t, t0, t1), 0.04, meta_to=curl)
+            # slid under, not lifted: a paw raised under the chest reads as the cat standing on it
+            step_leg(p, key, a, b, stage(t, t0, t1), 0.0, meta_to=curl)
+            # the paw goes out of sight as it slides under the chest, in the second half of its move
+            hand = LEGS[key][2]
+            p.shrink[hand] = lerp(1.0, b.shrink.get(hand, 1.0), stage(t, (t0 + t1) / 2, t1))
         step_leg(p, 'HL', a, b, stage(t, 0.45, 1.0), 0.0)
         step_leg(p, 'HR', a, b, stage(t, 0.5, 1.0), 0.0)
     return fn
@@ -702,9 +732,8 @@ bake_both_sides("Sit", 90, sit)
 bake_both_sides("Crouch", 90, crouch)
 bake_both_sides("Loaf", LOAF_FRAMES, loaf)
 bake_both_sides("LieDown", round(LIE_DOWN_S * FPS), lie_down, loop=False)
-# sometimes one paw after the other, sometimes both nearly together
+# one paw after the other (folding both at once lifted her front off the floor on the half-curled arms)
 bake_both_sides("Tuck", round(TUCK_S * FPS), tuck_paws({'FL': (0.05, 0.45), 'FR': (0.5, 0.9)}), loop=False)
-bake_both_sides("Tuck_Pair", round(TUCK_S * FPS), tuck_paws({'FL': (0.1, 0.6), 'FR': (0.2, 0.7)}), loop=False)
 bake("Sleep", 120, sleep)
 bake("Eat", 40, eat)
 bake("Meow", 30, meow, loop=False)
