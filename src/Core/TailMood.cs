@@ -44,6 +44,21 @@ public static class TailMoods
         _ => Calm,
     };
 
+    // Galloping the tail is a counterweight: out behind the body, curving up a little towards the tip.
+    static readonly double[] RunCarry = { -10, -4, 2, 8, 14 };
+
+    /// <summary>
+    /// The tail at a lope or gallop: carried out behind with only a hint (30%) of the mood's shape, never low
+    /// enough to trail between the hind legs nor so tall that it seesaws with the rump; smaller waves.
+    /// </summary>
+    public static TailShape Running(TailShape mood)
+    {
+        var lift = new double[RunCarry.Length];
+        for (int i = 0; i < lift.Length; i++)
+            lift[i] = Math.Clamp(RunCarry[i] + 0.3 * (mood.Lift[i] - RunCarry[i]), -25, 35);
+        return mood with { Lift = lift, WaveDeg = Math.Min(mood.WaveDeg, 4), TipDeg = Math.Min(mood.TipDeg, 4) };
+    }
+
     /// <summary>Sideways angle of each tail bone (degrees, + to her left) at time <paramref name="t"/> (s).</summary>
     public static double[] Sideways(TailShape s, double t)
     {

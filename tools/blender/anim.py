@@ -389,10 +389,18 @@ def gallop(p, t, g):
     p.x['Head'] = g['head']
     gait(p, t, g['phases'], duty=g['duty'], reach=g['reach'], lift=g['lift'], bob=0.0, blade=SCAPULA_RUN,
          extend=g['extend'], centre=g['centre'], meta_roll=g['roll'], swing_curl=g['curl'])
-    tail(p, lift=g['tail'] - 0.5 * body, sway=3, t=w)
+    # the tail out behind as a counterweight (hanging, it trailed down to the ground between the hind legs),
+    # curving up to the tip, and whipping: it dips as the body springs up and flicks up as it comes down, the tip later
+    hips = math.degrees(p.cum('Hips'))
+    whip = [g['whip'] * (0.3 + 0.3 * i) * math.sin(2 * TAU * (t - 0.42) - 0.6 * i) for i in range(5)]
+    sway = 2 * math.sin(w)
+    chain_world(p, TAILS, [RUN_TAIL[i] + g['tail'] + hips + whip[i] for i in range(5)],
+                [0, sway * 0.5, sway, sway * 1.5, sway * 2])
 
+# the tail at a gallop: out behind, curving up towards the tip (the same as TailMoods.Running in the game)
+RUN_TAIL = [-10, -4, 2, 8, 14]
 # the lope: the same gallop, gentler
-RUN_G = dict(pitch=7, flex=12, squash=0.08, drop=-0.03, bounce=0.02, neck=8, head=-6, steady=0.5, tail=10,
+RUN_G = dict(pitch=7, flex=12, squash=0.08, drop=-0.03, bounce=0.02, neck=8, head=-6, steady=0.5, tail=0, whip=8,
              phases={'HL': 0.0, 'HR': 0.08, 'FR': 0.5, 'FL': 0.58}, duty=0.36, lift=0.09, roll=30, curl=55)
 
 def run(p, t, f):
@@ -455,7 +463,7 @@ def swat(p, t, f):
     plant(p, 'FL', 0.03 - 0.10 * up - 0.24 * hit, 0.26 * up + 0.02 * hit, 22 - 110 * up - 95 * hit)
 
 # zoomies: flat out, body low, everything bigger
-SPRINT_G = dict(pitch=10, flex=20, squash=0.14, drop=-0.04, bounce=0.03, neck=12, head=-10, steady=0.45, tail=5,
+SPRINT_G = dict(pitch=10, flex=20, squash=0.14, drop=-0.04, bounce=0.03, neck=12, head=-10, steady=0.45, tail=5, whip=10,
                 phases={'HL': 0.0, 'HR': 0.1, 'FR': 0.5, 'FL': 0.58}, duty=0.30, lift=0.13, roll=35, curl=70)
 
 def sprint(p, t, f):

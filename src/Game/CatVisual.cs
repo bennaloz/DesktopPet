@@ -134,6 +134,7 @@ public partial class CatVisual : Node3D
     {
         if (_tail == null) return;
         var want = TailMoods.Shape(TailMood);
+        if (_action is "lope" or "run") want = TailMoods.Running(want);
         double k = Math.Min(1, dt * 2.5);
         for (int i = 0; i < _tail.Lift.Length && i < want.Lift.Length; i++) _tail.Lift[i] += (want.Lift[i] - _tail.Lift[i]) * k;
         _tail.WaveDeg += (want.WaveDeg - _tail.WaveDeg) * k;

@@ -66,6 +66,26 @@ public class TailMoodTests
     public void Playful_tail_waves_faster_than_a_calm_one() =>
         Assert.True(TailMoods.Shape(TailMood.Playful).WaveHz > 1.5 * TailMoods.Shape(TailMood.Calm).WaveHz);
 
+    [Theory]
+    [InlineData(TailMood.Calm)]
+    [InlineData(TailMood.Tired)]
+    [InlineData(TailMood.Content)]
+    [InlineData(TailMood.Playful)]
+    public void Running_the_tail_goes_out_behind_for_balance(TailMood mood)
+    {
+        // galloping, a low tail would trail between the hind legs and a tall one would seesaw with the rump:
+        // it is carried out behind, curving up a little towards the tip, with only a hint of the mood
+        var run = TailMoods.Running(TailMoods.Shape(mood));
+        Assert.All(run.Lift, a => Assert.InRange(a, -30, 40));
+        Assert.True(run.Lift[4] > run.Lift[0], "the tip curves up");
+        Assert.True(run.WaveDeg <= TailMoods.Shape(mood).WaveDeg, "no bigger sideways wave than walking");
+    }
+
+    [Fact]
+    public void Running_keeps_a_hint_of_the_mood() =>
+        Assert.True(TailMoods.Running(TailMoods.Shape(TailMood.Content)).Lift[1]
+                    > TailMoods.Running(TailMoods.Shape(TailMood.Tired)).Lift[1] + 10);
+
     [Fact]
     public void Zoomies_tail_is_straight_back_and_steady()
     {
