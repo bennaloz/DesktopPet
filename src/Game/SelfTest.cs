@@ -172,7 +172,10 @@ public sealed class SelfTest
             (8.0, "look down ahead", () => LookAt(GazeKind.Point, new Vec2(260, 160))),
             (10.0, "check down", () => CheckHead(null, 30, "guarda un punto in basso davanti", target)),
             (10.1, "screenshot", Shot),
-            (11.0, "quit", () => _main.Quit()),
+            (11.0, "look straight up", () => LookAt(GazeKind.Point, new Vec2(-10, -300))),
+            (13.0, "check straight up", () => CheckHead(null, 35, "guarda dritto sopra di se'", target)),
+            (13.1, "screenshot", Shot),
+            (14.0, "quit", () => _main.Quit()),
         };
     }
 

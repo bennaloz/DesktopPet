@@ -28,8 +28,9 @@ public partial class GazeModifier : SkeletonModifier3D
     const float NeckShare = 0.6f;
     const float ChestShare = 0.2f;
     static readonly float ChestLimit = Mathf.DegToRad(15);
-    static readonly float NeckLimit = Mathf.DegToRad(45);
-    static readonly float HeadLimit = Mathf.DegToRad(50);
+    // Together about 115 degrees: enough to look straight up; further round she turns her body (CatBrain).
+    static readonly float NeckLimit = Mathf.DegToRad(70);
+    static readonly float HeadLimit = Mathf.DegToRad(70);
 
     public override void _ProcessModificationWithDelta(double delta)
     {

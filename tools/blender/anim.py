@@ -243,7 +243,7 @@ SCAPULA_SWING = 18   # degrees each way at the ends of the stride (running: SCAP
 SCAPULA_RUN = 24
 
 def gait(p, t, phases, duty, reach, lift, bob, spine_flex=0.0, meta_roll=25.0, swing_curl=40.0, centre=None,
-         blade=None, track=(0.0, 0.0)):
+         blade=None, track=(0.0, 0.0), hind_lift=None):
     """track: (front, hind) degrees each leg leans in under the body from shoulder/hip: a walking cat puts its
     paws almost in one line under its middle, not at the corners like a table's legs."""
     centre = centre or {}
@@ -259,7 +259,7 @@ def gait(p, t, phases, duty, reach, lift, bob, spine_flex=0.0, meta_roll=25.0, s
         else:                              # swing: lift and bring forward
             k = (u - duty) / (1 - duty)
             dy = lerp(reach, -reach, smooth(k))
-            dz = lift * math.sin(math.pi * k)
+            dz = (lift if key[0] == 'F' or hind_lift is None else hind_lift) * math.sin(math.pi * k)
             # rolls from the push-off angle back to the touch-down angle (the stance start), curling on the way:
             # no jump at either end, or the paw snaps round and seems to twist
             # the curl peaks early and is gone before touch-down: the paw reaches out flat to land
@@ -275,9 +275,15 @@ def gait(p, t, phases, duty, reach, lift, bob, spine_flex=0.0, meta_roll=25.0, s
         plant(p, key, dy + centre.get(key, 0.0), dz, dm, toe)
 
 WALK_REACH, WALK_HIND_SHIFT = 0.185, 0.10
+# Running strides at a cat's pace (a gallop is 3+ strides a second; 14 frames looked like slow motion). The reach
+# goes with it so the paws still keep pace with the ground: 2 * reach / (duty * stride time) is the speed the
+# profile's ref_speed_px was set for (lope 288 px/s, sprint 380 px/s at ~118 px per metre of rig).
+RUN_FRAMES, RUN_REACH = 11, 0.167
+SPRINT_FRAMES, SPRINT_REACH = 9, 0.155
 WALK_DROP, TROT_DROP, RUN_DROP = -0.035, -0.02, -0.03
 # the swinging leg folds at the elbow/knee and a little at the wrist (straighter, the legs looked in plaster)
 WALK_LIFT, WALK_CURL = 0.1, 40
+WALK_HIND_LIFT = 0.055   # the hind paws barely clear the ground
 WALK_TRACK = (14, 6)   # legs lean in: the paws land nearly in line under the body
 WALK_ROLL, WALK_YAW = 3.0, 4.0   # degrees of sway of hips and shoulders
 
@@ -307,7 +313,8 @@ def walk(p, t, f):
     # the paw lifts from the elbow/knee (lift) more than it curls at the wrist (swing_curl): a big curl shows the
     # pad sideways to a three-quarter view and reads as the foot twisting outwards
     gait(p, t, {'HL': 0.0, 'FL': 0.25, 'HR': 0.5, 'FR': 0.75}, duty=0.64, reach=WALK_REACH, lift=WALK_LIFT, bob=0.0,
-         meta_roll=20, swing_curl=WALK_CURL, centre={'HL': -WALK_HIND_SHIFT, 'HR': -WALK_HIND_SHIFT}, track=WALK_TRACK)
+         meta_roll=20, swing_curl=WALK_CURL, centre={'HL': -WALK_HIND_SHIFT, 'HR': -WALK_HIND_SHIFT}, track=WALK_TRACK,
+         hind_lift=WALK_HIND_LIFT)
     # the legs keep their own lean and twist while the hips and shoulders sway above them: take back what each
     # one inherits (hind legs from the hips, front legs from hips + back + chest), or the planted paws slide
     for key, roll, yaw in (('HL', hr, hy), ('HR', hr, hy), ('FL', sr, sy), ('FR', sr, sy)):
@@ -322,13 +329,13 @@ def run(p, t, f):
     p.hips = (0.0, RUN_DROP + 0.025 * math.sin(TAU * t + 0.6))
     # the back flexes and extends with the stride
     # the back bends and stretches with every stride, a little less than in the sprint
-    p.x['Hips'] = 9 * c
-    p.x['Spine'] = -8 * c
-    p.x['Chest'] = -6 * c
-    p.x['Neck'] = 8 + 7 * c
+    p.x['Hips'] = 6 * c
+    p.x['Spine'] = -5 * c
+    p.x['Chest'] = -4 * c
+    p.x['Neck'] = 8 + 5 * c
     p.x['Head'] = -8
     # rotary gallop, as cats run: LH, RH, then RF, LF (the footfalls go round the body)
-    gait(p, t, {'HL': 0.0, 'HR': 0.08, 'FR': 0.5, 'FL': 0.58}, duty=0.38, reach=0.18, lift=0.09, bob=0.02, blade=SCAPULA_RUN,
+    gait(p, t, {'HL': 0.0, 'HR': 0.08, 'FR': 0.5, 'FL': 0.58}, duty=0.38, reach=RUN_REACH, lift=0.09, bob=0.02, blade=SCAPULA_RUN,
          meta_roll=30, swing_curl=55)
     tail(p, lift=10 + 4 * c, sway=5, t=TAU * t)
 
@@ -393,12 +400,12 @@ def sprint(p, t, f):
     w = TAU * t
     c = math.cos(w)
     p.hips = (0.0, -0.03 + 0.035 * math.sin(w + 0.6))
-    p.x['Hips'] = 12 * c
-    p.x['Spine'] = -10 * c
-    p.x['Chest'] = -8 * c
-    p.x['Neck'] = 12 + 8 * c        # soaks up the back's swing: the head stays level
+    p.x['Hips'] = 8 * c
+    p.x['Spine'] = -6 * c
+    p.x['Chest'] = -5 * c
+    p.x['Neck'] = 12 + 5 * c        # soaks up the back's swing: the head stays level
     p.x['Head'] = -10
-    gait(p, t, {'HL': 0.0, 'HR': 0.1, 'FR': 0.45, 'FL': 0.55}, duty=0.32, reach=0.2, lift=0.11, bob=0.0,
+    gait(p, t, {'HL': 0.0, 'HR': 0.1, 'FR': 0.45, 'FL': 0.55}, duty=0.32, reach=SPRINT_REACH, lift=0.11, bob=0.0,
          meta_roll=35, swing_curl=70)
     tail(p, lift=5 + 3 * c, sway=3, t=w)
 
@@ -755,8 +762,8 @@ def held(p, t, f):
 bake("Idle", 90, idle)
 bake("Idle_Look", 120, idle_look)
 bake("Walk", 24, walk)
-bake("Run", 14, run)
-bake("Sprint", 14, sprint)
+bake("Run", RUN_FRAMES, run)
+bake("Sprint", SPRINT_FRAMES, sprint)
 bake("Trot", 18, trot)
 bake("Stalk", 60, stalk)
 bake("Wiggle", 15, wiggle)

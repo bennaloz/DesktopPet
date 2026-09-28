@@ -57,6 +57,10 @@ public sealed class CatBrain
     /// <summary>Lying down from sitting and tucking the paws in take a cat this long: the length of the
     /// LieDown and Tuck clips (tools/blender/anim.py).</summary>
     public const double LieDownTime = 2.0, TuckTime = 1.6;
+    /// <summary>The cursor must stay behind her this long (s) before she turns round to face it...</summary>
+    public const double TurnToCursorAfter = 0.8;
+    /// <summary>...and be at least this far behind (px, from the middle of the body) and within this distance.</summary>
+    public const double TurnToCursorBehind = 50, TurnToCursorRange = 400;
 
     readonly Random _rng;
 
@@ -102,6 +106,7 @@ public sealed class CatBrain
     int _swats;
     double _wiggleAt;         // when (state time) the rump wiggle starts
     double _pounceAt;         // when (state time) she leaps
+    double _cursorBehind;     // seconds the cursor has stayed behind her while she stood or sat about
     double _loafAt = -1;      // when (state time) a long sit turns into lying down; -1 never
     double _tuckAt;           // how long after lying down she tucks the front paws in (the loaf)
 
@@ -352,14 +357,30 @@ public sealed class CatBrain
 
             case CatState.Sit:
                 Action = RestingAction();
+                if (Action == "sit") TurnToCursor(dt, body);
                 if (_stateTime >= _stateDuration) Decide(body, needs, map, world);
                 return 0;
 
             default: // Idle
                 Action = "idle";
+                TurnToCursor(dt, body);
                 if (_stateTime >= _stateDuration) Decide(body, needs, map, world);
                 return 0;
         }
+    }
+
+    /// <summary>
+    /// The head turns only so far: a cursor that stays behind her makes her turn round to face it (the visual turns
+    /// her through the viewer's side). Straight above her or in front she just looks.
+    /// </summary>
+    void TurnToCursor(double dt, CatBody body)
+    {
+        bool behind = Cursor is { } c && (c - body.Pos).Length < TurnToCursorRange
+                      && (c.X - body.Pos.X) * Facing < -TurnToCursorBehind;
+        _cursorBehind = behind ? _cursorBehind + dt : 0;
+        if (_cursorBehind < TurnToCursorAfter) return;
+        Facing = -Facing;
+        _cursorBehind = 0;
     }
 
     /// <summary>
