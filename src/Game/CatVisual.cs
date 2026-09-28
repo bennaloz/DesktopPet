@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Godot;
+using ZairaPet.Core;
 
 namespace ZairaPet.Game;
 
@@ -29,6 +30,14 @@ public partial class CatVisual : Node3D
 
     GazeModifier? _gaze;
     bool _gazeActive;
+    TailModifier? _tail;
+
+    /// <summary>What the tail shows while she walks or runs (set by the game every frame).</summary>
+    public TailMood TailMood { get; set; } = TailMood.Calm;
+    /// <summary>Gaits whose tail follows the mood; at rest the poses place the tail themselves.</summary>
+    static readonly HashSet<string> MoodTailActions = new() { "walk", "trot", "lope", "run" };
+    /// <summary>Self-test: the tail shape being shown and how much of it.</summary>
+    internal (double[] lift, float weight)? TailShown => _tail == null ? null : (_tail.Lift, _tail.Weight);
 
     /// <summary>
     /// Look at a world point (null: let the animation lead). Eyes move fast, the head follows smoothly and
@@ -100,11 +109,41 @@ public partial class CatVisual : Node3D
             };
             skeleton.AddChild(_gaze);
         }
+        if (skeleton != null) _tail = AddTail(skeleton);
 
         Recolor();
         UseFloorClipMaterials();
         FitToLength();
         Play("idle");
+    }
+
+    TailModifier? AddTail(Skeleton3D skeleton)
+    {
+        int root = skeleton.FindBone(_profile.TailBones.Root);
+        var bones = _profile.TailBones.Bones.Select(skeleton.FindBone).ToArray();
+        if (root < 0 || bones.Length == 0 || bones.Any(b => b < 0)) return null;
+        var tail = new TailModifier { Name = "Tail", Hips = root, Tail = bones };
+        tail.Lift = (double[])TailMoods.Shape(TailMood.Calm).Lift.Clone();
+        skeleton.AddChild(tail);
+        tail.Setup(skeleton);
+        return tail;
+    }
+
+    /// <summary>Ease the tail towards the mood's shape (a second or so), on in the gaits, off at rest.</summary>
+    void UpdateTail(double dt)
+    {
+        if (_tail == null) return;
+        var want = TailMoods.Shape(TailMood);
+        double k = Math.Min(1, dt * 2.5);
+        for (int i = 0; i < _tail.Lift.Length && i < want.Lift.Length; i++) _tail.Lift[i] += (want.Lift[i] - _tail.Lift[i]) * k;
+        _tail.WaveDeg += (want.WaveDeg - _tail.WaveDeg) * k;
+        _tail.WaveHz += (want.WaveHz - _tail.WaveHz) * k;
+        _tail.TipDeg += (want.TipDeg - _tail.TipDeg) * k;
+        _tail.TipHz += (want.TipHz - _tail.TipHz) * k;
+        _tail.TipJerky = want.TipJerky;
+        _tail.Time += dt;
+        float on = MoodTailActions.Contains(_action) ? 1 : 0;
+        _tail.Weight = Mathf.MoveToward(_tail.Weight, on, (float)dt * 3);
     }
 
     /// <summary>
@@ -335,6 +374,7 @@ void fragment() {
         if (_clip?.Vibrate == true) offset = new Vector3(0.6f * (float)Math.Sin(_time * 90), 0, 0);
         _pivot.Scale = s;
         _pivot.Position = offset;
+        UpdateTail(dt);
 
         // the feet are on the node origin: clip just under it (half a pixel, so paws standing on it stay whole)
         float floorY = FloorClip ? GlobalPosition.Y - 0.5f : -1e9f;

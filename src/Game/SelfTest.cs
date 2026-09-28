@@ -39,7 +39,7 @@ public sealed class SelfTest
         _main.UseCursorOverride = true;
         _script = mode switch
         {
-            "windows" => WindowScript(), "mouse" => MouseScript(), "input" => InputScript(), "gaze" => GazeScript(), "loaf" => LoafScript(), "hunt" => HuntScript(), _ => TourScript(),
+            "windows" => WindowScript(), "mouse" => MouseScript(), "input" => InputScript(), "gaze" => GazeScript(), "loaf" => LoafScript(), "tail" => TailScript(), "hunt" => HuntScript(), _ => TourScript(),
         };
         // Godot merges consecutive motion events without looking at the device, so a real mouse move could
         // lend its position to an injected one: every injected event goes through on its own, right away.
@@ -222,6 +222,45 @@ public sealed class SelfTest
             (lies + 8.6, "screenshot", Shot),
             (lies + 9.0, "quit", () => _main.Quit()),
         };
+    }
+
+    /// <summary>
+    /// `-- --selftest-tail`: she walks to and fro on the floor showing each tail mood in turn; the tail must take the
+    /// mood's shape (fully on while walking) and there is a picture of each.
+    /// </summary>
+    List<(double, string, Action)> TailScript()
+    {
+        var list = new List<(double, string, Action)>
+        {
+            (1.0, "summon", () => _main.Summon()),
+        };
+        double at = 2.0;
+        int dir = 1;
+        foreach (var mood in Enum.GetValues<TailMood>())
+        {
+            var m = mood;
+            int d = dir;
+            list.Add((at, $"walk, tail {m}", () =>
+            {
+                _main.ForcedTailMood = m;
+                var floor = _main.Body.Support!;
+                double x = Math.Clamp(_main.Body.Pos.X + d * 700, floor.X0 + 40, floor.X1 - 40);
+                _main.Brain.ExploreTo(floor, x);
+            }));
+            list.Add((at + 2.2, $"check tail {m}", () =>
+            {
+                var shown = _main.Visual.TailShown;
+                var want = TailMoods.Shape(m).Lift;
+                bool ok = shown is { } s && s.weight > 0.99f && s.lift.Zip(want).All(p => Math.Abs(p.First - p.Second) < 8);
+                Expect(ok, $"coda {m} mentre cammina (azione {_main.Brain.Action})");
+            }));
+            list.Add((at + 2.3, "screenshot", Shot));
+            list.Add((at + 2.6, "screenshot", Shot));
+            at += 3.2;
+            dir = -dir;
+        }
+        list.Add((at, "quit", () => _main.Quit()));
+        return list;
     }
 
     /// <summary>

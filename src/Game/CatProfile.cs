@@ -22,6 +22,8 @@ public sealed class CatProfile
     [JsonPropertyName("eat_reach")] public double EatReach { get; set; } = 0.3;
     /// <summary>Bones turned to look at things (neck optional). Models without them simply do not look around.</summary>
     [JsonPropertyName("gaze_bones")] public GazeBones GazeBones { get; set; } = new();
+    /// <summary>Tail bones posed by the mood while walking or running (root first). Models without them keep the clip's tail.</summary>
+    [JsonPropertyName("tail_bones")] public TailBones TailBones { get; set; } = new();
     [JsonPropertyName("material_colors")] public Dictionary<string, float[]> MaterialColors { get; set; } = new();
     [JsonPropertyName("actions")] public Dictionary<string, ActionClip> Actions { get; set; } = new();
 
@@ -91,6 +93,13 @@ public sealed class ActionClip
     [JsonPropertyName("show_side")] public int ShowSide { get; set; }
     /// <summary>Seconds to blend into this clip from the previous one: slow for lying down, quick otherwise.</summary>
     [JsonPropertyName("blend")] public double Blend { get; set; } = 0.18;
+}
+
+public sealed class TailBones
+{
+    /// <summary>The body bone the tail angles are measured from (points forward along the back).</summary>
+    [JsonPropertyName("root")] public string Root { get; set; } = "Hips";
+    [JsonPropertyName("bones")] public List<string> Bones { get; set; } = new() { "Tail1", "Tail2", "Tail3", "Tail4", "Tail5" };
 }
 
 public sealed class GazeBones

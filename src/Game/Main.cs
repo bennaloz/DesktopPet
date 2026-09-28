@@ -74,7 +74,7 @@ public partial class Main : Node3D
         var args = OS.GetCmdlineUserArgs();
         string? mode = args.Contains("--selftest") ? "tour" : args.Contains("--selftest-windows") ? "windows"
                      : args.Contains("--selftest-mouse") ? "mouse" : args.Contains("--selftest-input") ? "input"
-                     : args.Contains("--selftest-gaze") ? "gaze" : args.Contains("--selftest-loaf") ? "loaf"
+                     : args.Contains("--selftest-gaze") ? "gaze" : args.Contains("--selftest-loaf") ? "loaf" : args.Contains("--selftest-tail") ? "tail"
                      : args.Contains("--selftest-hunt") ? "hunt" : null;
         if (mode != null) _selfTest = new SelfTest(this, mode);
     }
@@ -289,6 +289,7 @@ public partial class Main : Node3D
         _visual.Position = _overlay.ToWorld(_body.Pos, 40);
         bool climbing = _body.Mode == BodyMode.Climbing;
         _visual.FloorClip = _body.Mode == BodyMode.Grounded;
+        _visual.TailMood = ForcedTailMood ?? TailMoods.For(_brain.State, _needs, _brain.Happy);
         _visual.Animate(dt, _brain.Facing, climbing ? CatBody.ClimbSpeed : Math.Abs(_body.Vel.X),
                         _body.Mode == BodyMode.Held, climbing,
                         _body.Mode == BodyMode.Airborne ? _body.Vel : null);
@@ -543,6 +544,8 @@ public partial class Main : Node3D
     internal CatBrain Brain => _brain;
     internal CatBody Body => _body;
     internal Needs NeedsState => _needs;
+    /// <summary>Self-test: show this tail mood regardless of the needs.</summary>
+    internal TailMood? ForcedTailMood { get; set; }
     internal SurfaceMap Map => _map;
     internal GameWorld World => _world;
     internal Overlay OverlayWindow => _overlay;
