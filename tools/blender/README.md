@@ -15,7 +15,8 @@ I percorsi sono relativi al repo (`paths.py`), gli script si lanciano da qualunq
    scende sul pavimento e si allarga (senza, resta sollevata dove la porta il gatto in piedi). Stesso uso.
    `scapula.py` – scapole (`Scapula.L/R`) fra petto e braccio: nel passo e nella corsa ruotano con la zampa e
    portano la spalla avanti e indietro. Stesso uso. Ordine: `rig.py`, poi `front_toes.py`, `belly.py`,
-   `scapula.py` (ognuno salta se l'ha gia' fatto).
+   `scapula.py`, `chest_in.py` (ognuno salta se l'ha gia' fatto).
+   `chest_in.py` – petto meno sporgente sotto il mento (fino a 2 cm indietro), sulla posa di riposo.
 3. `anim.py` – animazioni procedurali (IK planare per le zampe) → `work/anim.blend`. Le clip di riposo
    (seduta, sdraiarsi, accucciata, ritirare le zampe, pagnotta) escono in due versioni, `X` con la coda
    avvolta a sinistra e `X_R` a destra: il gioco tiene la coda dal lato di chi guarda (`anims_right`).

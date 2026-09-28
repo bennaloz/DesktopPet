@@ -95,6 +95,8 @@ public partial class CatVisual : Node3D
                 Name = "Gaze",
                 Neck = skeleton.FindBone(profile.GazeBones.Neck),
                 Head = skeleton.FindBone(profile.GazeBones.Head),
+                Chest = profile.GazeBones.Chest.Length > 0 ? skeleton.FindBone(profile.GazeBones.Chest) : -1,
+                Keep = profile.GazeBones.Keep.Select(skeleton.FindBone).Where(b => b >= 0).ToArray(),
             };
             skeleton.AddChild(_gaze);
         }

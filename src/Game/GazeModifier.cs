@@ -11,6 +11,10 @@ public partial class GazeModifier : SkeletonModifier3D
 {
     public int Neck = -1;
     public int Head = -1;
+    /// <summary>Optional: the chest turns a little too (the shoulders follow the look)...</summary>
+    public int Chest = -1;
+    /// <summary>...while these bones under it (the shoulder blades) stay where they were, so the legs do not move.</summary>
+    public int[] Keep = System.Array.Empty<int>();
     /// <summary>World-space point to look at.</summary>
     public Vector3 Target;
     /// <summary>0 = the animation alone, 1 = fully turned towards <see cref="Target"/>.</summary>
@@ -22,6 +26,8 @@ public partial class GazeModifier : SkeletonModifier3D
     // The neck takes most of a turn, as a cat's does: a head turning alone on a still neck squashed the cheek on
     // the side it turned to against the neck.
     const float NeckShare = 0.6f;
+    const float ChestShare = 0.2f;
+    static readonly float ChestLimit = Mathf.DegToRad(15);
     static readonly float NeckLimit = Mathf.DegToRad(45);
     static readonly float HeadLimit = Mathf.DegToRad(50);
 
@@ -30,6 +36,19 @@ public partial class GazeModifier : SkeletonModifier3D
         var sk = GetSkeleton();
         if (sk == null || Head < 0 || Weight <= 0.001f) return;
         var target = sk.GlobalTransform.AffineInverse() * Target;
+        if (Chest >= 0)
+        {
+            var kept = new Transform3D[Keep.Length];
+            for (int i = 0; i < Keep.Length; i++) kept[i] = sk.GetBoneGlobalPose(Keep[i]);
+            Turn(sk, Chest, target, ChestShare * Weight, ChestLimit);
+            for (int i = 0; i < Keep.Length; i++)
+            {
+                var parent = sk.GetBoneGlobalPose(sk.GetBoneParent(Keep[i]));
+                var local = parent.AffineInverse() * kept[i];
+                sk.SetBonePoseRotation(Keep[i], local.Basis.GetRotationQuaternion());
+                sk.SetBonePosePosition(Keep[i], local.Origin);
+            }
+        }
         if (Neck >= 0) Turn(sk, Neck, target, NeckShare * Weight, NeckLimit);
         Turn(sk, Head, target, Weight, HeadLimit);
         var g = sk.GetBoneGlobalPose(Head);

@@ -5,6 +5,15 @@
   "yaw_offset_deg": 0,
   "three_quarter_deg": 25,
   "eat_reach": 0.32,
+  "gaze_bones": {
+    "neck": "Neck",
+    "head": "Head",
+    "chest": "Chest",
+    "keep": [
+      "Scapula.L",
+      "Scapula.R"
+    ]
+  },
   "actions": {
     "idle": {
       "anims": [

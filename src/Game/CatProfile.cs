@@ -97,4 +97,8 @@ public sealed class GazeBones
 {
     [JsonPropertyName("neck")] public string Neck { get; set; } = "Neck";
     [JsonPropertyName("head")] public string Head { get; set; } = "Head";
+    /// <summary>Optional chest that turns a little with the look, and the bones under it that must stay put
+    /// (the shoulder blades, so the front legs do not slide).</summary>
+    [JsonPropertyName("chest")] public string Chest { get; set; } = "";
+    [JsonPropertyName("keep")] public List<string> Keep { get; set; } = new();
 }
