@@ -10,7 +10,9 @@ public enum BodyMode { Grounded, Airborne, Held, Climbing }
 /// </summary>
 public sealed class CatBody
 {
-    public const double Gravity = 3200;   // real g at the cat's scale: ~150 px long = ~46 cm
+    // A little stronger than real g at the cat's scale (~150 px long = ~46 cm, g ~3200 px/s²): on a screen the
+    // real thing looked floaty; this keeps the arcs and makes the leaps snappier.
+    public const double Gravity = 4300;
 
     public Vec2 Pos { get; private set; }
     public Vec2 Vel { get; private set; }

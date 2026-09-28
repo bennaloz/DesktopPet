@@ -279,6 +279,7 @@ WALK_DROP, TROT_DROP, RUN_DROP = -0.035, -0.02, -0.03
 # the swinging leg folds at the elbow/knee and a little at the wrist (straighter, the legs looked in plaster)
 WALK_LIFT, WALK_CURL = 0.1, 40
 WALK_TRACK = (14, 6)   # legs lean in: the paws land nearly in line under the body
+WALK_ROLL, WALK_YAW = 3.0, 4.0   # degrees of sway of hips and shoulders
 
 def walk(p, t, f):
     """A cat's walk: lateral-sequence gait, head low and steady, shoulders and hips rolling, back weaving."""
@@ -287,9 +288,16 @@ def walk(p, t, f):
     # a walking cat carries itself lower than standing still, knees and elbows bent (legs straight like
     # pillars look stiff)
     p.hips = (0.0, WALK_DROP + 0.005 * math.cos(2 * w))
-    # only a light weave of the back: rolling the hips or shoulders would swing the planted legs sideways
-    # (the leg IK works in the side plane only)
-    p.yz['Spine'] = (0.0, -1.2 * math.sin(w + 1.0))
+    # hips and shoulders sway with the legs: the hip of the leg in the air drops and swings forward with it
+    # (the hind legs swing around 82% of the stride, the front ones around 7%), the back in between winds like
+    # a snake. Kept small: the leg IK works in the side plane, so a big roll would slide the planted paws sideways.
+    hr = -WALK_ROLL * math.cos(TAU * (t - 0.82))          # + raises the left hip
+    hy = WALK_YAW * math.cos(TAU * (t - 0.82))            # + brings the left hip forward
+    sr = -WALK_ROLL * math.cos(TAU * (t - 0.07))
+    sy = WALK_YAW * math.cos(TAU * (t - 0.07))
+    p.yz['Hips'] = (hr, hy)
+    p.yz['Spine'] = (-hr, -0.5 * hy)
+    p.yz['Chest'] = (sr, sy - 0.5 * hy)
     # head low, nose level, steady: the neck soaks up the body's bob
     p.x['Neck'] = 16 - 1.5 * math.cos(2 * w)
     p.x['Head'] = -14 + 1.5 * math.cos(2 * w)
@@ -300,6 +308,13 @@ def walk(p, t, f):
     # pad sideways to a three-quarter view and reads as the foot twisting outwards
     gait(p, t, {'HL': 0.0, 'FL': 0.25, 'HR': 0.5, 'FR': 0.75}, duty=0.64, reach=WALK_REACH, lift=WALK_LIFT, bob=0.0,
          meta_roll=20, swing_curl=WALK_CURL, centre={'HL': -WALK_HIND_SHIFT, 'HR': -WALK_HIND_SHIFT}, track=WALK_TRACK)
+    # the legs keep their own lean and twist while the hips and shoulders sway above them: take back what each
+    # one inherits (hind legs from the hips, front legs from hips + back + chest), or the planted paws slide
+    for key, roll, yaw in (('HL', hr, hy), ('HR', hr, hy), ('FL', sr, sy), ('FR', sr, sy)):
+        upper = LEGS[key][0]
+        y, z = p.yz.get(upper, (0.0, 0.0))
+        # (measured: the front legs, hanging from the shoulder blades, take their twist back the other way)
+        p.yz[upper] = (y + (-1 if key[0] == 'F' else 1) * yaw, z + roll)
     tail(p, lift=6, sway=9, t=w)
 
 def run(p, t, f):
