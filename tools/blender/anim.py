@@ -252,6 +252,8 @@ def idle_look(p, t, f):
 SCAPULA = {'FL': 'Scapula.L', 'FR': 'Scapula.R'}
 SCAPULA_SWING = 18   # degrees each way at the ends of the stride (running: SCAPULA_RUN)
 SCAPULA_RUN = 24
+PEEL = 25            # degrees the heel rises at the end of a gliding stance, before the paw leaves the ground
+PEEL_RISE = 0.012    # m the ball of the paw comes up meanwhile, or the pad under it rolls into the floor
 
 def gait(p, t, phases, duty, reach, lift, bob, spine_flex=0.0, meta_roll=25.0, swing_curl=40.0, centre=None,
          blade=None, track=(0.0, 0.0), hind_lift=None, extend=(0.0, 0.0), glide=False):
@@ -263,25 +265,41 @@ def gait(p, t, phases, duty, reach, lift, bob, spine_flex=0.0, meta_roll=25.0, s
     paws almost in one line under its middle, not at the corners like a table's legs."""
     centre = centre or {}
     blade = SCAPULA_SWING if blade is None else blade
+    # glide also keeps the paw's speed continuous: it leaves the ground still drifting back with it and comes
+    # down already moving back at ground speed (no stop-and-go at either end), and it peels off: the heel rises
+    # over the last part of the stance while the toes stay down, so the lift-off is a roll, not a snap
+    v = 2 * reach * (1 - duty) / duty     # stance speed, in reach per unit of swing
     for key, ph in phases.items():
         u = (t - ph) % 1.0
         if u < duty:                       # stance: paw planted, sliding back under the body
             k = u / duty
             dy = lerp(-reach, reach, k)
-            dz = 0.0
             dm = meta_roll * dy / reach
+            pe = PEEL * smooth((k - 0.65) / 0.35) if glide else 0.0
+            dm += pe
+            dz = PEEL_RISE * pe / PEEL   # the pad under the ball of the paw rolls down as the heel rises
             toe = None
         else:                              # swing: lift and bring forward
             k = (u - duty) / (1 - duty)
-            dy = lerp(reach, -reach, smooth(k))
+            if glide:
+                # Hermite from reach to -reach, leaving and arriving at the stance speed
+                dy = (reach * (2 * k ** 3 - 3 * k ** 2 + 1) - reach * (-2 * k ** 3 + 3 * k ** 2)
+                      + v * (k ** 3 - 2 * k ** 2 + k) + v * (k ** 3 - k ** 2))
+            else:
+                dy = lerp(reach, -reach, smooth(k))
             ext = extend[0] if key[0] == 'F' else extend[1]
             if ext: dy -= ext * math.sin(math.pi * min(1.0, k ** 1.6))   # peaks about 2/3 into the swing
             h = lift if key[0] == 'F' or hind_lift is None else hind_lift
-            dz = h * (math.sin(math.pi * k ** 0.6) if glide else math.sin(math.pi * k))
+            # glide: highest a third of the way, then low and slow onto the ground (steep only at the start,
+            # where the heel is already up)
+            dz = h * (math.sin(math.pi * (k + 0.8 * k * (1 - k))) if glide else math.sin(math.pi * k))
             # rolls from the push-off angle back to the touch-down angle (the stance start), curling on the way:
             # no jump at either end, or the paw snaps round and seems to twist
             # the curl peaks early and is gone before touch-down: the paw reaches out flat to land
             dm = lerp(meta_roll, -meta_roll, smooth(k)) + swing_curl * math.sin(math.pi * min(1.0, k / 0.8))
+            pe = PEEL * (1 - smooth(k / 0.35)) if glide else 0.0
+            dm += pe
+            dz += PEEL_RISE * pe / PEEL
             toe = None
         upper = LEGS[key][0]
         lean = track[0] if key[0] == 'F' else track[1]
@@ -291,6 +309,9 @@ def gait(p, t, phases, duty, reach, lift, bob, spine_flex=0.0, meta_roll=25.0, s
             # (the top of the blade rising) as the paw pushes off behind
             p.x[SCAPULA[key]] = blade * dy / reach
         plant(p, key, dy + centre.get(key, 0.0), dz, dm, toe)
+        # the front toes follow the paw: take the peel back out of them, so they stay flat on the ground
+        # while the heel rises instead of digging into it
+        if pe and LEGS[key][3] and LEGS[key][3].startswith('Finger'): p.x[LEGS[key][3]] -= pe
 
 WALK_REACH, WALK_HIND_SHIFT = 0.185, 0.10
 # Running strides at a cat's pace (a gallop is 3+ strides a second; 14 frames looked like slow motion). The reach
