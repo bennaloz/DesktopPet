@@ -39,7 +39,11 @@ Primi 2 minuti di prova, se qualcosa non va: `%APPDATA%\Godotpp_userdata\Zaira 
   le andature; la logica dell'umore in Core con i suoi test.
 - **Salto**: la pancia penzola ancora in volo (le cosce tirano giu' la pelle della pancia: pesi o posa).
 - **Coda**: frangia alla base quando si alza (difetto del modello, per ora si tiene).
-- **Pose accovacciata e pagnotta**: dai GLB Tripo senza rig, con testa e coda animate (l'acciambellata per dormire c'e' gia', fatta col rig).
+- **Pagnotta**: fatta col rig (seduta -> sdraiata con le zampe davanti -> zampe ritirate; punta della coda che
+  ogni tanto frusta). Provato e scartato (28/09) il modello Tripo gia' in posa al posto del rig a posa
+  raggiunta: lo scambio fra due modelli diversi fa l'effetto Transformer e il collo del Tripo, fuso col petto,
+  si deforma appena la testa gira. Il rig di Tripo non aiuterebbe: lo scambio resta. Stesso discorso per
+  accucciata e acciambellata: meglio migliorare le pose del rig.
 - **"z" del sonno troppo in alto**: l'altezza viene dalla taglia del gatto in piedi (`SizePx.Y` in `Main`),
   la posa acciambellata e' molto piu' bassa.
 - **Autotest del giro**: il controllo "mangia con il muso sopra la ciotola" a volte non scatta (serve che

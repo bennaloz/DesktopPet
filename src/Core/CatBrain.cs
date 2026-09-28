@@ -48,12 +48,18 @@ public sealed class CatBrain
     public const double HuntRange = 260;
     /// <summary>Playfulness above which she crouches and follows the cursor, and above which she pounces.</summary>
     public const double StalkFrom = 0.35, PounceFrom = 0.7;
+    /// <summary>A sit planned at least this long turns into a loaf...</summary>
+    public const double LoafFromSit = 15;
+    /// <summary>...after sitting up for this long (seconds, picked at random in the range)...</summary>
+    public static readonly (double min, double max) LoafAfter = (3, 6);
+    /// <summary>...and lying on her belly with the front paws out for this long before tucking them in.</summary>
+    public static readonly (double min, double max) TuckAfter = (1.5, 3);
 
     readonly Random _rng;
 
     public CatState State { get; private set; } = CatState.Idle;
     public Goal Goal { get; private set; }
-    /// <summary>Logical animation: idle, walk, trot (happy), lope, run (sprint), stalk, wiggle, swat, prejump, aim, jump, fall, land, sit, sleep, eat, meow, purr, held, climb.</summary>
+    /// <summary>Logical animation: idle, walk, trot (happy), lope, run (sprint), stalk, wiggle, swat, prejump, aim, jump, fall, land, sit, crouch (lying, paws out), loaf, sleep, eat, meow, purr, held, climb.</summary>
     public string Action { get; private set; } = "idle";
     /// <summary>+1 facing right, -1 facing left.</summary>
     public int Facing { get; private set; } = 1;
@@ -93,6 +99,8 @@ public sealed class CatBrain
     int _swats;
     double _wiggleAt;         // when (state time) the rump wiggle starts
     double _pounceAt;         // when (state time) she leaps
+    double _loafAt = -1;      // when (state time) a long sit turns into lying down; -1 never
+    double _tuckAt;           // how long after lying down she tucks the front paws in (the loaf)
 
     public CatBrain(Random rng) => _rng = rng;
 
@@ -134,6 +142,15 @@ public sealed class CatBrain
     {
         Goal = Goal.None;
         Enter(CatState.Sit, seconds);
+    }
+
+    /// <summary>Sit up, then lie down as a loaf for a while (self test, debugging).</summary>
+    public void LoafFor(double seconds)
+    {
+        Goal = Goal.None;
+        Enter(CatState.Sit, seconds);
+        _loafAt = LoafAfter.min;
+        _tuckAt = TuckAfter.min;
     }
 
     /// <summary>Send the cat to a given spot (self test, debugging).</summary>
@@ -331,7 +348,8 @@ public sealed class CatBrain
                 return DoHunt(dt, body, needs);
 
             case CatState.Sit:
-                Action = "sit";
+                // A long sit: sitting up, then lying down with the front paws out, then the paws tucked in.
+                Action = _loafAt < 0 || _stateTime < _loafAt ? "sit" : _stateTime < _loafAt + _tuckAt ? "crouch" : "loaf";
                 if (_stateTime >= _stateDuration) Decide(body, needs, map, world);
                 return 0;
 
@@ -381,7 +399,15 @@ public sealed class CatBrain
             Enter(CatState.Travel);
         }
         else if (r < 0.85)
+        {
             Enter(CatState.Sit, 8 + _rng.NextDouble() * 20);
+            // Settling in for a long one: sit up for a moment, then tuck the paws in.
+            if (_stateDuration >= LoafFromSit)
+            {
+                _loafAt = LoafAfter.min + _rng.NextDouble() * (LoafAfter.max - LoafAfter.min);
+                _tuckAt = TuckAfter.min + _rng.NextDouble() * (TuckAfter.max - TuckAfter.min);
+            }
+        }
         else if (needs.Energy < 0.5 && r < 0.93)
             Enter(CatState.Sleep);  // cat nap on the spot
         else
@@ -680,6 +706,7 @@ public sealed class CatBrain
         if (s != CatState.Zoomies) _zoomTarget = double.NaN;
         _prejump = 0;
         _prejumpPlan = -1;
+        _loafAt = -1;
         Action = s switch
         {
             CatState.Sleep => "sleep",

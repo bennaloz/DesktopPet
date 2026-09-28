@@ -225,7 +225,7 @@ public partial class CatVisual : Node3D
         string name = names[_rng.Next(names.Count)]!;
         var anim = _player.GetAnimation(name);
         anim.LoopMode = clip.Loop ? Animation.LoopModeEnum.Linear : Animation.LoopModeEnum.None;
-        _player.Play(name, customBlend: 0.18, customSpeed: (float)clip.Speed);
+        _player.Play(name, customBlend: (float)clip.Blend, customSpeed: (float)clip.Speed);
     }
 
     /// <summary>Per-frame pose: facing, ground speed for locomotion clips, procedural touches.</summary>

@@ -438,13 +438,14 @@ CROUCH_REACH = 0.20
 LOAF_DROP = -0.21
 
 def loaf(p, t, f):
-    """The 'loaf': belly on the ground, every paw hidden underneath, head sunk into the shoulders."""
-    breathe = math.sin(TAU * t)
+    """The 'loaf': belly on the ground, every paw hidden underneath, head up, tail wrapped along the flank; now and
+    then the tip of the tail flicks (the only thing a loafing cat moves, besides the head)."""
+    breathe = math.sin(TAU * LOAF_BREATHS * t)
     p.hips = (0.0, LOAF_DROP + 0.003 * breathe)
     p.x['Spine'] = 3
     p.x['Chest'] = 4 + breathe
-    p.x['Neck'] = 16
-    p.x['Head'] = -20
+    p.x['Neck'] = LOAF_NECK
+    p.x['Head'] = LOAF_HEAD
     for key in ('FL', 'FR'):
         u, l, m, t_, fwd = LEGS[key]
         H = p.point(REST[u]['parent'], REST[u]['h'])
@@ -453,8 +454,19 @@ def loaf(p, t, f):
     # hind feet folded forward under the belly and drawn in towards the middle
     plant(p, 'HL', 0.02, 0.05, -80, toe=180)
     plant(p, 'HR', 0.02, 0.05, -80, toe=180)
-    # tail lies on the ground along the flank
-    chain_world(p, TAILS, [-60, -25, -3, 0, 0], [0, 0, 10, 15, 15])
+    # tail drops to the ground and wraps forward along the flank; the tip flicks out, away from the body
+    wrap = list(LOAF_TAIL_WRAP)
+    for start, length, d4, d5 in LOAF_FLICKS:
+        k = math.sin(math.pi * min(1.0, max(0.0, (t - start) / length))) ** 2
+        wrap[3] += d4 * k
+        wrap[4] += d5 * k
+    chain_world(p, TAILS, CURL_TAIL, wrap)
+
+LOAF_NECK, LOAF_HEAD = 4, -8
+LOAF_TAIL_WRAP = [0, 0, -45, -45, -35]
+LOAF_FRAMES, LOAF_BREATHS = 240, 3    # an 8 s loop, so the flicks come now and then
+# (start, length as fractions of the loop, degrees for Tail4, Tail5): one lazy flick, then a small double twitch
+LOAF_FLICKS = [(0.19, 0.11, 20, 40), (0.62, 0.045, 0, 18), (0.68, 0.045, 0, 15)]
 
 # curled up asleep: the back bends sideways into a ring (turns about each bone's own axis, the side-plane IK
 # stays valid for the tucked legs), she rolls a little onto her side, head tucked in towards the hind legs
@@ -536,7 +548,7 @@ bake("Fall", 9, fall, loop=False)
 bake("Land", 9, land, loop=False)
 bake("Sit", 90, sit)
 bake("Crouch", 90, crouch)
-bake("Loaf", 90, loaf)
+bake("Loaf", LOAF_FRAMES, loaf)
 bake("Sleep", 120, sleep)
 bake("Eat", 40, eat)
 bake("Meow", 30, meow, loop=False)

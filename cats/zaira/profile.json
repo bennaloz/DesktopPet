@@ -84,6 +84,20 @@
       ],
       "loop": true
     },
+    "crouch": {
+      "anims": [
+        "Crouch"
+      ],
+      "loop": true,
+      "blend": 0.8
+    },
+    "loaf": {
+      "anims": [
+        "Loaf"
+      ],
+      "loop": true,
+      "blend": 0.6
+    },
     "sleep": {
       "anims": [
         "Sleep"

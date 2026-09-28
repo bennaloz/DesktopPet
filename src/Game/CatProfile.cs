@@ -58,6 +58,8 @@ public sealed class CatProfile
             "wiggle" => "stalk",
             "swat" => "idle",
             "sit" => "idle",
+            "loaf" => "crouch",
+            "crouch" => "sit",
             "climb" => "walk",
             "eat" => "idle",
             _ => null,
@@ -80,6 +82,8 @@ public sealed class ActionClip
     /// the cat turns to while the clip plays. 0 keeps the facing the brain chose.
     /// </summary>
     [JsonPropertyName("show_side")] public int ShowSide { get; set; }
+    /// <summary>Seconds to blend into this clip from the previous one: slow for lying down, quick otherwise.</summary>
+    [JsonPropertyName("blend")] public double Blend { get; set; } = 0.18;
 }
 
 public sealed class GazeBones

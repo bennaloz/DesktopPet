@@ -39,7 +39,7 @@ public sealed class SelfTest
         _main.UseCursorOverride = true;
         _script = mode switch
         {
-            "windows" => WindowScript(), "mouse" => MouseScript(), "input" => InputScript(), "gaze" => GazeScript(), "hunt" => HuntScript(), _ => TourScript(),
+            "windows" => WindowScript(), "mouse" => MouseScript(), "input" => InputScript(), "gaze" => GazeScript(), "loaf" => LoafScript(), "hunt" => HuntScript(), _ => TourScript(),
         };
         // Godot merges consecutive motion events without looking at the device, so a real mouse move could
         // lend its position to an injected one: every injected event goes through on its own, right away.
@@ -173,6 +173,42 @@ public sealed class SelfTest
             (10.0, "check down", () => CheckHead(null, 30, "guarda un punto in basso davanti", target)),
             (10.1, "screenshot", Shot),
             (11.0, "quit", () => _main.Quit()),
+        };
+    }
+
+    /// <summary>
+    /// `-- --selftest-loaf`: she sits up, lies down with the paws out, then tucks them in as a loaf; lying there
+    /// the tip of her tail flicks now and then and she turns her head to the viewer and to a spot up ahead.
+    /// </summary>
+    List<(double, string, Action)> LoafScript()
+    {
+        Vec2 target = default;
+        void LookAt(GazeKind kind, Vec2 offset)
+        {
+            target = _main.HeadScreenPos + new Vec2(_main.Brain.Facing * offset.X, offset.Y);
+            _main.GazeState.Force(kind, target, 3);
+        }
+        double down = 1.0 + CatBrain.LoafAfter.min;
+        double lies = down + CatBrain.TuckAfter.min;
+        return new List<(double, string, Action)>
+        {
+            (1.0, "sit up, then loaf", () => { _main.Summon(); _main.Brain.LoafFor(60); }),
+            (down - 0.5, "screenshot", Shot),
+            (down + 0.4, "screenshot (lying down)", Shot),
+            (lies - 0.2, "check paws out", () => Expect(_main.Brain.Action == "crouch", "prima si sdraia con le zampe davanti")),
+            (lies - 0.1, "screenshot", Shot),
+            (lies + 0.1, "check loaf", () => Expect(_main.Brain.Action == "loaf", "poi ritira le zampe: pagnotta")),
+            (lies + 1.0, "screenshot", Shot),
+            (lies + 1.95, "screenshot (tail tip flicking)", Shot),
+            (lies + 2.5, "look at the viewer", () => LookAt(GazeKind.Viewer, new Vec2(0, 0))),
+            (lies + 4.5, "check viewer", () => CheckHead(new Vector3(0, 0, 1), 40, "da pagnotta guarda verso chi sta davanti allo schermo")),
+            (lies + 4.6, "screenshot", Shot),
+            (lies + 5.0, "look up ahead", () => LookAt(GazeKind.Point, new Vec2(220, -260))),
+            (lies + 7.0, "check up", () => CheckHead(null, 30, "da pagnotta guarda un punto in alto davanti", target)),
+            (lies + 7.1, "screenshot", Shot),
+            (lies + 8.0, "sit up", () => _main.Brain.SitFor(60)),
+            (lies + 8.6, "screenshot", Shot),
+            (lies + 9.0, "quit", () => _main.Quit()),
         };
     }
 

@@ -1,0 +1,115 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using ZairaPet.Core;
+using Xunit;
+
+namespace ZairaPet.Tests;
+
+/// <summary>
+/// The loaf: settling in for a long sit, she first sits up for a few seconds, then lies down on her belly with the
+/// front paws out, and after a moment tucks them in: a loaf for the rest of it. Short sits stay sits; a sit asked
+/// for on purpose (self test) stays a sit.
+/// </summary>
+public class LoafTests
+{
+    sealed class World : IWorld
+    {
+        public Platform? BowlPlatform => null;
+        public double BowlX => 0;
+        public double BowlFood => 0;
+        public Platform? PerchTop => null;
+        public double PerchX => 0;
+        public Vec2? TreatPos => null;
+        public bool TreatLanded => false;
+        public void EatFromBowl(double amount) { }
+        public void ConsumeTreat() { }
+    }
+
+    sealed class Scene
+    {
+        public readonly SurfaceMap Map = SurfaceMap.Build(Array.Empty<WindowInfo>(), new[] { new RectI(0, 0, 1920, 1040) }, Array.Empty<Platform>());
+        public readonly CatBody Body;
+        public readonly CatBrain Brain;
+        public readonly Needs Needs = new() { Hunger = 0.1, Energy = 0.9, Playfulness = 0.1 };
+        public readonly World World = new();
+        public readonly List<(string action, CatState state, double time)> Log = new();
+
+        public Scene(int seed)
+        {
+            Brain = new CatBrain(new Random(seed));
+            Body = new CatBody(new Vec2(900, 1040));
+            Body.PlaceOn(Map.Platforms.First(), 900);
+        }
+
+        public void Run(double seconds)
+        {
+            for (double t = 0; t < seconds; t += 1 / 30.0)
+            {
+                Needs.Playfulness = 0.1;   // no zoomies: the test is about resting
+                Needs.Hunger = 0.1;
+                Needs.Energy = 0.9;
+                Brain.Update(1 / 30.0, Body, Needs, Map, World);
+                Log.Add((Brain.Action, Brain.State, t));
+            }
+        }
+    }
+
+    [Fact]
+    public void Left_alone_she_sometimes_settles_into_a_loaf()
+    {
+        var s = new Scene(7);
+        s.Run(600);
+        Assert.Contains(s.Log, e => e.action == "loaf");
+    }
+
+    [Fact]
+    public void Sit_then_paws_out_then_paws_tucked_in()
+    {
+        var s = new Scene(7);
+        s.Run(600);
+        for (int i = 1; i < s.Log.Count; i++)
+        {
+            var (action, state, _) = s.Log[i];
+            string before = s.Log[i - 1].action;
+            if (action is "loaf" or "crouch") Assert.Equal(CatState.Sit, state);
+            if (action == "loaf" && before != "loaf") Assert.Equal("crouch", before);   // tucks in the paws of a cat already lying down
+            if (action == "crouch" && before != "crouch") Assert.Equal("sit", before);   // lies down from sitting, never from walking
+        }
+    }
+
+    [Fact]
+    public void She_sits_up_for_a_few_seconds_and_lies_with_paws_out_a_moment()
+    {
+        var s = new Scene(7);
+        s.Run(600);
+        int down = s.Log.FindIndex(e => e.action == "crouch");
+        int tucked = s.Log.FindIndex(e => e.action == "loaf");
+        Assert.True(down > 0 && tucked > down);
+        int sitStart = down;
+        while (sitStart > 0 && s.Log[sitStart - 1].state == CatState.Sit) sitStart--;
+        Assert.InRange(s.Log[down].time - s.Log[sitStart].time, CatBrain.LoafAfter.min - 0.05, CatBrain.LoafAfter.max + 0.05);
+        Assert.InRange(s.Log[tucked].time - s.Log[down].time, CatBrain.TuckAfter.min - 0.05, CatBrain.TuckAfter.max + 0.05);
+    }
+
+    [Fact]
+    public void A_sit_asked_for_stays_a_sit()
+    {
+        var s = new Scene(7);
+        s.Brain.SitFor(60);
+        s.Run(50);
+        Assert.DoesNotContain(s.Log, e => e.action is "loaf" or "crouch");
+    }
+
+    [Fact]
+    public void LoafFor_goes_through_the_shortest_sit_and_paws_out()
+    {
+        var s = new Scene(7);
+        s.Brain.LoafFor(60);
+        s.Run(CatBrain.LoafAfter.min + 0.5);
+        Assert.Equal("crouch", s.Brain.Action);
+        s.Run(CatBrain.TuckAfter.min);
+        Assert.Equal("loaf", s.Brain.Action);
+        Assert.Equal(CatState.Sit, s.Brain.State);
+    }
+}

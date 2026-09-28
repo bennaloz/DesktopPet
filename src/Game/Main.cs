@@ -74,7 +74,7 @@ public partial class Main : Node3D
         var args = OS.GetCmdlineUserArgs();
         string? mode = args.Contains("--selftest") ? "tour" : args.Contains("--selftest-windows") ? "windows"
                      : args.Contains("--selftest-mouse") ? "mouse" : args.Contains("--selftest-input") ? "input"
-                     : args.Contains("--selftest-gaze") ? "gaze"
+                     : args.Contains("--selftest-gaze") ? "gaze" : args.Contains("--selftest-loaf") ? "loaf"
                      : args.Contains("--selftest-hunt") ? "hunt" : null;
         if (mode != null) _selfTest = new SelfTest(this, mode);
     }
