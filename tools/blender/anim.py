@@ -254,8 +254,10 @@ SCAPULA_SWING = 18   # degrees each way at the ends of the stride (running: SCAP
 SCAPULA_RUN = 24
 
 def gait(p, t, phases, duty, reach, lift, bob, spine_flex=0.0, meta_roll=25.0, swing_curl=40.0, centre=None,
-         blade=None, track=(0.0, 0.0), hind_lift=None, extend=(0.0, 0.0)):
-    """extend: (front, hind) how far (m) each paw reaches out forward past its landing spot late in the swing,
+         blade=None, track=(0.0, 0.0), hind_lift=None, extend=(0.0, 0.0), glide=False):
+    """glide: the swinging paw rises early and then glides forward low to the ground (walk, trot), instead of
+    peaking mid-swing like a marching step.
+    extend: (front, hind) how far (m) each paw reaches out forward past its landing spot late in the swing,
     the way a galloping cat throws its legs out before they land.
     track: (front, hind) degrees each leg leans in under the body from shoulder/hip: a walking cat puts its
     paws almost in one line under its middle, not at the corners like a table's legs."""
@@ -274,7 +276,8 @@ def gait(p, t, phases, duty, reach, lift, bob, spine_flex=0.0, meta_roll=25.0, s
             dy = lerp(reach, -reach, smooth(k))
             ext = extend[0] if key[0] == 'F' else extend[1]
             if ext: dy -= ext * math.sin(math.pi * min(1.0, k ** 1.6))   # peaks about 2/3 into the swing
-            dz = (lift if key[0] == 'F' or hind_lift is None else hind_lift) * math.sin(math.pi * k)
+            h = lift if key[0] == 'F' or hind_lift is None else hind_lift
+            dz = h * (math.sin(math.pi * k ** 0.6) if glide else math.sin(math.pi * k))
             # rolls from the push-off angle back to the touch-down angle (the stance start), curling on the way:
             # no jump at either end, or the paw snaps round and seems to twist
             # the curl peaks early and is gone before touch-down: the paw reaches out flat to land
@@ -301,8 +304,9 @@ RUN_EXTEND, RUN_CENTRE = (0.10, 0.06), {'FL': -0.05, 'FR': -0.05, 'HL': -0.04, '
 SPRINT_EXTEND, SPRINT_CENTRE = (0.16, 0.10), {'FL': -0.06, 'FR': -0.06, 'HL': -0.05, 'HR': -0.05}
 WALK_DROP, TROT_DROP, RUN_DROP = -0.035, -0.02, -0.03
 # the swinging leg folds at the elbow/knee and a little at the wrist (straighter, the legs looked in plaster)
-WALK_LIFT, WALK_CURL = 0.1, 40
-WALK_HIND_LIFT = 0.055   # the hind paws barely clear the ground
+# low paws that fold at the wrist and glide forward: lifted high (0.1) the walk looked like a march
+WALK_LIFT, WALK_CURL = 0.06, 45
+WALK_HIND_LIFT = 0.04    # the hind paws barely clear the ground
 WALK_TRACK = (14, 6)   # legs lean in: the paws land nearly in line under the body
 WALK_ROLL, WALK_YAW = 3.0, 4.0   # degrees of sway of hips and shoulders
 
@@ -333,7 +337,7 @@ def walk(p, t, f):
     # pad sideways to a three-quarter view and reads as the foot twisting outwards
     gait(p, t, {'HL': 0.0, 'FL': 0.25, 'HR': 0.5, 'FR': 0.75}, duty=0.64, reach=WALK_REACH, lift=WALK_LIFT, bob=0.0,
          meta_roll=20, swing_curl=WALK_CURL, centre={'HL': -WALK_HIND_SHIFT, 'HR': -WALK_HIND_SHIFT}, track=WALK_TRACK,
-         hind_lift=WALK_HIND_LIFT)
+         hind_lift=WALK_HIND_LIFT, glide=True)
     # the legs keep their own lean and twist while the hips and shoulders sway above them: take back what each
     # one inherits (hind legs from the hips, front legs from hips + back + chest), or the planted paws slide
     for key, roll, yaw in (('HL', hr, hy), ('HR', hr, hy), ('FL', sr, sy), ('FR', sr, sy)):
@@ -379,11 +383,12 @@ def trot(p, t, f):
     """The happy trot: diagonal pairs (left hind with right fore), a bouncy step, head up,
     tail straight up with the tip hooked forward, the way a pleased cat comes over."""
     w = TAU * t
-    p.hips = (0.0, TROT_DROP + 0.011 * math.cos(2 * w))     # a bounce at every diagonal push
+    p.hips = (0.0, TROT_DROP + 0.006 * math.cos(2 * w))     # a light bounce at every diagonal push
     p.x['Neck'] = -6 + 2 * math.cos(2 * w)
     p.x['Head'] = 10 - 2 * math.cos(2 * w)
-    gait(p, t, {'HL': 0.0, 'FR': 0.02, 'HR': 0.5, 'FL': 0.52}, duty=0.45, reach=0.143, lift=0.1, bob=0.0,
-         meta_roll=20, swing_curl=40, track=(10, 5))   # folding legs, paws towards the middle, as in the walk
+    gait(p, t, {'HL': 0.0, 'FR': 0.02, 'HR': 0.5, 'FL': 0.52}, duty=0.45, reach=0.143, lift=0.065, bob=0.0, glide=True,
+         hind_lift=0.045,
+         meta_roll=20, swing_curl=45, track=(10, 5))   # folding legs, paws towards the middle, as in the walk
     sway = 4 * math.sin(w)
     chain_world(p, TAILS, TROT_TAIL, [0, sway * 0.5, sway, sway * 1.5, 6 + 10 * math.sin(2 * w)])
 
