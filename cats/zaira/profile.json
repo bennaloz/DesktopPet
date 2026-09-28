@@ -44,7 +44,7 @@
       ],
       "loop": true,
       "speed": 1.0,
-      "ref_speed_px": 288
+      "ref_speed_px": 300
     },
     "run": {
       "anims": [
@@ -52,7 +52,7 @@
       ],
       "loop": true,
       "speed": 1.0,
-      "ref_speed_px": 380
+      "ref_speed_px": 800
     },
     "prejump": {
       "anims": [

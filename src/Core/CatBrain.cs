@@ -33,8 +33,13 @@ public sealed class CatBrain
     /// <summary>The happy trot: diagonal legs, bouncy, tail straight up.</summary>
     public const double TrotSpeed = 150;
     /// <summary>The lope: getting somewhere fast without sprinting (starving, on the way to the bowl).</summary>
-    public const double LopeSpeed = 190;
-    public const double RunSpeed = 360;
+    public const double LopeSpeed = 300;
+    /// <summary>Zoomies: flat out. ~2.5 m/s at her scale (a real cat gallops at 5-10 m/s; slower looked like slow
+    /// motion), strides about one and a half body lengths.</summary>
+    public const double RunSpeed = 800;
+    /// <summary>Zoomies speed up and slow down like a cat (px/s²): flat out in about a third of a second, stopping in
+    /// a quarter. Stopping dead from a gallop to turn round looked like a stutter.</summary>
+    public const double ZoomAccel = 2400, ZoomBrake = 3200, ZoomCreep = 40;
     public const double MaxJumpUp = 460;
     public const double MaxJumpGap = 340;
     public const double TravelTimeout = 45;
@@ -93,6 +98,7 @@ public sealed class CatBrain
     double _wanderX;
     int _stuckFrames;
     double _zoomLeft;
+    double _zoomSpeed;        // current zoomies speed, ramping up and down
     Goal _afterLanding;
     Vec2? _treatIgnored;      // a treat we could not reach: leave it alone
     int _bowlFails;           // failed trips to the bowl in a row
@@ -615,7 +621,6 @@ public sealed class CatBrain
 
     double DoZoomies(double dt, CatBody body, SurfaceMap map)
     {
-        Action = "run";
         var s = body.Support!;
         if (double.IsNaN(_zoomTarget) || Math.Abs(body.Pos.X - _zoomTarget) < 8 || !s.SpansX(_zoomTarget))
         {
@@ -651,9 +656,17 @@ public sealed class CatBrain
             _stuckFrames = 0;
             return 0;
         }
-        double v = Toward(body.Pos.X, _zoomTarget, RunSpeed, TurnSlack);
-        // Brake on the last few pixels: at 12 px a frame she would overshoot and turn back, again and again.
+        // Brake in time to stop on the target, speed up again after it: no dead stop from a gallop.
         double remaining = Math.Abs(body.Pos.X - _zoomTarget);
+        // (down to a creep by the 8 px that count as arrived)
+        double want = Math.Min(RunSpeed, Math.Max(ZoomCreep, Math.Sqrt(2 * ZoomBrake * Math.Max(0, remaining - 8))));
+        _zoomSpeed = want > _zoomSpeed ? Math.Min(want, _zoomSpeed + ZoomAccel * dt) : Math.Max(want, _zoomSpeed - ZoomBrake * dt);
+        double v = Toward(body.Pos.X, _zoomTarget, RunSpeed, TurnSlack);   // (a running turn: stops to turn round)
+        if (v == 0) _zoomSpeed = 0;   // turning round
+        else v = Math.Sign(v) * _zoomSpeed;
+        // the gait follows the speed: gallop, lope, trot while slowing down or getting going
+        Action = _zoomSpeed > (LopeSpeed + RunSpeed) / 2 ? "run" : _zoomSpeed > TrotSpeed ? "lope" : "trot";
+        // Brake on the last few pixels: at speed she would overshoot and turn back, again and again.
         if (remaining < Math.Abs(v) * dt) v = Math.Sign(v) * remaining / dt;
         return v;
     }
@@ -748,6 +761,7 @@ public sealed class CatBrain
         _stateTime = 0;
         _stateDuration = duration;
         if (s != CatState.Zoomies) _zoomTarget = double.NaN;
+        _zoomSpeed = 0;
         _prejump = 0;
         _prejumpPlan = -1;
         _loafAt = -1;

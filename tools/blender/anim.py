@@ -281,13 +281,13 @@ def gait(p, t, phases, duty, reach, lift, bob, spine_flex=0.0, meta_roll=25.0, s
 WALK_REACH, WALK_HIND_SHIFT = 0.185, 0.10
 # Running strides at a cat's pace (a gallop is 3+ strides a second; 14 frames looked like slow motion). The reach
 # goes with it so the paws still keep pace with the ground: 2 * reach / (duty * stride time) is the speed the
-# profile's ref_speed_px was set for (lope 288 px/s, sprint 380 px/s at ~118 px per metre of rig).
-RUN_FRAMES, RUN_REACH = 11, 0.167
-SPRINT_FRAMES, SPRINT_REACH = 9, 0.155
+# profile's ref_speed_px (lope 300 px/s, sprint 800 px/s; ~118 px per metre of rig), which is the brain's speed.
+RUN_FRAMES, RUN_REACH = 10, 0.152       # lope, 300 px/s
+SPRINT_FRAMES, SPRINT_REACH = 8, 0.271   # zoomies, 800 px/s: long strides
 # A cat's gallop: the front legs are thrown out well ahead of the shoulders before they land and the stance
 # happens ahead of them; the hind legs come forward under the belly (the gathered phase) and push back behind.
 RUN_EXTEND, RUN_CENTRE = (0.10, 0.06), {'FL': -0.05, 'FR': -0.05, 'HL': -0.04, 'HR': -0.04}
-SPRINT_EXTEND, SPRINT_CENTRE = (0.13, 0.08), {'FL': -0.06, 'FR': -0.06, 'HL': -0.05, 'HR': -0.05}
+SPRINT_EXTEND, SPRINT_CENTRE = (0.16, 0.10), {'FL': -0.06, 'FR': -0.06, 'HL': -0.05, 'HR': -0.05}
 WALK_DROP, TROT_DROP, RUN_DROP = -0.035, -0.02, -0.03
 # the swinging leg folds at the elbow/knee and a little at the wrist (straighter, the legs looked in plaster)
 WALK_LIFT, WALK_CURL = 0.1, 40
@@ -332,21 +332,35 @@ def walk(p, t, f):
         p.yz[upper] = (y + (-1 if key[0] == 'F' else 1) * yaw, z + roll)
     tail(p, lift=6, sway=9, t=w)
 
+def gallop(p, t, g):
+    """A cat's rotary gallop as push and vault, not legs wheeling under a stiff body. Hind stance around t=0.2:
+    the hind legs, gathered under the belly, push; the rump rises, the back stretches out and the head comes up.
+    Extended flight around 0.4, front legs thrown forward. Front stance around 0.7: the chest drops onto the front
+    legs and the head with it, then they vault the body up and on. Gathered flight around 0.95: the back rounds and
+    the hind legs swing forward under it for the next push."""
+    w = TAU * t
+    flex = math.cos(TAU * (t - 0.95))          # +1 rounded (gathered), -1 stretched out (extended)
+    pitch = g['pitch'] * math.cos(TAU * (t - 0.7))   # + nose down: onto the front legs; - rump down, pushing
+    p.hips = (0.0, g['drop'] + g['bounce'] * math.cos(2 * TAU * (t - 0.42)))   # high in both flights
+    p.x['Hips'] = pitch - g['flex'] * flex
+    p.x['Spine'] = g['flex'] * flex
+    p.x['Chest'] = 0.7 * g['flex'] * flex
+    # the back also shortens gathered and lengthens stretched out: the body changes shape, not only angle
+    p.squash = 1.0 - g['squash'] * flex
+    # the head rides with the chest, only partly steadied by the neck: it dips as she lands in front
+    body = pitch + 0.7 * g['flex'] * flex
+    p.x['Neck'] = g['neck'] - g['steady'] * body
+    p.x['Head'] = g['head']
+    gait(p, t, g['phases'], duty=g['duty'], reach=g['reach'], lift=g['lift'], bob=0.0, blade=SCAPULA_RUN,
+         extend=g['extend'], centre=g['centre'], meta_roll=g['roll'], swing_curl=g['curl'])
+    tail(p, lift=g['tail'] - 0.5 * body, sway=3, t=w)
+
+# the lope: the same gallop, gentler
+RUN_G = dict(pitch=7, flex=12, squash=0.08, drop=-0.03, bounce=0.02, neck=8, head=-6, steady=0.5, tail=10,
+             phases={'HL': 0.0, 'HR': 0.08, 'FR': 0.5, 'FL': 0.58}, duty=0.36, lift=0.09, roll=30, curl=55)
+
 def run(p, t, f):
-    c = math.cos(TAU * t)
-    p.hips = (0.0, RUN_DROP + 0.025 * math.sin(TAU * t + 0.6))
-    # the back flexes and extends with the stride
-    # the back bends and stretches with every stride, a little less than in the sprint
-    p.x['Hips'] = 6 * c
-    p.x['Spine'] = -5 * c
-    p.x['Chest'] = -4 * c
-    p.x['Neck'] = 8 + 5 * c
-    p.x['Head'] = -8
-    # rotary gallop, as cats run: LH, RH, then RF, LF (the footfalls go round the body)
-    gait(p, t, {'HL': 0.0, 'HR': 0.08, 'FR': 0.5, 'FL': 0.58}, duty=0.38, reach=RUN_REACH, lift=0.09, bob=0.02, blade=SCAPULA_RUN,
-         extend=RUN_EXTEND, centre=RUN_CENTRE,
-         meta_roll=30, swing_curl=55)
-    tail(p, lift=10 + 4 * c, sway=5, t=TAU * t)
+    gallop(p, t, dict(RUN_G, reach=RUN_REACH, extend=RUN_EXTEND, centre=RUN_CENTRE))
 
 TROT_TAIL = [55, 80, 95, 125, 155]
 
@@ -403,21 +417,12 @@ def swat(p, t, f):
     p.x['Neck'] = 10 - 6 * up + 4 * hit
     plant(p, 'FL', 0.03 - 0.10 * up - 0.24 * hit, 0.26 * up + 0.02 * hit, 22 - 110 * up - 95 * hit)
 
+# zoomies: flat out, body low, everything bigger
+SPRINT_G = dict(pitch=10, flex=20, squash=0.14, drop=-0.04, bounce=0.03, neck=12, head=-10, steady=0.45, tail=5,
+                phases={'HL': 0.0, 'HR': 0.1, 'FR': 0.5, 'FL': 0.58}, duty=0.30, lift=0.13, roll=35, curl=70)
+
 def sprint(p, t, f):
-    """Zoomies: a flat-out rotary gallop. The back flexes hard and stretches out at every stride (that spring
-    is where a cat's speed comes from), body low, head pushed forward and steady, tail straight back."""
-    w = TAU * t
-    c = math.cos(w)
-    p.hips = (0.0, -0.03 + 0.035 * math.sin(w + 0.6))
-    p.x['Hips'] = 8 * c
-    p.x['Spine'] = -6 * c
-    p.x['Chest'] = -5 * c
-    p.x['Neck'] = 12 + 5 * c        # soaks up the back's swing: the head stays level
-    p.x['Head'] = -10
-    gait(p, t, {'HL': 0.0, 'HR': 0.1, 'FR': 0.45, 'FL': 0.55}, duty=0.32, reach=SPRINT_REACH, lift=0.11, bob=0.0,
-         blade=SCAPULA_RUN, extend=SPRINT_EXTEND, centre=SPRINT_CENTRE,
-         meta_roll=35, swing_curl=70)
-    tail(p, lift=5 + 3 * c, sway=3, t=w)
+    gallop(p, t, dict(SPRINT_G, reach=SPRINT_REACH, extend=SPRINT_EXTEND, centre=SPRINT_CENTRE))
 
 # ---- jump: parametric key poses blended over time (a real cat's take-off, flight and landing)
 STAND = dict(dz=0.0, pitch=0.0, spine=0.0, chest=0.0, neck=0.0, head=0.0, tail=4.0,
