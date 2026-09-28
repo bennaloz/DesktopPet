@@ -38,6 +38,7 @@ Primi 2 minuti di prova, se qualcosa non va: `%APPDATA%\Godotpp_userdata\Zaira 
   Come: un SkeletonModifier3D sulle ossa Tail1-5 sopra l'animazione (come GazeModifier), valido per tutte
   le andature; la logica dell'umore in Core con i suoi test.
 - **Salto**: la pancia penzola ancora in volo (le cosce tirano giu' la pelle della pancia: pesi o posa).
+  Ora c'e' l'osso `Belly` (tools/blender/belly.py): nelle clip di volo si puo' tirare su la pancia.
 - **Coda**: frangia alla base quando si alza (difetto del modello, per ora si tiene).
 - **Pagnotta**: fatta col rig, con transizioni a tempo di gatto (si sdraia in 2 s con le zampe davanti che
   avanzano una alla volta, le ritira in 1,6 s una per volta o insieme); punta della coda che ogni tanto frusta,

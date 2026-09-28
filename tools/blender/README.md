@@ -11,6 +11,8 @@ I percorsi sono relativi al repo (`paths.py`), gli script si lanciano da qualunq
    `front_toes.py` – divide la mano delle zampe davanti in metacarpo e dita (`Finger.L/R`): sdraiata le dita
    restano piatte a terra invece di puntare in alto. Lavora sul `rig.blend` esistente (la coda e' stata
    rifatta dopo `rig.py`), una volta sola.
+   `belly.py` – osso `Belly` sotto la schiena che porta la pelle del ventre: nelle pose a terra la pancia
+   scende sul pavimento e si allarga (senza, resta sollevata dove la porta il gatto in piedi). Stesso uso.
 3. `anim.py` – animazioni procedurali (IK planare per le zampe) → `work/anim.blend`. Le clip di riposo
    (seduta, sdraiarsi, accucciata, ritirare le zampe, pagnotta) escono in due versioni, `X` con la coda
    avvolta a sinistra e `X_R` a destra: il gioco tiene la coda dal lato di chi guarda (`anims_right`).

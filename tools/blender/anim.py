@@ -41,6 +41,8 @@ class Pose:
         self.x = {}       # bone -> degrees about local X (side-plane bend)
         self.yz = {}      # bone -> (deg about local Y, deg about local Z)
         self.hips = (0.0, 0.0)   # world (dy, dz) offset of the whole body
+        self.belly = (0.0, 1.0)  # Belly bone: how far the belly skin drops (m, towards the floor), how wide it spreads
+        self.squash = 1.0        # length of the middle of the back (Spine) as a fraction: a loafing cat draws in
 
     def cum(self, name):
         a = 0.0
@@ -58,7 +60,13 @@ class Pose:
         q = p
         for n in chain:  # innermost first
             h = REST[n]['h']
-            q = add(rot2(D(self.x.get(n, 0.0)), sub(q, h)), h)
+            d = sub(q, h)
+            if n == 'Spine' and self.squash != 1.0:
+                # shortened along its own rest direction (points carried by it or its children come closer)
+                a = REST[n]['a']; u = (math.cos(a), math.sin(a))
+                along = d[0] * u[0] + d[1] * u[1]
+                d = (d[0] - along * u[0] * (1 - self.squash), d[1] - along * u[1] * (1 - self.squash))
+            q = add(rot2(D(self.x.get(n, 0.0)), d), h)
         return add(q, self.hips)
 
     def leg(self, upper, lower, meta, toe, paw, meta_angle, knee_forward, toe_angle=None):
@@ -99,6 +107,18 @@ class Pose:
             y, z = self.yz.get(pb.name, (0.0, 0.0))
             pb.rotation_euler = (D(x), D(y), D(z))
             pb.keyframe_insert("rotation_euler", frame=frame)
+        # the belly: the bone points at the floor (local +Y) and its local X is world X (the width)
+        pb = P['Belly']
+        pb.location = (0.0, self.belly[0], 0.0)
+        # (its local Z runs along the body, which the squashed Spine above it shortens: undo that here)
+        pb.scale = (self.belly[1], 1.0, self.belly[1] / self.squash)
+        pb.keyframe_insert("location", frame=frame)
+        pb.keyframe_insert("scale", frame=frame)
+        # the squashed back: Spine shorter along its length (local Y), Chest undoes it so the chest, the head
+        # and the front legs keep their size (their axes line up with the Spine's: every bone's X is world X)
+        for name, k in (('Spine', self.squash), ('Chest', 1 / self.squash)):
+            P[name].scale = (1.0, k, 1.0)
+            P[name].keyframe_insert("scale", frame=frame)
         # hips offset: world delta -> hips bone local space
         R = bones['Hips'].matrix_local.to_3x3()
         pb = P['Hips']
@@ -455,6 +475,7 @@ def crouch(p, t, f):
     plant(p, 'HL', CROUCH_FOOT[0], CROUCH_FOOT[1], CROUCH_FOOT[2], toe=180)
     plant(p, 'HR', CROUCH_FOOT[0], CROUCH_FOOT[1], CROUCH_FOOT[2], toe=180)
     chain_world(p, TAILS, CROUCH_TAIL, CROUCH_TAIL_WRAP)
+    p.belly = CROUCH_BELLY
 
 # the back sinks in the middle and the chest curves up onto the forearms (a Tripo model of Zaira crouching
 # was the reference: compact, paws just in front of the chest, head close to the shoulders)
@@ -462,6 +483,7 @@ CROUCH_PITCH, CROUCH_SPINE, CROUCH_CHEST, CROUCH_NECK, CROUCH_HEAD = 0, 6, -14, 
 CROUCH_FOOT = (-0.13, 0.0, -80)
 # hips this low: the tail leaves them less steeply than sitting, or it goes through the floor
 CROUCH_TAIL = [-45, -32, -4, 3, 3]
+CROUCH_BELLY = (0.05, 1.15)   # lying on it, the belly skin comes down onto the floor and spreads a little
 CROUCH_TAIL_WRAP = [0, 0, -45, -45, -35]
 CROUCH_WRIST_Z, CROUCH_META, CROUCH_TOES = 0.05, 190, 185
 CROUCH_ARM_OUT = 0.98   # the forearm a hair short of its length, so the elbow stays bent the right way
@@ -472,8 +494,10 @@ def loaf(p, t, f):
     then the tip of the tail flicks (the only thing a loafing cat moves, besides the head)."""
     breathe = math.sin(TAU * LOAF_BREATHS * t)
     p.hips = (0.0, LOAF_DROP - LOAF_SINK + 0.003 * breathe)
-    p.x['Spine'] = 3
-    p.x['Chest'] = 4 + breathe
+    # a loafing cat is shorter than a standing one: the back rounds up and the rump tucks in under it
+    p.x['Hips'] = LOAF_PITCH
+    p.x['Spine'] = LOAF_SPINE
+    p.x['Chest'] = LOAF_CHEST + breathe
     p.x['Neck'] = LOAF_NECK
     p.x['Head'] = LOAF_HEAD
     for key in ('FL', 'FR'):
@@ -482,20 +506,28 @@ def loaf(p, t, f):
         # paws folded back inside the chest (wrist bent, paw pointing backwards, toes curled under), on the floor
         p.leg(u, l, m, t_, (H[0] + 0.03, LOAF_PAW_Z), 5, False, LOAF_TOES)
     # hind feet folded forward under the belly and drawn in towards the middle
-    plant(p, 'HL', 0.02, LOAF_FOOT_Z, -80, toe=180)
-    plant(p, 'HR', 0.02, LOAF_FOOT_Z, -80, toe=180)
+    plant(p, 'HL', LOAF_FOOT_Y, LOAF_FOOT_Z, -80, toe=180)
+    plant(p, 'HR', LOAF_FOOT_Y, LOAF_FOOT_Z, -80, toe=180)
     # tail drops to the ground and wraps forward along the flank; the tip flicks out, away from the body
     wrap = list(LOAF_TAIL_WRAP)
     for start, length, d4, d5 in LOAF_FLICKS:
         k = math.sin(math.pi * min(1.0, max(0.0, (t - start) / length))) ** 2
         wrap[3] += d4 * k
         wrap[4] += d5 * k
-    chain_world(p, TAILS, CURL_TAIL, wrap)
+    chain_world(p, TAILS, LOAF_TAIL, wrap)
+    p.belly = LOAF_BELLY
+    p.squash = LOAF_SQUASH
 
 LOAF_NECK, LOAF_HEAD = 4, -8
 LOAF_PAW_Z, LOAF_TOES, LOAF_FOOT_Z = 0.05, -40, 0.005   # paws tucked in but down on the floor
+LOAF_BELLY = (0.02, 1.2)
+LOAF_PITCH, LOAF_SPINE, LOAF_CHEST, LOAF_FOOT_Y = 0, 3, 4, 0.02
+LOAF_SQUASH = 0.8   # the middle of the back draws in: nose to rump a few cm shorter than lying stretched out   # the loaf spreads sideways
 LOAF_SINK = 0.015   # the loaf settles a little lower than the curl, belly on the floor
-LOAF_TAIL_WRAP = [0, 0, -45, -45, -35]
+# the tail drops straight down behind the rump and turns at once, forward along the flank: nothing sticks out
+# behind her (the length of a loaf is nose to rump)
+LOAF_TAIL = [-70, -85, -3, 2, 2]
+LOAF_TAIL_WRAP = [0, 0, -80, -60, -25]
 LOAF_FRAMES, LOAF_BREATHS = 240, 3    # an 8 s loop, so the flicks come now and then
 # (start, length as fractions of the loop, degrees for Tail4, Tail5): one lazy flick, then a small double twitch
 LOAF_FLICKS = [(0.19, 0.11, 20, 40), (0.62, 0.045, 0, 18), (0.68, 0.045, 0, 15)]
@@ -571,6 +603,8 @@ def blend_body(p, a, b, parts):
         p.yz[name] = (lerp(ya, yb, w), lerp(za, zb, w))
     hips_w = next((w for bones_, w in parts if bones_ and 'hips' in bones_), default)
     p.hips = (lerp(a.hips[0], b.hips[0], hips_w), lerp(a.hips[1], b.hips[1], hips_w))
+    p.belly = (lerp(a.belly[0], b.belly[0], hips_w), lerp(a.belly[1], b.belly[1], hips_w))
+    p.squash = lerp(a.squash, b.squash, hips_w)
     for name in LEG_BONES:   # sideways turns of the legs (knees apart when sitting) blend with the body
         ya, za = a.yz.get(name, (0.0, 0.0)); yb, zb = b.yz.get(name, (0.0, 0.0))
         p.yz[name] = (lerp(ya, yb, default), lerp(za, zb, default))
