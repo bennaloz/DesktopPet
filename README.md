@@ -40,20 +40,22 @@ Primi 2 minuti di prova, se qualcosa non va: `%APPDATA%\Godotpp_userdata\Zaira 
 - **Salto**: la pancia penzola ancora in volo (le cosce tirano giu' la pelle della pancia: pesi o posa).
   Ora c'e' l'osso `Belly` (tools/blender/belly.py): nelle clip di volo si puo' tirare su la pancia.
 - **Coda**: frangia alla base quando si alza (difetto del modello, per ora si tiene).
-- **Pagnotta**: fatta col rig, con transizioni a tempo di gatto (si sdraia in 2 s con le zampe davanti che
-  avanzano una alla volta, le ritira in 1,6 s una per volta o insieme); punta della coda che ogni tanto frusta,
-  coda sempre dal lato di chi guarda. Da vedere dal vivo: se la pagnotta del rig e' ancora troppo magra.
-  Manca la transizione inversa (rialzarsi): per ora e' una dissolvenza. Provato e scartato (28/09) il modello Tripo gia' in posa al posto del rig a posa
-  raggiunta: lo scambio fra due modelli diversi fa l'effetto Transformer e il collo del Tripo, fuso col petto,
-  si deforma appena la testa gira. Il rig di Tripo non aiuterebbe: lo scambio resta. Stesso discorso per
-  accucciata e acciambellata: meglio migliorare le pose del rig.
+- **Rialzarsi dalla pagnotta**: manca la transizione inversa (pagnotta -> accucciata -> seduta), per ora e'
+  una dissolvenza. Fatte (28/09): seduta -> accucciata a sfinge (2 s, zampe davanti una alla volta) ->
+  pagnotta (1,6 s, zampe ritirate una alla volta), coda sempre dal lato di chi guarda.
+  Provato e scartato (28/09) il modello Tripo gia' in posa al posto del rig: lo scambio fra due modelli fa
+  l'effetto Transformer e il collo del Tripo si deforma. Le pose si fanno col rig, i GLB Tripo servono solo
+  da riferimento.
+- **Acciambellata**: da rivedere con lo stesso metodo (riferimento Tripo, pancia a terra, tempi di gatto).
 - **"z" del sonno troppo in alto**: l'altezza viene dalla taglia del gatto in piedi (`SizePx.Y` in `Main`),
   la posa acciambellata e' molto piu' bassa.
 - **Autotest del giro**: il controllo "mangia con il muso sopra la ciotola" a volte non scatta (serve che
   mangi piu' di 0,8 s, e "restless" porta subito la fame a 0,1): aspettare `Eat` con `Until` come per
   zoomies e sonno.
-- **Pipeline Blender**: percorsi fissi (`_assets/zaira/work/anim.blend`, `export.py` scrive nel `zaira.glb`
-  di questa cartella): da un worktree va lanciata sostituendo i percorsi di uscita, meglio renderli parametri.
+- **Pipeline Blender**: `rig.blend` non si rigenera piu' dal solo `rig.py` (la coda e' stata rifatta dopo);
+  gli script che lo modificano (`front_toes.py`, `belly.py`, `scapula.py`, `chest_in.py`) vanno lanciati in
+  ordine, e sono idempotenti. Il `rig.blend` buono e' in `assets/zaira/work/` (ignorata da git): farne una
+  copia prima di esperimenti.
 
 ## Cosa provare
 
