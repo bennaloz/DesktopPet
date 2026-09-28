@@ -271,6 +271,8 @@ def gait(p, t, phases, duty, reach, lift, bob, spine_flex=0.0, meta_roll=25.0, s
 
 WALK_REACH, WALK_HIND_SHIFT = 0.185, 0.10
 WALK_DROP, TROT_DROP, RUN_DROP = -0.035, -0.02, -0.03
+# the swinging leg folds at the elbow/knee and a little at the wrist (straighter, the legs looked in plaster)
+WALK_LIFT, WALK_CURL = 0.1, 40
 
 def walk(p, t, f):
     """A cat's walk: lateral-sequence gait, head low and steady, shoulders and hips rolling, back weaving."""
@@ -290,8 +292,8 @@ def walk(p, t, f):
     # of the same side left. Print spacing 0.535 = 0.75 * stride + hind stance shift: stride 0.58, shift 0.10.
     # the paw lifts from the elbow/knee (lift) more than it curls at the wrist (swing_curl): a big curl shows the
     # pad sideways to a three-quarter view and reads as the foot twisting outwards
-    gait(p, t, {'HL': 0.0, 'FL': 0.25, 'HR': 0.5, 'FR': 0.75}, duty=0.64, reach=WALK_REACH, lift=0.055, bob=0.0,
-         meta_roll=20, swing_curl=15, centre={'HL': -WALK_HIND_SHIFT, 'HR': -WALK_HIND_SHIFT})
+    gait(p, t, {'HL': 0.0, 'FL': 0.25, 'HR': 0.5, 'FR': 0.75}, duty=0.64, reach=WALK_REACH, lift=WALK_LIFT, bob=0.0,
+         meta_roll=20, swing_curl=WALK_CURL, centre={'HL': -WALK_HIND_SHIFT, 'HR': -WALK_HIND_SHIFT})
     tail(p, lift=6, sway=9, t=w)
 
 def run(p, t, f):
@@ -318,8 +320,8 @@ def trot(p, t, f):
     p.hips = (0.0, TROT_DROP + 0.011 * math.cos(2 * w))     # a bounce at every diagonal push
     p.x['Neck'] = -6 + 2 * math.cos(2 * w)
     p.x['Head'] = 10 - 2 * math.cos(2 * w)
-    gait(p, t, {'HL': 0.0, 'FR': 0.02, 'HR': 0.5, 'FL': 0.52}, duty=0.45, reach=0.143, lift=0.07, bob=0.0,
-         meta_roll=20, swing_curl=20)   # lift more than curl, as in the walk
+    gait(p, t, {'HL': 0.0, 'FR': 0.02, 'HR': 0.5, 'FL': 0.52}, duty=0.45, reach=0.143, lift=0.1, bob=0.0,
+         meta_roll=20, swing_curl=40)   # folding legs, as in the walk
     sway = 4 * math.sin(w)
     chain_world(p, TAILS, TROT_TAIL, [0, sway * 0.5, sway, sway * 1.5, 6 + 10 * math.sin(2 * w)])
 
