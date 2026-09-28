@@ -1,5 +1,6 @@
+import os,sys; sys.path.insert(0,os.path.dirname(os.path.abspath(__file__))); from paths import work_file
 import bpy
-bpy.ops.wm.open_mainfile(filepath=r"C:/develop/personal/_assets/zaira/work/anim.blend")
+bpy.ops.wm.open_mainfile(filepath=work_file("anim.blend"))
 arm=bpy.data.objects["Rig"]; m=bpy.data.objects["Zaira"]
 ys=[v.co.y for v in m.data.vertices]; xs=[v.co.x for v in m.data.vertices]; zs=[v.co.z for v in m.data.vertices]
 cy=(min(ys)+max(ys))/2; length=max(max(ys)-min(ys), max(xs)-min(xs))

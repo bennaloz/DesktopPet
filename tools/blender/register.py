@@ -1,6 +1,7 @@
+import os,sys; sys.path.insert(0,os.path.dirname(os.path.abspath(__file__))); from paths import repo_file
 # Check direct register numerically: ground positions of front and hind footfalls, same side.
 import bpy, math
-src=open(r"C:/develop/personal/_assets/zaira/work/anim.py",encoding='utf-8').read()
+src=open(repo_file("tools/blender/anim.py"),encoding='utf-8').read()
 exec(src[:src.index('bake("Idle"')])
 T=1.0; S=2*WALK_REACH/0.64
 def touchdown(key, ph):

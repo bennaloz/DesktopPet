@@ -12,3 +12,10 @@ run_*.log
 # textures Godot extracts from the cat GLBs on import (already inside the .glb)
 cats/*/*_Color.jpg
 cats/*/*_Color.jpg.import
+
+# Pipeline Blender: intermedi e anteprime, rigenerati da tools/blender
+assets/zaira/work/
+*.blend1
+__pycache__/
+# Modelli di terze parti non usati dal gioco
+assets/extra/

@@ -1,6 +1,7 @@
+import os,sys; sys.path.insert(0,os.path.dirname(os.path.abspath(__file__))); from paths import source_file, work_file
 import bpy, math, mathutils, numpy as np
 bpy.ops.wm.read_factory_settings(use_empty=True)
-bpy.ops.import_scene.gltf(filepath=r"C:/develop/personal/_assets/zaira/domestic+cat+3d+model.glb")
+bpy.ops.import_scene.gltf(filepath=source_file("tripo.glb"))
 mesh=[o for o in bpy.data.objects if o.type=='MESH' and len(o.data.vertices)>1000][0]
 arm=[o for o in bpy.data.objects if o.type=='ARMATURE'][0]
 mw=mesh.matrix_world.copy()
@@ -32,4 +33,4 @@ mesh.data.transform(mathutils.Matrix.Translation(off))
 V=np.array([v.co[:] for v in mesh.data.vertices])
 print("bbox",V.min(0),V.max(0))
 mesh.name="Zaira"
-bpy.ops.wm.save_as_mainfile(filepath=r"C:/develop/personal/_assets/zaira/work/mesh.blend")
+bpy.ops.wm.save_as_mainfile(filepath=work_file("mesh.blend"))
