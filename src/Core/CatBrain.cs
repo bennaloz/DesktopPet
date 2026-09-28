@@ -54,12 +54,15 @@ public sealed class CatBrain
     public static readonly (double min, double max) LoafAfter = (3, 6);
     /// <summary>...and lying on her belly with the front paws out for this long before tucking them in.</summary>
     public static readonly (double min, double max) TuckAfter = (1.5, 3);
+    /// <summary>Lying down from sitting and tucking the paws in take a cat this long: the length of the
+    /// LieDown and Tuck clips (tools/blender/anim.py).</summary>
+    public const double LieDownTime = 2.0, TuckTime = 1.6;
 
     readonly Random _rng;
 
     public CatState State { get; private set; } = CatState.Idle;
     public Goal Goal { get; private set; }
-    /// <summary>Logical animation: idle, walk, trot (happy), lope, run (sprint), stalk, wiggle, swat, prejump, aim, jump, fall, land, sit, crouch (lying, paws out), loaf, sleep, eat, meow, purr, held, climb.</summary>
+    /// <summary>Logical animation: idle, walk, trot (happy), lope, run (sprint), stalk, wiggle, swat, prejump, aim, jump, fall, land, sit, liedown, crouch (lying, paws out), tuck, loaf, sleep, eat, meow, purr, held, climb.</summary>
     public string Action { get; private set; } = "idle";
     /// <summary>+1 facing right, -1 facing left.</summary>
     public int Facing { get; private set; } = 1;
@@ -348,8 +351,7 @@ public sealed class CatBrain
                 return DoHunt(dt, body, needs);
 
             case CatState.Sit:
-                // A long sit: sitting up, then lying down with the front paws out, then the paws tucked in.
-                Action = _loafAt < 0 || _stateTime < _loafAt ? "sit" : _stateTime < _loafAt + _tuckAt ? "crouch" : "loaf";
+                Action = RestingAction();
                 if (_stateTime >= _stateDuration) Decide(body, needs, map, world);
                 return 0;
 
@@ -358,6 +360,20 @@ public sealed class CatBrain
                 if (_stateTime >= _stateDuration) Decide(body, needs, map, world);
                 return 0;
         }
+    }
+
+    /// <summary>
+    /// A long sit: sitting up, lying down (the front paws stepping forward), lying with the paws out, tucking
+    /// them in, then the loaf. Each change takes the time a cat takes; a short sit stays a sit.
+    /// </summary>
+    string RestingAction()
+    {
+        double t = _stateTime - _loafAt;
+        if (_loafAt < 0 || t < 0) return "sit";
+        if (t < LieDownTime) return "liedown";
+        t -= LieDownTime;
+        if (t < _tuckAt) return "crouch";
+        return t < _tuckAt + TuckTime ? "tuck" : "loaf";
     }
 
     // ---------------------------------------------------------------- decisions

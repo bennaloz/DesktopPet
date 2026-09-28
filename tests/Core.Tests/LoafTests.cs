@@ -7,9 +7,9 @@ using Xunit;
 namespace ZairaPet.Tests;
 
 /// <summary>
-/// The loaf: settling in for a long sit, she first sits up for a few seconds, then lies down on her belly with the
-/// front paws out, and after a moment tucks them in: a loaf for the rest of it. Short sits stay sits; a sit asked
-/// for on purpose (self test) stays a sit.
+/// The loaf: settling in for a long sit, she first sits up for a few seconds, then lies down (the front paws
+/// stepping forward, at a cat's pace), stays a moment on her belly with the paws out, and tucks them in: a loaf
+/// for the rest of it. Short sits stay sits; a sit asked for on purpose (self test) stays a sit.
 /// </summary>
 public class LoafTests
 {
@@ -72,9 +72,11 @@ public class LoafTests
         {
             var (action, state, _) = s.Log[i];
             string before = s.Log[i - 1].action;
-            if (action is "loaf" or "crouch") Assert.Equal(CatState.Sit, state);
-            if (action == "loaf" && before != "loaf") Assert.Equal("crouch", before);   // tucks in the paws of a cat already lying down
-            if (action == "crouch" && before != "crouch") Assert.Equal("sit", before);   // lies down from sitting, never from walking
+            if (action is "liedown" or "crouch" or "tuck" or "loaf") Assert.Equal(CatState.Sit, state);
+            if (action == before) continue;
+            // always in this order: lies down from sitting (never from walking), tucks in the paws of a cat already lying
+            string expected = action switch { "liedown" => "sit", "crouch" => "liedown", "tuck" => "crouch", "loaf" => "tuck", _ => before };
+            Assert.Equal(expected, before);
         }
     }
 
@@ -83,13 +85,18 @@ public class LoafTests
     {
         var s = new Scene(7);
         s.Run(600);
+        int lying = s.Log.FindIndex(e => e.action == "liedown");
         int down = s.Log.FindIndex(e => e.action == "crouch");
-        int tucked = s.Log.FindIndex(e => e.action == "loaf");
-        Assert.True(down > 0 && tucked > down);
-        int sitStart = down;
+        int tucking = s.Log.FindIndex(e => e.action == "tuck");
+        int loaf = s.Log.FindIndex(e => e.action == "loaf");
+        Assert.True(lying > 0 && down > lying && tucking > down && loaf > tucking);
+        int sitStart = lying;
         while (sitStart > 0 && s.Log[sitStart - 1].state == CatState.Sit) sitStart--;
-        Assert.InRange(s.Log[down].time - s.Log[sitStart].time, CatBrain.LoafAfter.min - 0.05, CatBrain.LoafAfter.max + 0.05);
-        Assert.InRange(s.Log[tucked].time - s.Log[down].time, CatBrain.TuckAfter.min - 0.05, CatBrain.TuckAfter.max + 0.05);
+        double Took(int from, int to) => s.Log[to].time - s.Log[from].time;
+        Assert.InRange(Took(sitStart, lying), CatBrain.LoafAfter.min - 0.05, CatBrain.LoafAfter.max + 0.05);
+        Assert.InRange(Took(lying, down), CatBrain.LieDownTime - 0.05, CatBrain.LieDownTime + 0.05);
+        Assert.InRange(Took(down, tucking), CatBrain.TuckAfter.min - 0.05, CatBrain.TuckAfter.max + 0.05);
+        Assert.InRange(Took(tucking, loaf), CatBrain.TuckTime - 0.05, CatBrain.TuckTime + 0.05);
     }
 
     [Fact]
@@ -98,7 +105,7 @@ public class LoafTests
         var s = new Scene(7);
         s.Brain.SitFor(60);
         s.Run(50);
-        Assert.DoesNotContain(s.Log, e => e.action is "loaf" or "crouch");
+        Assert.DoesNotContain(s.Log, e => e.action != "sit");
     }
 
     [Fact]
@@ -107,8 +114,12 @@ public class LoafTests
         var s = new Scene(7);
         s.Brain.LoafFor(60);
         s.Run(CatBrain.LoafAfter.min + 0.5);
+        Assert.Equal("liedown", s.Brain.Action);
+        s.Run(CatBrain.LieDownTime);
         Assert.Equal("crouch", s.Brain.Action);
         s.Run(CatBrain.TuckAfter.min);
+        Assert.Equal("tuck", s.Brain.Action);
+        s.Run(CatBrain.TuckTime);
         Assert.Equal("loaf", s.Brain.Action);
         Assert.Equal(CatState.Sit, s.Brain.State);
     }

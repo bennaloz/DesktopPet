@@ -8,7 +8,12 @@ I percorsi sono relativi al repo (`paths.py`), gli script si lanciano da qualunq
 1. `prep.py` – importa, raddrizza (muso verso -Y), centra, piedi a z=0 → `work/mesh.blend`
 2. `rig.py` – decimazione a ~25k facce, scheletro da gatto, pesi via proxy voxel,
    pesi della coda procedurali, stacco delle facce che incollavano coda e sedere → `work/rig.blend`
-3. `anim.py` – animazioni procedurali (IK planare per le zampe) → `work/anim.blend`
+   `front_toes.py` – divide la mano delle zampe davanti in metacarpo e dita (`Finger.L/R`): sdraiata le dita
+   restano piatte a terra invece di puntare in alto. Lavora sul `rig.blend` esistente (la coda e' stata
+   rifatta dopo `rig.py`), una volta sola.
+3. `anim.py` – animazioni procedurali (IK planare per le zampe) → `work/anim.blend`. Le clip di riposo
+   (seduta, sdraiarsi, accucciata, ritirare le zampe, pagnotta) escono in due versioni, `X` con la coda
+   avvolta a sinistra e `X_R` a destra: il gioco tiene la coda dal lato di chi guarda (`anims_right`).
 4. `export.py` – texture a 2K, GLB con tutte le azioni → `cats/zaira/zaira.glb`
 
 Controllo visivo: `sheet.py` + `tile.py` (foglio di fotogrammi per ogni animazione).

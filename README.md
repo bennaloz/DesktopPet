@@ -39,8 +39,10 @@ Primi 2 minuti di prova, se qualcosa non va: `%APPDATA%\Godotpp_userdata\Zaira 
   le andature; la logica dell'umore in Core con i suoi test.
 - **Salto**: la pancia penzola ancora in volo (le cosce tirano giu' la pelle della pancia: pesi o posa).
 - **Coda**: frangia alla base quando si alza (difetto del modello, per ora si tiene).
-- **Pagnotta**: fatta col rig (seduta -> sdraiata con le zampe davanti -> zampe ritirate; punta della coda che
-  ogni tanto frusta). Provato e scartato (28/09) il modello Tripo gia' in posa al posto del rig a posa
+- **Pagnotta**: fatta col rig, con transizioni a tempo di gatto (si sdraia in 2 s con le zampe davanti che
+  avanzano una alla volta, le ritira in 1,6 s una per volta o insieme); punta della coda che ogni tanto frusta,
+  coda sempre dal lato di chi guarda. Da vedere dal vivo: se la pagnotta del rig e' ancora troppo magra.
+  Manca la transizione inversa (rialzarsi): per ora e' una dissolvenza. Provato e scartato (28/09) il modello Tripo gia' in posa al posto del rig a posa
   raggiunta: lo scambio fra due modelli diversi fa l'effetto Transformer e il collo del Tripo, fuso col petto,
   si deforma appena la testa gira. Il rig di Tripo non aiuterebbe: lo scambio resta. Stesso discorso per
   accucciata e acciambellata: meglio migliorare le pose del rig.

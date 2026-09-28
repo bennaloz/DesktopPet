@@ -21,6 +21,8 @@ public partial class CatVisual : Node3D
 
     string _action = "";
     ActionClip? _clip;
+    int _variant;            // which of the clip's anims is playing
+    int _side;               // the facing the playing anim was picked for (see ActionClip.AnimsRight)
     double _yaw;
     double _roll;
     double _time;
@@ -211,21 +213,39 @@ public partial class CatVisual : Node3D
         return total ?? new Aabb(Vector3.Zero, Vector3.One);
     }
 
-    /// <summary>Switch the logical action; the clip keeps playing if it is already the current one.</summary>
-    public void Play(string action)
+    /// <summary>
+    /// Switch the logical action; the clip keeps playing if it is already the current one. Facing picks the
+    /// variant with the tail on the side towards the viewer, and turning round swaps it without restarting.
+    /// </summary>
+    public void Play(string action, int facing = 1)
     {
-        if (action == _action || _player == null) return;
+        if (_player == null) return;
+        int side = facing >= 0 ? 1 : -1;
+        if (action == _action)
+        {
+            if (_clip is { AnimsRight.Count: > 0 } c && side != _side) Start(c, _variant, side, keepTime: true);
+            return;
+        }
         var clip = _profile.Resolve(action);
-        if (clip == null) return;
+        if (clip == null || clip.Anims.Count == 0) return;
         _action = action;
         _clip = clip;
+        Start(clip, _rng.Next(clip.Anims.Count), side, keepTime: false);
+    }
 
-        var names = clip.Anims.Select(a => _resolved.GetValueOrDefault(a.ToLowerInvariant())).Where(n => n != null).ToList();
-        if (names.Count == 0) return;
-        string name = names[_rng.Next(names.Count)]!;
-        var anim = _player.GetAnimation(name);
+    void Start(ActionClip clip, int variant, int side, bool keepTime)
+    {
+        _variant = variant;
+        _side = side;
+        var list = side > 0 && clip.AnimsRight.Count == clip.Anims.Count ? clip.AnimsRight : clip.Anims;
+        string? name = _resolved.GetValueOrDefault(list[variant].ToLowerInvariant())
+                       ?? _resolved.GetValueOrDefault(clip.Anims[variant].ToLowerInvariant());
+        if (name == null) return;
+        double at = keepTime ? _player!.CurrentAnimationPosition : 0;
+        var anim = _player!.GetAnimation(name);
         anim.LoopMode = clip.Loop ? Animation.LoopModeEnum.Linear : Animation.LoopModeEnum.None;
-        _player.Play(name, customBlend: (float)clip.Blend, customSpeed: (float)clip.Speed);
+        _player.Play(name, customBlend: keepTime ? 0.3f : (float)clip.Blend, customSpeed: (float)clip.Speed);
+        if (keepTime) _player.Seek(Math.Min(at, anim.Length), update: true);
     }
 
     /// <summary>Per-frame pose: facing, ground speed for locomotion clips, procedural touches.</summary>

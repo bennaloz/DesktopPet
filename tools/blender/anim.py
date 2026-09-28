@@ -109,8 +109,8 @@ class Pose:
 LEGS = {
     'HL': ('Thigh.L', 'Shin.L', 'Foot.L', 'Toe.L', True),
     'HR': ('Thigh.R', 'Shin.R', 'Foot.R', 'Toe.R', True),
-    'FL': ('UpperArm.L', 'Forearm.L', 'Hand.L', None, False),
-    'FR': ('UpperArm.R', 'Forearm.R', 'Hand.R', None, False),
+    'FL': ('UpperArm.L', 'Forearm.L', 'Hand.L', 'Finger.L', False),
+    'FR': ('UpperArm.R', 'Forearm.R', 'Hand.R', 'Finger.R', False),
 }
 PAW = {k: REST[v[2]]['t'] for k, v in LEGS.items()}
 META = {k: math.degrees(REST[v[2]]['a']) for k, v in LEGS.items()}
@@ -146,13 +146,17 @@ def tail(p, lift=0.0, sway=0.0, t=0.0, curl=0.0):
         p.x[n] = p.x.get(n, 0.0) + lift * w + curl * (i / 4)
         p.yz[n] = (0.0, sway * (0.4 + 0.3 * i) * math.sin(t - i * 0.6))
 
+# Which way sideways curls go (the tail wrapped round her while resting): 1 = to her left (+X), the side seen
+# when she faces left on screen; -1 mirrors them for the "_R" clips shown when she faces right.
+TAIL_SIDE = 1
+
 def chain_world(p, names, alphas, lateral=None):
     """Point each bone of a chain at a world side-plane angle (deg); optional sideways curl per bone."""
     for i, n in enumerate(names):
         par = REST[n]['parent']
         phi = p.cum(par) if par else 0.0
         p.x[n] = alphas[i] - math.degrees(REST[n]['a'] + phi)
-        if lateral: p.yz[n] = (0.0, lateral[i])
+        if lateral: p.yz[n] = (0.0, TAIL_SIDE * lateral[i])
 
 TAILS = ['Tail1', 'Tail2', 'Tail3', 'Tail4', 'Tail5']
 
@@ -171,6 +175,15 @@ def bake(name, frames, fn, loop=True):
         fn(p, t, f)
         p.apply(f)
     print("action", name, frames, flush=True)
+
+def bake_both_sides(name, frames, fn, loop=True):
+    """A resting clip twice: tail curled to her left (name) and to her right (name_R), so the game can always
+    keep the tail on the side facing the viewer."""
+    global TAIL_SIDE
+    bake(name, frames, fn, loop)
+    TAIL_SIDE = -1
+    bake(name + "_R", frames, fn, loop)
+    TAIL_SIDE = 1
 
 def smooth(x): x = max(0.0, min(1.0, x)); return x * x * (3 - 2 * x)
 def lerp(a, b, t): return a + (b - a) * t
@@ -415,7 +428,7 @@ def sit(p, t, f):
     sit_pose(p, breathe=1.2 * math.sin(TAU * t), t=t)
     y, z = p.yz['Tail5']; p.yz['Tail5'] = (y, z + 12 * math.sin(TAU * 2 * t))
 
-CROUCH_DROP = -0.25
+CROUCH_DROP = -0.29   # belly down on the floor
 
 def crouch(p, t, f):
     """Crouched: belly on the ground, forearms flat with the paws showing in front of the chest,
@@ -429,19 +442,29 @@ def crouch(p, t, f):
     for key in ('FL', 'FR'):
         u, l, m, t_, fwd = LEGS[key]
         H = p.point(REST[u]['parent'], REST[u]['h'])
-        p.leg(u, l, m, t_, (H[0] - CROUCH_REACH, 0.025), 180, False, None)
+        # elbow down on the floor under the shoulder's reach, forearm lying flat forward from it, toes flat:
+        # the paw goes as far forward as the arm then reaches (a paw placed short of it would push the elbow
+        # through the floor)
+        L1, L2 = REST[u]['L'], REST[l]['L']
+        to_elbow = math.sqrt(max(0.0, L1 * L1 - (H[1] - CROUCH_WRIST_Z) ** 2))
+        wrist = (H[0] - (to_elbow + L2) * CROUCH_ARM_OUT, CROUCH_WRIST_Z)
+        g = D(CROUCH_META)
+        paw = (wrist[0] + REST[m]['L'] * math.cos(g), wrist[1] + REST[m]['L'] * math.sin(g))
+        p.leg(u, l, m, t_, paw, CROUCH_META, False, CROUCH_TOES)
     plant(p, 'HL', -0.13, 0.0, -80, toe=180)
     plant(p, 'HR', -0.13, 0.0, -80, toe=180)
     chain_world(p, TAILS, [-70, -40, -5, 0, 0], [0, 15, 35, 45, 40])
 
 CROUCH_REACH = 0.20
+CROUCH_WRIST_Z, CROUCH_META, CROUCH_TOES = 0.05, 190, 185
+CROUCH_ARM_OUT = 0.98   # a hair short of straight, so the elbow stays bent the right way
 LOAF_DROP = -0.21
 
 def loaf(p, t, f):
     """The 'loaf': belly on the ground, every paw hidden underneath, head up, tail wrapped along the flank; now and
     then the tip of the tail flicks (the only thing a loafing cat moves, besides the head)."""
     breathe = math.sin(TAU * LOAF_BREATHS * t)
-    p.hips = (0.0, LOAF_DROP + 0.003 * breathe)
+    p.hips = (0.0, LOAF_DROP - LOAF_SINK + 0.003 * breathe)
     p.x['Spine'] = 3
     p.x['Chest'] = 4 + breathe
     p.x['Neck'] = LOAF_NECK
@@ -449,11 +472,11 @@ def loaf(p, t, f):
     for key in ('FL', 'FR'):
         u, l, m, t_, fwd = LEGS[key]
         H = p.point(REST[u]['parent'], REST[u]['h'])
-        # paws folded back inside the chest (wrist bent, paw pointing backwards)
-        p.leg(u, l, m, t_, (H[0] + 0.03, 0.07), 5, False, None)
+        # paws folded back inside the chest (wrist bent, paw pointing backwards, toes curled under), on the floor
+        p.leg(u, l, m, t_, (H[0] + 0.03, LOAF_PAW_Z), 5, False, LOAF_TOES)
     # hind feet folded forward under the belly and drawn in towards the middle
-    plant(p, 'HL', 0.02, 0.05, -80, toe=180)
-    plant(p, 'HR', 0.02, 0.05, -80, toe=180)
+    plant(p, 'HL', 0.02, LOAF_FOOT_Z, -80, toe=180)
+    plant(p, 'HR', 0.02, LOAF_FOOT_Z, -80, toe=180)
     # tail drops to the ground and wraps forward along the flank; the tip flicks out, away from the body
     wrap = list(LOAF_TAIL_WRAP)
     for start, length, d4, d5 in LOAF_FLICKS:
@@ -463,6 +486,8 @@ def loaf(p, t, f):
     chain_world(p, TAILS, CURL_TAIL, wrap)
 
 LOAF_NECK, LOAF_HEAD = 4, -8
+LOAF_PAW_Z, LOAF_TOES, LOAF_FOOT_Z = 0.05, -40, 0.005   # paws tucked in but down on the floor
+LOAF_SINK = 0.015   # the loaf settles a little lower than the curl, belly on the floor
 LOAF_TAIL_WRAP = [0, 0, -45, -45, -35]
 LOAF_FRAMES, LOAF_BREATHS = 240, 3    # an 8 s loop, so the flicks come now and then
 # (start, length as fractions of the loop, degrees for Tail4, Tail5): one lazy flick, then a small double twitch
@@ -497,6 +522,92 @@ def sleep(p, t, f):
     wrap = list(CURL_TAIL_WRAP)
     wrap[-1] += 4 * math.sin(TAU * t + 1.0)          # the tip stirs with the breath
     chain_world(p, TAILS, CURL_TAIL, wrap)
+
+# ---------------------------------------------------------------- transitions between resting poses
+# One-shot clips from the exact end pose of one clip to the start pose of the next, at a cat's pace: each part
+# of the body moves in its own stretch of the clip, and the paws step (lifted a little, one after the other)
+# instead of sliding all together. Lengths must match CatBrain.LieDownTime / TuckTime.
+LIE_DOWN_S, TUCK_S = 2.0, 1.6
+LEG_BONES = {b for leg in LEGS.values() for b in leg[:4] if b}
+
+def snapshot(fn):
+    """The pose a clip starts with (frame 0, no breathing)."""
+    q = Pose()
+    fn(q, 0.0, 0)
+    return q
+
+def world_leg(q, key):
+    """Where a pose puts a paw (side plane), the world angle of its metatarsus and of its toe."""
+    u, l, m, toe, fwd = LEGS[key]
+    paw = q.point(m, REST[m]['t'])
+    meta = math.degrees(REST[m]['a'] + q.cum(m))
+    toe_a = math.degrees(REST[toe]['a'] + q.cum(toe)) if toe else None
+    return paw, meta, toe_a
+
+def near(a, b):
+    """b turned by whole turns to lie within half a turn of a (angles lerp the short way)."""
+    return b + 360 * round((a - b) / 360)
+
+def stage(t, t0, t1):
+    """0 before t0, 1 after t1, smooth in between: when a part of the body moves."""
+    return smooth((t - t0) / (t1 - t0))
+
+def blend_body(p, a, b, parts):
+    """Every bone but the legs from pose a to b, each group at its own time: parts = [(bones, weight)];
+    bones not listed follow 'rest' (the last entry with bones None)."""
+    default = next(w for bones_, w in parts if bones_ is None)
+    for name in REST:
+        if name in LEG_BONES: continue
+        w = next((w for bones_, w in parts if bones_ and name in bones_), default)
+        p.x[name] = lerp(a.x.get(name, 0.0), b.x.get(name, 0.0), w)
+        ya, za = a.yz.get(name, (0.0, 0.0)); yb, zb = b.yz.get(name, (0.0, 0.0))
+        p.yz[name] = (lerp(ya, yb, w), lerp(za, zb, w))
+    hips_w = next((w for bones_, w in parts if bones_ and 'hips' in bones_), default)
+    p.hips = (lerp(a.hips[0], b.hips[0], hips_w), lerp(a.hips[1], b.hips[1], hips_w))
+    for name in LEG_BONES:   # sideways turns of the legs (knees apart when sitting) blend with the body
+        ya, za = a.yz.get(name, (0.0, 0.0)); yb, zb = b.yz.get(name, (0.0, 0.0))
+        p.yz[name] = (lerp(ya, yb, default), lerp(za, zb, default))
+
+def step_leg(p, key, a, b, k, lift, meta_to=None):
+    """A paw going from where pose a has it to where pose b has it as k goes 0 -> 1, lifted `lift` on the way.
+    meta_to: the end angle of the metatarsus when it must turn the long way round (a paw curling under)."""
+    u, l, m, toe, fwd = LEGS[key]
+    (pa, ma, ta), (pb, mb, tb) = world_leg(a, key), world_leg(b, key)
+    mb = meta_to if meta_to is not None else near(ma, mb)
+    paw = (lerp(pa[0], pb[0], k), lerp(pa[1], pb[1], k) + lift * math.sin(math.pi * k))
+    toe_a = lerp(ta, near(ta, tb), k) if toe else None
+    p.leg(u, l, m, toe, paw, lerp(ma, mb, k), fwd, toe_a)
+
+BODY = {'Hips', 'Spine', 'Chest', 'hips'}
+HEAD = {'Neck', 'Head'}
+
+def lie_down(p, t, f):
+    """Sitting -> lying with the paws out: the front paws walk forward one after the other while the chest
+    comes down, the elbows fold, then the hind legs settle alongside and the tail follows."""
+    a, b = snapshot(sit), snapshot(crouch)
+    blend_body(p, a, b, [(BODY, stage(t, 0.15, 0.85)), (HEAD, stage(t, 0.1, 0.9)),
+                         (set(TAILS), stage(t, 0.55, 1.0)), (None, stage(t, 0.5, 1.0))])
+    step_leg(p, 'FL', a, b, stage(t, 0.05, 0.45), 0.03)
+    step_leg(p, 'FR', a, b, stage(t, 0.3, 0.7), 0.03)
+    step_leg(p, 'HL', a, b, stage(t, 0.55, 1.0), 0.01)
+    step_leg(p, 'HR', a, b, stage(t, 0.6, 1.0), 0.01)
+
+def tuck_paws(front_times):
+    """Lying with the paws out -> the loaf: each front paw lifts, curls under at the wrist (the long way
+    round, pointing down on the way) and slides back under the chest; the body rises onto them and settles."""
+    def fn(p, t, f):
+        a, b = snapshot(crouch), snapshot(loaf)
+        blend_body(p, a, b, [(BODY, stage(t, 0.1, 0.95)), (HEAD, stage(t, 0.2, 0.8)),
+                             (set(TAILS), stage(t, 0.3, 1.0)), (None, stage(t, 0.4, 1.0))])
+        for key, (t0, t1) in front_times.items():
+            ma = world_leg(a, key)[1]
+            mb = world_leg(b, key)[1]
+            # curl downwards: the end angle past the start one going clockwise in the side plane
+            curl = mb + 360 * math.ceil((ma - mb) / 360) if mb < ma else mb
+            step_leg(p, key, a, b, stage(t, t0, t1), 0.04, meta_to=curl)
+        step_leg(p, 'HL', a, b, stage(t, 0.45, 1.0), 0.0)
+        step_leg(p, 'HR', a, b, stage(t, 0.5, 1.0), 0.0)
+    return fn
 
 EAT = dict(drop=-0.03, pitch=8, spine=4, chest=12, neck=48, head=32, paws_back=0.05)
 
@@ -546,9 +657,13 @@ bake("Aim", 15, aim)
 bake("Jump", 10, jump, loop=False)
 bake("Fall", 9, fall, loop=False)
 bake("Land", 9, land, loop=False)
-bake("Sit", 90, sit)
-bake("Crouch", 90, crouch)
-bake("Loaf", LOAF_FRAMES, loaf)
+bake_both_sides("Sit", 90, sit)
+bake_both_sides("Crouch", 90, crouch)
+bake_both_sides("Loaf", LOAF_FRAMES, loaf)
+bake_both_sides("LieDown", round(LIE_DOWN_S * FPS), lie_down, loop=False)
+# sometimes one paw after the other, sometimes both nearly together
+bake_both_sides("Tuck", round(TUCK_S * FPS), tuck_paws({'FL': (0.05, 0.45), 'FR': (0.5, 0.9)}), loop=False)
+bake_both_sides("Tuck_Pair", round(TUCK_S * FPS), tuck_paws({'FL': (0.1, 0.6), 'FR': (0.2, 0.7)}), loop=False)
 bake("Sleep", 120, sleep)
 bake("Eat", 40, eat)
 bake("Meow", 30, meow, loop=False)

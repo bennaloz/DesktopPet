@@ -283,7 +283,7 @@ public partial class Main : Node3D
         {
             _brain.Cursor = CursorScreen();
             _brain.Update(dt, _body, _needs, _map, _world);
-            _visual.Play(_brain.Action);
+            _visual.Play(_brain.Action, _brain.Facing);
         }
 
         _visual.Position = _overlay.ToWorld(_body.Pos, 40);

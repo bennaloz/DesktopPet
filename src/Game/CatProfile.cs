@@ -59,7 +59,9 @@ public sealed class CatProfile
             "swat" => "idle",
             "sit" => "idle",
             "loaf" => "crouch",
+            "tuck" => "loaf",
             "crouch" => "sit",
+            "liedown" => "crouch",
             "climb" => "walk",
             "eat" => "idle",
             _ => null,
@@ -71,6 +73,11 @@ public sealed class CatProfile
 public sealed class ActionClip
 {
     [JsonPropertyName("anims")] public List<string> Anims { get; set; } = new();
+    /// <summary>
+    /// Optional mirror images of <see cref="Anims"/> (same order) for when the cat faces right: resting clips curl
+    /// the tail round one side, and the other side is the one hidden from the viewer.
+    /// </summary>
+    [JsonPropertyName("anims_right")] public List<string> AnimsRight { get; set; } = new();
     [JsonPropertyName("loop")] public bool Loop { get; set; } = true;
     [JsonPropertyName("speed")] public double Speed { get; set; } = 1;
     /// <summary>For locomotion: ground speed at which Speed looks right; the clip is scaled to the real speed.</summary>

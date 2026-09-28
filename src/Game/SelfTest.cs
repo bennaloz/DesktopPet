@@ -177,8 +177,9 @@ public sealed class SelfTest
     }
 
     /// <summary>
-    /// `-- --selftest-loaf`: she sits up, lies down with the paws out, then tucks them in as a loaf; lying there
-    /// the tip of her tail flicks now and then and she turns her head to the viewer and to a spot up ahead.
+    /// `-- --selftest-loaf`: she sits up, lies down (front paws stepping forward) with the paws out, then tucks
+    /// them in as a loaf; lying there the tip of her tail flicks now and then and she turns her head to the viewer
+    /// and to a spot up ahead.
     /// </summary>
     List<(double, string, Action)> LoafScript()
     {
@@ -188,15 +189,19 @@ public sealed class SelfTest
             target = _main.HeadScreenPos + new Vec2(_main.Brain.Facing * offset.X, offset.Y);
             _main.GazeState.Force(kind, target, 3);
         }
-        double down = 1.0 + CatBrain.LoafAfter.min;
-        double lies = down + CatBrain.TuckAfter.min;
+        double lying = 1.0 + CatBrain.LoafAfter.min;
+        double down = lying + CatBrain.LieDownTime;
+        double lies = down + CatBrain.TuckAfter.min + CatBrain.TuckTime;
         return new List<(double, string, Action)>
         {
             (1.0, "sit up, then loaf", () => { _main.Summon(); _main.Brain.LoafFor(60); }),
-            (down - 0.5, "screenshot", Shot),
-            (down + 0.4, "screenshot (lying down)", Shot),
-            (lies - 0.2, "check paws out", () => Expect(_main.Brain.Action == "crouch", "prima si sdraia con le zampe davanti")),
-            (lies - 0.1, "screenshot", Shot),
+            (lying - 0.5, "screenshot", Shot),
+            (lying + 0.7, "screenshot (lying down)", Shot),
+            (lying + 1.4, "screenshot (lying down)", Shot),
+            (down + 0.5, "check paws out", () => Expect(_main.Brain.Action == "crouch", "prima si sdraia con le zampe davanti")),
+            (down + 0.6, "screenshot", Shot),
+            (lies - CatBrain.TuckTime + 0.6, "screenshot (tucking)", Shot),
+            (lies - CatBrain.TuckTime + 1.1, "screenshot (tucking)", Shot),
             (lies + 0.1, "check loaf", () => Expect(_main.Brain.Action == "loaf", "poi ritira le zampe: pagnotta")),
             (lies + 1.0, "screenshot", Shot),
             (lies + 1.95, "screenshot (tail tip flicking)", Shot),

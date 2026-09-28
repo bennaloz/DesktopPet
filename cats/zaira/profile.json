@@ -82,21 +82,50 @@
       "anims": [
         "Sit"
       ],
-      "loop": true
+      "loop": true,
+      "anims_right": [
+        "Sit_R"
+      ]
+    },
+    "liedown": {
+      "anims": [
+        "LieDown"
+      ],
+      "loop": false,
+      "blend": 0.1,
+      "anims_right": [
+        "LieDown_R"
+      ]
     },
     "crouch": {
       "anims": [
         "Crouch"
       ],
       "loop": true,
-      "blend": 0.8
+      "anims_right": [
+        "Crouch_R"
+      ]
+    },
+    "tuck": {
+      "anims": [
+        "Tuck",
+        "Tuck_Pair"
+      ],
+      "loop": false,
+      "blend": 0.1,
+      "anims_right": [
+        "Tuck_R",
+        "Tuck_Pair_R"
+      ]
     },
     "loaf": {
       "anims": [
         "Loaf"
       ],
       "loop": true,
-      "blend": 0.6
+      "anims_right": [
+        "Loaf_R"
+      ]
     },
     "sleep": {
       "anims": [
@@ -124,7 +153,10 @@
       ],
       "loop": true,
       "speed": 0.6,
-      "vibrate": true
+      "vibrate": true,
+      "anims_right": [
+        "Sit_R"
+      ]
     },
     "held": {
       "anims": [
