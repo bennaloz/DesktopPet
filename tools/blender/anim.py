@@ -243,8 +243,10 @@ SCAPULA_SWING = 18   # degrees each way at the ends of the stride (running: SCAP
 SCAPULA_RUN = 24
 
 def gait(p, t, phases, duty, reach, lift, bob, spine_flex=0.0, meta_roll=25.0, swing_curl=40.0, centre=None,
-         blade=None, track=(0.0, 0.0), hind_lift=None):
-    """track: (front, hind) degrees each leg leans in under the body from shoulder/hip: a walking cat puts its
+         blade=None, track=(0.0, 0.0), hind_lift=None, extend=(0.0, 0.0)):
+    """extend: (front, hind) how far (m) each paw reaches out forward past its landing spot late in the swing,
+    the way a galloping cat throws its legs out before they land.
+    track: (front, hind) degrees each leg leans in under the body from shoulder/hip: a walking cat puts its
     paws almost in one line under its middle, not at the corners like a table's legs."""
     centre = centre or {}
     blade = SCAPULA_SWING if blade is None else blade
@@ -259,6 +261,8 @@ def gait(p, t, phases, duty, reach, lift, bob, spine_flex=0.0, meta_roll=25.0, s
         else:                              # swing: lift and bring forward
             k = (u - duty) / (1 - duty)
             dy = lerp(reach, -reach, smooth(k))
+            ext = extend[0] if key[0] == 'F' else extend[1]
+            if ext: dy -= ext * math.sin(math.pi * min(1.0, k ** 1.6))   # peaks about 2/3 into the swing
             dz = (lift if key[0] == 'F' or hind_lift is None else hind_lift) * math.sin(math.pi * k)
             # rolls from the push-off angle back to the touch-down angle (the stance start), curling on the way:
             # no jump at either end, or the paw snaps round and seems to twist
@@ -280,6 +284,10 @@ WALK_REACH, WALK_HIND_SHIFT = 0.185, 0.10
 # profile's ref_speed_px was set for (lope 288 px/s, sprint 380 px/s at ~118 px per metre of rig).
 RUN_FRAMES, RUN_REACH = 11, 0.167
 SPRINT_FRAMES, SPRINT_REACH = 9, 0.155
+# A cat's gallop: the front legs are thrown out well ahead of the shoulders before they land and the stance
+# happens ahead of them; the hind legs come forward under the belly (the gathered phase) and push back behind.
+RUN_EXTEND, RUN_CENTRE = (0.10, 0.06), {'FL': -0.05, 'FR': -0.05, 'HL': -0.04, 'HR': -0.04}
+SPRINT_EXTEND, SPRINT_CENTRE = (0.13, 0.08), {'FL': -0.06, 'FR': -0.06, 'HL': -0.05, 'HR': -0.05}
 WALK_DROP, TROT_DROP, RUN_DROP = -0.035, -0.02, -0.03
 # the swinging leg folds at the elbow/knee and a little at the wrist (straighter, the legs looked in plaster)
 WALK_LIFT, WALK_CURL = 0.1, 40
@@ -336,6 +344,7 @@ def run(p, t, f):
     p.x['Head'] = -8
     # rotary gallop, as cats run: LH, RH, then RF, LF (the footfalls go round the body)
     gait(p, t, {'HL': 0.0, 'HR': 0.08, 'FR': 0.5, 'FL': 0.58}, duty=0.38, reach=RUN_REACH, lift=0.09, bob=0.02, blade=SCAPULA_RUN,
+         extend=RUN_EXTEND, centre=RUN_CENTRE,
          meta_roll=30, swing_curl=55)
     tail(p, lift=10 + 4 * c, sway=5, t=TAU * t)
 
@@ -406,6 +415,7 @@ def sprint(p, t, f):
     p.x['Neck'] = 12 + 5 * c        # soaks up the back's swing: the head stays level
     p.x['Head'] = -10
     gait(p, t, {'HL': 0.0, 'HR': 0.1, 'FR': 0.45, 'FL': 0.55}, duty=0.32, reach=SPRINT_REACH, lift=0.11, bob=0.0,
+         blade=SCAPULA_RUN, extend=SPRINT_EXTEND, centre=SPRINT_CENTRE,
          meta_roll=35, swing_curl=70)
     tail(p, lift=5 + 3 * c, sway=3, t=w)
 
