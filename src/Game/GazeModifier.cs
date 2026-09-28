@@ -50,14 +50,18 @@ public partial class GazeModifier : SkeletonModifier3D
             }
         }
         if (Neck >= 0) Turn(sk, Neck, target, NeckShare * Weight, NeckLimit);
-        Turn(sk, Head, target, Weight, HeadLimit);
+        // the head keeps its eyes level: turning the shortest way to a point up and to the side would tilt it
+        var up = (sk.GlobalTransform.Basis.Inverse() * Vector3.Up).Normalized();
+        Turn(sk, Head, target, Weight, HeadLimit, up);
         var g = sk.GetBoneGlobalPose(Head);
         HeadPos = sk.GlobalTransform * g.Origin;
         HeadDir = (sk.GlobalTransform.Basis * g.Basis.Y).Normalized();
     }
 
     /// <summary>Rotate a bone so its axis (it points along +Y, towards the nose) swings towards the target.</summary>
-    static void Turn(Skeleton3D sk, int bone, Vector3 target, float amount, float limit)
+    /// <param name="levelUp">If given (skeleton space), the bone's side axis (its X: across the eyes) is brought back
+    /// level with the floor after the turn, as much as <paramref name="amount"/>.</param>
+    static void Turn(Skeleton3D sk, int bone, Vector3 target, float amount, float limit, Vector3? levelUp = null)
     {
         var g = sk.GetBoneGlobalPose(bone);
         var from = g.Basis.Y.Normalized();
@@ -66,6 +70,19 @@ public partial class GazeModifier : SkeletonModifier3D
         if (axis.LengthSquared() < 1e-10f) return;
         float angle = Mathf.Min(from.AngleTo(to), limit) * amount;
         var turned = new Basis(axis.Normalized(), angle) * g.Basis;
+        if (levelUp is { } upv)
+        {
+            var y = turned.Y.Normalized();
+            var x = y.Cross(upv);
+            if (x.LengthSquared() > 1e-6f)
+            {
+                x = x.Normalized();
+                if (x.Dot(turned.X) < 0) x = -x;
+                var level = new Basis(x, y, x.Cross(y)).Orthonormalized();
+                var q = turned.Orthonormalized().GetRotationQuaternion().Slerp(level.GetRotationQuaternion(), Mathf.Clamp(amount, 0, 1));
+                turned = new Basis(q);
+            }
+        }
         int parent = sk.GetBoneParent(bone);
         var parentBasis = parent >= 0 ? sk.GetBoneGlobalPose(parent).Basis : Basis.Identity;
         sk.SetBonePoseRotation(bone, (parentBasis.Inverse() * turned).GetRotationQuaternion());
