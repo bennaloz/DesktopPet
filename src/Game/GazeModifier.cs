@@ -19,9 +19,11 @@ public partial class GazeModifier : SkeletonModifier3D
     /// reading it later shows the animation alone.</summary>
     public Vector3 HeadPos, HeadDir;
 
-    const float NeckShare = 0.4f;
-    static readonly float NeckLimit = Mathf.DegToRad(35);
-    static readonly float HeadLimit = Mathf.DegToRad(60);
+    // The neck takes most of a turn, as a cat's does: a head turning alone on a still neck squashed the cheek on
+    // the side it turned to against the neck.
+    const float NeckShare = 0.6f;
+    static readonly float NeckLimit = Mathf.DegToRad(45);
+    static readonly float HeadLimit = Mathf.DegToRad(50);
 
     public override void _ProcessModificationWithDelta(double delta)
     {
