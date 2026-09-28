@@ -243,7 +243,9 @@ SCAPULA_SWING = 18   # degrees each way at the ends of the stride (running: SCAP
 SCAPULA_RUN = 24
 
 def gait(p, t, phases, duty, reach, lift, bob, spine_flex=0.0, meta_roll=25.0, swing_curl=40.0, centre=None,
-         blade=None):
+         blade=None, track=(0.0, 0.0)):
+    """track: (front, hind) degrees each leg leans in under the body from shoulder/hip: a walking cat puts its
+    paws almost in one line under its middle, not at the corners like a table's legs."""
     centre = centre or {}
     blade = SCAPULA_SWING if blade is None else blade
     for key, ph in phases.items():
@@ -263,6 +265,9 @@ def gait(p, t, phases, duty, reach, lift, bob, spine_flex=0.0, meta_roll=25.0, s
             # the curl peaks early and is gone before touch-down: the paw reaches out flat to land
             dm = lerp(meta_roll, -meta_roll, smooth(k)) + swing_curl * math.sin(math.pi * min(1.0, k / 0.8))
             toe = None
+        upper = LEGS[key][0]
+        lean = track[0] if key[0] == 'F' else track[1]
+        p.yz[upper] = (0.0, lean if key[1] == 'L' else -lean)
         if key in SCAPULA:
             # the shoulder blade swings with its leg: shoulder joint forward with the paw reaching out, back
             # (the top of the blade rising) as the paw pushes off behind
@@ -273,6 +278,7 @@ WALK_REACH, WALK_HIND_SHIFT = 0.185, 0.10
 WALK_DROP, TROT_DROP, RUN_DROP = -0.035, -0.02, -0.03
 # the swinging leg folds at the elbow/knee and a little at the wrist (straighter, the legs looked in plaster)
 WALK_LIFT, WALK_CURL = 0.1, 40
+WALK_TRACK = (14, 6)   # legs lean in: the paws land nearly in line under the body
 
 def walk(p, t, f):
     """A cat's walk: lateral-sequence gait, head low and steady, shoulders and hips rolling, back weaving."""
@@ -293,7 +299,7 @@ def walk(p, t, f):
     # the paw lifts from the elbow/knee (lift) more than it curls at the wrist (swing_curl): a big curl shows the
     # pad sideways to a three-quarter view and reads as the foot twisting outwards
     gait(p, t, {'HL': 0.0, 'FL': 0.25, 'HR': 0.5, 'FR': 0.75}, duty=0.64, reach=WALK_REACH, lift=WALK_LIFT, bob=0.0,
-         meta_roll=20, swing_curl=WALK_CURL, centre={'HL': -WALK_HIND_SHIFT, 'HR': -WALK_HIND_SHIFT})
+         meta_roll=20, swing_curl=WALK_CURL, centre={'HL': -WALK_HIND_SHIFT, 'HR': -WALK_HIND_SHIFT}, track=WALK_TRACK)
     tail(p, lift=6, sway=9, t=w)
 
 def run(p, t, f):
@@ -321,7 +327,7 @@ def trot(p, t, f):
     p.x['Neck'] = -6 + 2 * math.cos(2 * w)
     p.x['Head'] = 10 - 2 * math.cos(2 * w)
     gait(p, t, {'HL': 0.0, 'FR': 0.02, 'HR': 0.5, 'FL': 0.52}, duty=0.45, reach=0.143, lift=0.1, bob=0.0,
-         meta_roll=20, swing_curl=40)   # folding legs, as in the walk
+         meta_roll=20, swing_curl=40, track=(10, 5))   # folding legs, paws towards the middle, as in the walk
     sway = 4 * math.sin(w)
     chain_world(p, TAILS, TROT_TAIL, [0, sway * 0.5, sway, sway * 1.5, 6 + 10 * math.sin(2 * w)])
 
