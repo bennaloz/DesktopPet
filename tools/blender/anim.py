@@ -170,11 +170,22 @@ def fold_hind(p, key, back=0.02, hock_z=0.03):
 def stand(p):
     for k in LEGS: plant(p, k)
 
+# The tail hanging relaxed, carried with the body (side-plane angles of Tail1-5 when the hips are level): what the
+# clips built with tail() start from. It was the rest pose of the first model; the tail transplanted in its place
+# (tools/blender/tail_transplant.py) rests standing up, so the hanging shape is kept here.
+TAIL_HANG = [-57.3, -74.5, -72.6, -60.6, -56.3]
+
 def tail(p, lift=0.0, sway=0.0, t=0.0, curl=0.0):
-    """Gentle tail: lift (deg, up) spread over the chain, sway (deg, sideways) as a wave."""
+    """Gentle tail: the hanging tail moving with the hips, lift (deg, up) spread over the chain, sway (deg,
+    sideways) as a wave. Call it after the hips are posed."""
+    body = math.degrees(p.cum('Hips'))
+    acc = 0.0
     for i, n in enumerate(['Tail1', 'Tail2', 'Tail3', 'Tail4', 'Tail5']):
         w = [0.45, 0.25, 0.15, 0.1, 0.05][i]
-        p.x[n] = p.x.get(n, 0.0) + lift * w + curl * (i / 4)
+        acc += lift * w + curl * (i / 4)
+        par = REST[n]['parent']
+        phi = p.cum(par) if par else 0.0
+        p.x[n] = TAIL_HANG[i] + body + acc - math.degrees(REST[n]['a'] + phi)
         p.yz[n] = (0.0, sway * (0.4 + 0.3 * i) * math.sin(t - i * 0.6))
 
 # Which way sideways curls go (the tail wrapped round her while resting): 1 = to her left (+X), the side seen

@@ -15,7 +15,12 @@ I percorsi sono relativi al repo (`paths.py`), gli script si lanciano da qualunq
    scende sul pavimento e si allarga (senza, resta sollevata dove la porta il gatto in piedi). Stesso uso.
    `scapula.py` – scapole (`Scapula.L/R`) fra petto e braccio: nel passo e nella corsa ruotano con la zampa e
    portano la spalla avanti e indietro. Stesso uso. Ordine: `rig.py`, poi `front_toes.py`, `belly.py`,
-   `scapula.py`, `chest_in.py` (ognuno salta se l'ha gia' fatto).
+   `scapula.py`, `chest_in.py`, poi `tail_align.py` e `tail_transplant.py` (sul rig.blend di prima della coda:
+   tenerne una copia).
+   `tail_align.py` + `tail_transplant.py` – coda nuova: il GLB Tripo di Zaira con la coda alta
+   (`assets/zaira/tail_up/`) allineato al corpo (ICP con scala), e da li' coda e retro del gatto al posto della
+   coda vecchia fusa al sedere (la frangia quando si alzava). Ossa della coda lungo la coda nuova, che a riposo
+   sta alta: `tail()` in anim.py parte dagli angoli della coda pendente di prima (`TAIL_HANG`).
    `chest_in.py` – petto meno sporgente sotto il mento (fino a 2 cm indietro), sulla posa di riposo.
 3. `anim.py` – animazioni procedurali (IK planare per le zampe) → `work/anim.blend`. Le clip di riposo
    (seduta, sdraiarsi, accucciata, ritirare le zampe, pagnotta) escono in due versioni, `X` con la coda

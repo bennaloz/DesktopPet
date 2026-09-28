@@ -32,7 +32,8 @@ Primi 2 minuti di prova, se qualcosa non va: `%APPDATA%\Godotpp_userdata\Zaira 
 
 - **Salto**: la pancia penzola ancora in volo (le cosce tirano giu' la pelle della pancia: pesi o posa).
   Ora c'e' l'osso `Belly` (tools/blender/belly.py): nelle clip di volo si puo' tirare su la pancia.
-- **Coda**: frangia alla base quando si alza (difetto del modello, per ora si tiene).
+- **Retro delle cosce**: con la coda nuova (alta) si vedono lembi chiari sul retro delle cosce che prima la coda
+  pendente copriva. Da tre quarti verso chi guarda non si vedono; solo girandola in braccio.
 - **Rialzarsi dalla pagnotta**: manca la transizione inversa (pagnotta -> accucciata -> seduta), per ora e'
   una dissolvenza. Fatte (28/09): seduta -> accucciata a sfinge (2 s, zampe davanti una alla volta) ->
   pagnotta (1,6 s, zampe ritirate una alla volta), coda sempre dal lato di chi guarda.
