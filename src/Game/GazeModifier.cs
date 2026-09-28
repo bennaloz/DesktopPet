@@ -27,6 +27,9 @@ public partial class GazeModifier : SkeletonModifier3D
     // the side it turned to against the neck.
     const float NeckShare = 0.6f;
     const float ChestShare = 0.2f;
+    /// <summary>How much of a downward look the neck takes: pointing the rising neck straight at something at
+    /// head height sank the head into the shoulders; the head does the looking down.</summary>
+    const float NeckDown = 0.25f;
     static readonly float ChestLimit = Mathf.DegToRad(15);
     // Together about 115 degrees: enough to look straight up; further round she turns her body (CatBrain).
     static readonly float NeckLimit = Mathf.DegToRad(70);
@@ -41,7 +44,7 @@ public partial class GazeModifier : SkeletonModifier3D
         {
             var kept = new Transform3D[Keep.Length];
             for (int i = 0; i < Keep.Length; i++) kept[i] = sk.GetBoneGlobalPose(Keep[i]);
-            Turn(sk, Chest, target, ChestShare * Weight, ChestLimit);
+            TurnAround(sk, Chest, target, ChestShare * Weight, ChestLimit, Up(sk), 0);
             for (int i = 0; i < Keep.Length; i++)
             {
                 var parent = sk.GetBoneGlobalPose(sk.GetBoneParent(Keep[i]));
@@ -50,16 +53,45 @@ public partial class GazeModifier : SkeletonModifier3D
                 sk.SetBonePosePosition(Keep[i], local.Origin);
             }
         }
-        if (Neck >= 0) Turn(sk, Neck, target, NeckShare * Weight, NeckLimit);
+        if (Neck >= 0) TurnAround(sk, Neck, target, NeckShare * Weight, NeckLimit, Up(sk), NeckDown);
         // the head keeps its eyes level: turning the shortest way to a point up and to the side would tilt it
-        var up = (sk.GlobalTransform.Basis.Inverse() * Vector3.Up).Normalized();
-        Turn(sk, Head, target, Weight, HeadLimit, up);
+        Turn(sk, Head, target, Weight, HeadLimit, Up(sk));
         var g = sk.GetBoneGlobalPose(Head);
         HeadPos = sk.GlobalTransform * g.Origin;
         HeadDir = (sk.GlobalTransform.Basis * g.Basis.Y).Normalized();
     }
 
     /// <summary>Rotate a bone so its axis (it points along +Y, towards the nose) swings towards the target.</summary>
+    static Vector3 Up(Skeleton3D sk) => (sk.GlobalTransform.Basis.Inverse() * Vector3.Up).Normalized();
+
+    /// <summary>
+    /// Turn a bone the way a neck or a chest turns: round the vertical first (to the side), then up; down only by
+    /// <paramref name="downShare"/> of what it would take. Each part limited and scaled by <paramref name="amount"/>.
+    /// </summary>
+    static void TurnAround(Skeleton3D sk, int bone, Vector3 target, float amount, float limit, Vector3 up, float downShare)
+    {
+        var g = sk.GetBoneGlobalPose(bone);
+        var from = g.Basis.Y.Normalized();
+        var to = (target - g.Origin).Normalized();
+        var basis = g.Basis;
+        var fh = from - up * from.Dot(up);
+        var th = to - up * to.Dot(up);
+        if (fh.LengthSquared() > 1e-6f && th.LengthSquared() > 1e-6f)
+        {
+            float yaw = Mathf.Atan2(up.Dot(fh.Cross(th)), fh.Dot(th));
+            basis = new Basis(up, Mathf.Clamp(yaw, -limit, limit) * amount) * basis;
+        }
+        var f2 = basis.Y.Normalized();
+        float pitch = Mathf.Asin(Mathf.Clamp(to.Dot(up), -1, 1)) - Mathf.Asin(Mathf.Clamp(f2.Dot(up), -1, 1));
+        if (pitch < 0) pitch *= downShare;
+        var side = f2.Cross(up);
+        if (side.LengthSquared() > 1e-6f)   // turning about f2 x up lifts f2
+            basis = new Basis(side.Normalized(), Mathf.Clamp(pitch, -limit, limit) * amount) * basis;
+        int parent = sk.GetBoneParent(bone);
+        var parentBasis = parent >= 0 ? sk.GetBoneGlobalPose(parent).Basis : Basis.Identity;
+        sk.SetBonePoseRotation(bone, (parentBasis.Inverse() * basis.Orthonormalized()).GetRotationQuaternion());
+    }
+
     /// <param name="levelUp">If given (skeleton space), the bone's side axis (its X: across the eyes) is brought back
     /// level with the floor after the turn, as much as <paramref name="amount"/>.</param>
     static void Turn(Skeleton3D sk, int bone, Vector3 target, float amount, float limit, Vector3? levelUp = null)

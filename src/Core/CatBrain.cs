@@ -152,6 +152,13 @@ public sealed class CatBrain
         Enter(CatState.Sit, seconds);
     }
 
+    /// <summary>Keep the cat standing still for a while (self test, debugging).</summary>
+    public void StandFor(double seconds)
+    {
+        Goal = Goal.None;
+        Enter(CatState.Idle, seconds);
+    }
+
     /// <summary>Sit up, then lie down as a loaf for a while (self test, debugging).</summary>
     public void LoafFor(double seconds)
     {
