@@ -38,6 +38,8 @@ public partial class CatVisual : Node3D
     HashSet<string> _moodTailActions = new() { "walk", "trot", "lope", "run" };
     /// <summary>Self-test: the tail shape being shown and how much of it.</summary>
     internal (double[] lift, float weight)? TailShown => _tail == null ? null : (_tail.Lift, _tail.Weight);
+    /// <summary>Self-test: whose tail moods this pet shows.</summary>
+    internal TailStyle TailStyle => _profile.Tail;
 
     /// <summary>
     /// Look at a world point (null: let the animation lead). Eyes move fast, the head follows smoothly and

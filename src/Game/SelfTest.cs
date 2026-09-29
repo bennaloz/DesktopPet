@@ -250,7 +250,7 @@ public sealed class SelfTest
             list.Add((at + 2.2, $"check tail {m}", () =>
             {
                 var shown = _main.Visual.TailShown;
-                var want = TailMoods.Shape(m).Lift;
+                var want = TailMoods.Shape(m, _main.Visual.TailStyle).Lift;
                 bool ok = shown is { } s && s.weight > 0.99f && s.lift.Zip(want).All(p => Math.Abs(p.First - p.Second) < 8);
                 Expect(ok, $"coda {m} mentre cammina (azione {_main.Brain.Action})");
             }));
