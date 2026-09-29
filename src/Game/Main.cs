@@ -39,7 +39,9 @@ public partial class Main : Node3D
     Vector2 _dragOffset;
     Vector2 _mouse;
 
-    string SavePath => System.IO.Path.Combine(OS.GetUserDataDir(), "save.json");
+    CatProfile _profile = null!;
+    /// <summary>The pet's folder name under cats/: its save file is named after it.</summary>
+    string PetId => System.IO.Path.GetFileName(_profile.Folder.TrimEnd('/', '\\')).ToLowerInvariant();
 
     public override void _Ready()
     {
@@ -49,7 +51,7 @@ public partial class Main : Node3D
         _overlay.Setup(GetWindow());
         SetupScene();
 
-        var profile = CatProfile.Load(CatFolder());
+        var profile = _profile = CatProfile.Load(CatFolder());
         _visual = new CatVisual { Name = "Cat" };
         AddChild(_visual);
         _visual.Load(profile);
@@ -67,7 +69,8 @@ public partial class Main : Node3D
         PlaceEverything(LoadSave());
         SetupTray();
 
-        _brain = new CatBrain(_rng) { EatReach = profile.EatReach * profile.LengthPx };
+        _brain = Brains.For(profile.Species, _rng);
+        _brain.EatReach = profile.EatReach * profile.LengthPx;
         _gaze = new Gaze(_rng);
         _world.TreatEaten = RemoveTreat;
 
@@ -204,7 +207,8 @@ public partial class Main : Node3D
         if (Testing) return new SaveData();
         try
         {
-            if (System.IO.File.Exists(SavePath)) return SaveData.FromJson(System.IO.File.ReadAllText(SavePath));
+            string path = SaveData.ReadPathFor(OS.GetUserDataDir(), PetId);
+            if (System.IO.File.Exists(path)) return SaveData.FromJson(System.IO.File.ReadAllText(path));
         }
         catch (System.IO.IOException e) { Log.Info($"save non leggibile: {e.Message}"); }
         return new SaveData();
@@ -214,7 +218,7 @@ public partial class Main : Node3D
     {
         if (Testing) return;
         var s = SaveData.Capture(_needs, _world.Bowl.Food, _world.Bowl.Body.Pos.X, _world.Perch.Body.Pos.X, _body.Pos.X);
-        try { System.IO.File.WriteAllText(SavePath, s.ToJson()); }
+        try { System.IO.File.WriteAllText(SaveData.WritePathFor(OS.GetUserDataDir(), PetId), s.ToJson()); }
         catch (System.IO.IOException e) { Log.Info($"save fallito: {e.Message}"); }
     }
 
@@ -486,7 +490,7 @@ public partial class Main : Node3D
     }
 
     string Tooltip() =>
-        $"Zaira — {_brain.Describe(_brain.State)}\n" +
+        $"{_profile.Name} — {_brain.Describe(_brain.State)}\n" +
         $"Fame {Pct(_needs.Hunger)}  Energia {Pct(_needs.Energy)}\n" +
         $"Voglia di giocare {Pct(_needs.Playfulness)}  Contentezza {Pct(_needs.Affection)}\n" +
         $"Ciotola {Pct(_world.Bowl.Food)}";
@@ -496,7 +500,7 @@ public partial class Main : Node3D
     void SetupTray()
     {
         _menu = new PopupMenu { Name = "TrayMenu" };
-        _menu.AddItem("Chiama Zaira", 1);
+        _menu.AddItem($"Chiama {_profile.Name}", 1);
         _menu.AddItem("Lancia un bocconcino", 2);
         _menu.AddItem("Riempi la ciotola", 3);
         _menu.AddSeparator();
@@ -524,7 +528,7 @@ public partial class Main : Node3D
         {
             Name = "Tray",
             Icon = ImageTexture.CreateFromImage(icon),
-            Tooltip = "Zaira",
+            Tooltip = _profile.Name,
         };
         AddChild(_tray);
         _tray.Menu = _tray.GetPathTo(_menu);

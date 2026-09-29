@@ -62,7 +62,7 @@ public abstract class PetBrain
     /// <summary>Short symbol shown over the pet: ♥ z ! or null.</summary>
     public string? Emote { get; protected set; }
     /// <summary>How far ahead of the body centre the mouth reaches when eating (px): where to stop before food.</summary>
-    public double EatReach { get; init; } = 45;
+    public double EatReach { get; set; } = 45;
     /// <summary>Seconds of good mood left (after petting, when called).</summary>
     public double Happy { get; private set; }
     /// <summary>The mouse cursor on the desktop (screen px), set by the game every frame; null if unknown.</summary>

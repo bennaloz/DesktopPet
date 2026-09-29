@@ -36,6 +36,20 @@ public sealed class SaveData
         BowlFood = bowlFood, BowlX = bowlX, PerchX = perchX, CatX = catX, SavedUtc = DateTime.UtcNow,
     };
 
+    /// <summary>
+    /// Where a pet's save is read from: its own file (save-&lt;pet&gt;.json), or for Zaira, until she has written hers,
+    /// the save.json of when she was the only pet.
+    /// </summary>
+    public static string ReadPathFor(string dir, string pet)
+    {
+        string own = WritePathFor(dir, pet);
+        string old = System.IO.Path.Combine(dir, "save.json");
+        return pet == "zaira" && !System.IO.File.Exists(own) && System.IO.File.Exists(old) ? old : own;
+    }
+
+    /// <summary>Where a pet's save is written: every pet has its own.</summary>
+    public static string WritePathFor(string dir, string pet) => System.IO.Path.Combine(dir, $"save-{pet}.json");
+
     /// <summary>Needs as they are now, counting the time the program was closed (at most 8 hours, awake).</summary>
     public Needs RestoreNeeds(DateTime nowUtc)
     {

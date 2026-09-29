@@ -11,6 +11,8 @@ namespace ZairaPet.Game;
 public sealed class CatProfile
 {
     [JsonPropertyName("name")] public string Name { get; set; } = "";
+    /// <summary>Which brain it has: "cat" (the default) or "rabbit".</summary>
+    [JsonPropertyName("species")] public string Species { get; set; } = "cat";
     [JsonPropertyName("model")] public string Model { get; set; } = "";
     /// <summary>Nose-to-tail length on screen.</summary>
     [JsonPropertyName("length_px")] public double LengthPx { get; set; } = 150;

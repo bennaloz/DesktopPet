@@ -1,4 +1,5 @@
 using System;
+using System.IO;
 using ZairaPet.Core;
 using Xunit;
 
@@ -29,5 +30,19 @@ public class SaveDataTests
     public void Corrupt_file_gives_defaults()
     {
         Assert.Equal(1, SaveData.FromJson("{ not json").BowlFood);
+    }
+
+    [Fact]
+    public void Each_pet_has_its_own_save_and_Zaira_keeps_the_old_one()
+    {
+        var dir = Directory.CreateTempSubdirectory().FullName;
+        Assert.Equal(Path.Combine(dir, "save-zaira.json"), SaveData.ReadPathFor(dir, "zaira"));
+        File.WriteAllText(Path.Combine(dir, "save.json"), "{}");
+        // the save from before there were two pets is Zaira's, until she writes her own
+        Assert.Equal(Path.Combine(dir, "save.json"), SaveData.ReadPathFor(dir, "zaira"));
+        Assert.Equal(Path.Combine(dir, "save-bretzel.json"), SaveData.ReadPathFor(dir, "bretzel"));
+        Assert.Equal(Path.Combine(dir, "save-zaira.json"), SaveData.WritePathFor(dir, "zaira"));
+        File.WriteAllText(Path.Combine(dir, "save-zaira.json"), "{}");
+        Assert.Equal(Path.Combine(dir, "save-zaira.json"), SaveData.ReadPathFor(dir, "zaira"));
     }
 }
