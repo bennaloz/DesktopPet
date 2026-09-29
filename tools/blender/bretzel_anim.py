@@ -49,6 +49,7 @@ class Pose:
         self.yz = {}              # bone -> (deg about local Y, deg about local Z)
         self.hips = (0.0, 0.0)    # world (dy, dz) offset of the whole body
         self.roll = 0.0           # degrees the whole body rolls onto its side (flop)
+        self.length = 1.0         # the middle of the back (Spine) stretched out (> 1) or gathered up (< 1)
 
     def cum(self, name):
         a = 0.0
@@ -62,7 +63,15 @@ class Pose:
         q = p
         for n in chain:
             h = REST[n]['h']
-            q = add(rot2(D(self.x.get(n, 0.0)), sub(q, h)), h)
+            d = sub(q, h)
+            if n == 'Spine' and self.length != 1.0:
+                a = REST[n]['a']; u = (math.cos(a), math.sin(a))
+                # the Spine's own points stretch with it; everything beyond it (the chest, which undoes the
+                # scale, and all it carries) just moves along by the extra length
+                along = d[0] * u[0] + d[1] * u[1]
+                extra = (self.length - 1) * (min(along, REST[n]['L']) if name == 'Spine' else REST[n]['L'])
+                d = (d[0] + u[0] * extra, d[1] + u[1] * extra)
+            q = add(rot2(D(self.x.get(n, 0.0)), d), h)
         return add(q, self.hips)
 
     def leg(self, upper, lower, meta, paw, meta_angle, knee_forward):
@@ -97,6 +106,12 @@ class Pose:
             y, z = self.yz.get(pb.name, (0.0, 0.0))
             pb.rotation_euler = (D(x), D(y), D(z))
             pb.keyframe_insert("rotation_euler", frame=frame)
+        # the stretched back: Spine longer along its length (local Y), Chest undoes it so the chest, the head and
+        # the front legs keep their size; every other bone keys scale 1, or a clip would keep the last one's
+        for pb in P:
+            k = self.length if pb.name == 'Spine' else 1 / self.length if pb.name == 'Chest' else 1.0
+            pb.scale = (1.0, k, 1.0)
+            pb.keyframe_insert("scale", frame=frame)
         # the whole body: offset in the side plane, and the roll onto its side, both on the root (Hips)
         R = bones['Hips'].matrix_local.to_3x3()
         pb = P['Hips']
@@ -222,63 +237,106 @@ def idle(p, t, f):
     ears(p, swing=3 * math.sin(TAU * t - 0.6))
     nose(p, t * 3)
 
-HOP_S = 0.30         # m per hop (about a third of the body)
-def hop_cycle(p, t, S, lift_h, lift_f, rise, pitch, flex, stretch, land_ahead=0.0):
-    """One hop at phase t. Hind feet planted t in [0, 0.45), swinging after; front paws swinging t in [0, 0.3)
-    (the left leading a little), planted after. S: ground covered per hop (m). land_ahead: how far past the
-    rest spot the hind feet land (running, they land in front of the front paws)."""
-    # hind: slide back while planted, then swing forward
-    th = 0.45
-    if t < th:
-        k = t / th
-        hy = lerp(-S * th / 2, S * th / 2, k) - land_ahead
-        hz = 0.0
-        heel = 35 * smooth((k - 0.4) / 0.6)      # the push: heels come up, the long feet roll onto the toes
-    else:
-        k = (t - th) / (1 - th)
-        hy = lerp(S * th / 2, -S * th / 2, smooth(k)) - land_ahead
-        hz = lift_h * math.sin(math.pi * k)
-        heel = 35 * (1 - smooth(k / 0.4)) + 10 * bump(k, 0.3, 1.0)
-    # trunk: the push lifts the rump and pitches the nose down; the swing gathers the back up (arched)
-    push = bump(t, 0.15, 0.6)
-    gather = bump(t, 0.5, 1.0)
-    # (the rump stays up while the hind legs swing under it: nose still down, the back curling over them)
-    tilt = pitch * (push + 0.8 * gather)
-    body(p, dz=rise * (push + 0.9 * gather), pitch=tilt,
-         spine=flex * gather - stretch * push, chest=-0.5 * stretch * push,
-         neck=-0.7 * tilt + 3 * gather, head=0.2 * tilt)
-    # front: swing forward, then planted and sliding back
+def curve(t, keys):
+    """A looping curve through (phase, value) keys, eased between them."""
+    keys = sorted(keys)
+    ext = [(k - 1, v) for k, v in keys] + keys + [(k + 1, v) for k, v in keys]
+    for (a, va), (b, vb) in zip(ext, ext[1:]):
+        if a <= t < b: return lerp(va, vb, smooth((t - a) / (b - a)))
+    return keys[0][1]
+
+def foot(t, land, duty, S, y_land, lift, heel_push, heel_swing, trail=0.0, trail_until=0.45):
+    """A paw that lands at phase `land`, stays down for `duty` of the cycle sliding back under the body (the body
+    goes on at S per cycle), then swings forward in an arc to land again at y_land. trail: a hind paw that has
+    just pushed stays stretched out behind (m further back, for the first trail_until of the swing) before it
+    swings forward under the belly. Returns (dy, dz, dmeta, down)."""
+    k = (t - land) % 1.0
+    if k < duty:
+        u = k / duty
+        # pushing off at the end of the stance: the heel comes up and the long foot rolls onto the toes
+        return y_land + S * duty * u, 0.0, heel_push * smooth((u - 0.6) / 0.4), 0.06 < u < 0.94
+    u = (k - duty) / (1 - duty)
+    start = y_land + S * duty
+    if trail:
+        # out behind, then forward
+        back = trail * math.sin(math.pi * min(1.0, u / trail_until) / 1.0) if u < trail_until else 0.0
+        fwd = smooth((u - trail_until * 0.6) / (1 - trail_until * 0.6))
+        y = lerp(start, y_land, fwd) + back
+        z = lift * (0.55 * math.sin(math.pi * min(1.0, u / trail_until)) + math.sin(math.pi * u)) / 1.3
+        m = heel_push + (heel_swing - heel_push) * smooth(u / trail_until) if u < trail_until else heel_swing * (1 - smooth((u - trail_until) / (1 - trail_until)))
+        return y, z, m, False
+    y = lerp(start, y_land, smooth(u))
+    z = lift * math.sin(math.pi * u) ** 0.8
+    return y, z, heel_push * (1 - smooth(u / 0.3)) + heel_swing * math.sin(math.pi * u), False
+
+def ramp(t, keys):
+    """A curve through (phase, value) keys over one cycle, eased between them, not looping (for progress)."""
+    for (a, va), (b, vb) in zip(keys, keys[1:]):
+        if a <= t <= b: return lerp(va, vb, smooth((t - a) / (b - a)) if b > a else 1.0)
+    return keys[-1][1]
+
+def spread(p, deg):
+    """Hind legs out to the sides (they land either side of the front paws)."""
+    p.yz['Thigh.L'] = (0.0, -deg)
+    p.yz['Thigh.R'] = (0.0, deg)
+
+HOP_S, HOP_FRAMES = 0.36, 15      # m per hop, 0.5 s: 0.72 m/s, about 80 px/s on screen
+def hop(p, t, f):
+    """The slow hop of a pet rabbit (no moment in the air): the front paws step forward one after the other and
+    the back stretches a little; then both hind feet hop up together, the rump rising and the back bunching as
+    they land under the belly, beside and just behind the front paws. The body goes forward mostly in the hop of
+    the hind legs, not evenly: it surges, then waits for the front paws."""
+    S = HOP_S
+    # the body's progress over the hop (0..1): a little while the front paws reach, most of it in the hind hop
+    prog = ramp(t, [(0.0, 0.0), (0.32, 0.18), (0.42, 0.26), (0.72, 0.94), (1.0, 1.0)])
+    lift = bump(t, 0.40, 0.80)
+    body(p, dy=-S * (prog - t), dz=0.05 * lift,
+         pitch=curve(t, [(0.0, 1.0), (0.3, 3.0), (0.55, 9.0), (0.75, 4.0), (0.9, 0.0)]),
+         spine=curve(t, [(0.0, 0.0), (0.3, -4.0), (0.62, 8.0), (0.8, 10.0), (1.0, 0.0)]),
+         neck=curve(t, [(0.0, 0.0), (0.3, -5.0), (0.6, -4.0), (0.85, 2.0)]),
+         head=curve(t, [(0.0, 0.0), (0.3, 3.0), (0.6, 2.0), (0.85, 0.0)]))
+    p.length = curve(t, [(0.0, 1.0), (0.3, 1.12), (0.45, 1.14), (0.72, 0.9), (0.9, 0.96)])
     plans = []
-    for key, lead in (('FL', 0.0), ('FR', 0.06)):
-        tf = (t - lead) % 1.0
-        tsw = 0.3
-        if tf < tsw:
-            k = tf / tsw
-            fy = lerp(S * (1 - tsw) / 2, -S * (1 - tsw) / 2, smooth(k))
-            fz = lift_f * math.sin(math.pi * k)
-            fm = -30 * math.sin(math.pi * k)
-            down = False
-        else:
-            k = (tf - tsw) / (1 - tsw)
-            fy = lerp(-S * (1 - tsw) / 2, S * (1 - tsw) / 2, k)
-            fz = 0.0; fm = 0.0
-            down = 0.05 < k < 0.95     # (a paw about to lift or just landing may reach a little)
-        plans.append((key, fy, fz, fm, down))
-    plans += [(key, hy, hz, heel, t < th and 0.05 < t / th < 0.95) for key in ('HL', 'HR')]
+    for key, land in (('FL', 0.20), ('FR', 0.30)):
+        duty = 0.80
+        y, z, m, down = foot(t, land, duty, S, -0.14, 0.05, 15, -20)
+        plans.append((key, y, z, m, down))
+    for key in ('HL', 'HR'):
+        y, z, m, down = foot(t, 0.74, 0.62, S, -0.06, 0.07, 45, 15)
+        plans.append((key, y, z, m, down))
     lower_to_reach(p, [q[:4] for q in plans if q[4]])
     for q in plans: plant(p, q[0], dy=q[1], dz=q[2], dmeta=q[3])
-    return push, gather
-
-def hop(p, t, f):
-    push, gather = hop_cycle(p, t, HOP_S, lift_h=0.05, lift_f=0.035, rise=0.05, pitch=10, flex=10, stretch=6)
-    ears(p, swing=6 * math.sin(TAU * t - 1.2), out=2 * push)
+    spread(p, 6 * lift)
+    ears(p, swing=curve(t, [(0.0, 0.0), (0.45, -3.0), (0.75, 5.0), (0.9, 1.0)]))
     nose(p, t * 2, amp=2)
 
-RUN_S = 0.62
+RUN_S, RUN_FRAMES = 1.30, 10      # the half-bound: 1.3 m per stride at 3 strides a second (3.9 m/s)
 def run(p, t, f):
-    push, gather = hop_cycle(p, t, RUN_S, lift_h=0.08, lift_f=0.06, rise=0.09, pitch=14, flex=18, stretch=14,
-                             land_ahead=0.06)
-    ears(p, swing=10 * math.sin(TAU * t - 1.4), out=3 * push)
+    """Running: the half-bound. t = 0 the hind feet land together, either side of and ahead of where the front
+    paws were, the back curled up (gathered). They drive the body out (0-0.25): the back straightens and
+    lengthens, launching it into a long stretched-out flight, front legs reaching ahead, hind legs trailing.
+    The front paws land one just after the other (0.45, 0.52), the nose dips, and the back curls up again as the
+    hind legs swing forward past the front paws, which lift before the hind feet come down."""
+    S = RUN_S
+    body(p,
+         dz=curve(t, [(0.0, -0.02), (0.12, 0.0), (0.33, 0.19), (0.47, 0.04), (0.62, 0.0), (0.85, 0.06)]),
+         pitch=curve(t, [(0.0, 12.0), (0.18, -4.0), (0.33, 0.0), (0.5, 12.0), (0.68, 14.0), (0.9, 13.0)]),
+         spine=curve(t, [(0.0, 10.0), (0.2, 0.0), (0.35, -10.0), (0.5, -4.0), (0.8, 12.0)]),
+         chest=curve(t, [(0.0, 2.0), (0.35, -6.0), (0.5, 0.0), (0.8, 2.0)]),
+         neck=curve(t, [(0.0, -6.0), (0.33, -8.0), (0.5, -10.0), (0.75, -8.0)]),
+         head=curve(t, [(0.0, 2.0), (0.33, 4.0), (0.5, 6.0), (0.75, 2.0)]))
+    p.length = curve(t, [(0.0, 0.84), (0.2, 1.25), (0.36, 1.55), (0.52, 1.25), (0.72, 0.9), (0.9, 0.82)])
+    plans = []
+    for key, land in (('FL', 0.45), ('FR', 0.52)):
+        y, z, m, down = foot(t, land, 0.24, S, -0.22, 0.14, 25, -40)
+        plans.append((key, y, z, m, down))
+    for key in ('HL', 'HR'):
+        y, z, m, down = foot(t, 0.0, 0.26, S, -0.22, 0.16, 55, 10, trail=0.18, trail_until=0.35)
+        plans.append((key, y, z, m, down))
+    lower_to_reach(p, [q[:4] for q in plans if q[4]])
+    for q in plans: plant(p, q[0], dy=q[1], dz=q[2], dmeta=q[3])
+    spread(p, curve(t, [(0.0, 10.0), (0.25, 3.0), (0.6, 2.0), (0.85, 12.0)]))
+    ears(p, swing=curve(t, [(0.0, 2.0), (0.33, -5.0), (0.5, 5.0), (0.8, 1.0)]))
 
 def binky(p, t, f):
     """Crouch, leap up twisting the head one way and the rump the other, flick the hind feet, land."""
@@ -316,14 +374,13 @@ def sleep(p, t, f):
     ears(p, swing=-4)
 
 def sit(p, t, f):
-    """Sitting up on the haunches, front paws lifted off the floor, looking about."""
+    """Alert: up on all four legs, front raised a little, head up looking about, ears lifted, nose busy."""
     br = math.sin(TAU * t * 2)
-    body(p, dz=0.02, dy=0.03, pitch=-22 + 0.8 * br, spine=-8, chest=-4, neck=12 + 3 * math.sin(TAU * t), head=8)
-    for key in ('HL', 'HR'): plant(p, key)
-    for key in ('FL', 'FR'):
-        sh = shoulder(p, key); reach(p, key, (sh[0] - 0.05, sh[1] - 0.26), dmeta=-30)
-    ears(p, swing=2 * math.sin(TAU * t))
-    nose(p, t * 3)
+    body(p, dz=0.015, pitch=-5 + 0.5 * br, spine=-3, neck=-10 + 4 * math.sin(TAU * t), head=-4)
+    settle_front(p)
+    stand(p)
+    ears(p, swing=-4 + 2 * math.sin(TAU * t), out=2)
+    nose(p, t * 4, amp=3)
 
 def groom(p, t, f):
     """Sitting up, washing the face: both front paws rub up the muzzle, the head dips into them."""
@@ -398,8 +455,8 @@ def petted(p, t, f):
 
 if __name__ == "__main__":
     bake("Idle", 90, idle)
-    bake("Hop", 16, hop)
-    bake("Run", 12, run)
+    bake("Hop", HOP_FRAMES, hop)
+    bake("Run", RUN_FRAMES, run)
     bake("Binky", 26, binky, loop=False)
     bake("Loaf", 90, loaf)
     bake("Sleep", 120, sleep)

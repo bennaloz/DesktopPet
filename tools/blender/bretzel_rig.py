@@ -118,6 +118,25 @@ for v in me.vertices:
     if tot>1e-6:
         for g in v.groups: g.weight/=tot
 print("fixes",fixed)
+# the rump behind the heel sits on the folded hind leg at rest, and the automatic weights hand it to the shin
+# and the foot: a hind leg swinging forward then drags it out into a fin. Behind the heel it follows the hips.
+def sstep(x,a,b):
+    t=max(0.0,min(1.0,(x-a)/(b-a))); return t*t*(3-2*t)
+LOWER=groups(lambda n: n.split('.')[0] in ('Shin','Foot','Toe'))
+THIGH=groups(lambda n: n.startswith('Thigh'))
+hips=gi['Hips']; moved=0
+for v in me.vertices:
+    x,y,z=v.co
+    if z>0.30: continue
+    k_low=1-sstep(y,0.22,0.32)          # shin and foot let go behind the heel
+    k_thigh=1-sstep(y,0.34,0.44)        # the thigh a little further back
+    lost=0.0
+    for g in v.groups:
+        k=k_low if g.group in LOWER else k_thigh if g.group in THIGH else 1.0
+        if k<1.0 and g.weight>0: lost+=g.weight*(1-k); g.weight*=k
+    if lost>0:
+        mesh.vertex_groups['Hips'].add([v.index],lost,'ADD'); moved+=1
+print("rump verts handed to the hips",moved)
 # ears: weighted procedurally along their chain (the proxy fuses them to the cheeks)
 for side in ('L','R'):
     names=[f'Ear{i}.{side}' for i in range(1,5)]
@@ -134,8 +153,38 @@ for side in ('L','R'):
         if u>0.7 and i<3: a=(u-0.7)/0.6; w={names[i]:1-a, names[i+1]:a}
         elif u<0.3 and i>0: a=(0.3-u)/0.6; w={names[i]:1-a, names[i-1]:a}
         elif u<0.3 and i==0: a=(0.3-u)/0.6; w={names[0]:1-a, 'Head':a}
+        # the lower ear lies against the neck: it follows the neck a little, or stretching the back opens a gap
+        b=0.45*(1-max(0.0,min(1.0,(p.z-0.36)/0.22)))
+        w={n:x*(1-b) for n,x in w.items()}
+        if b>0: w['Neck']=w.get('Neck',0)+b
         for g in v.groups: g.weight=0
         for n,x in w.items(): mesh.vertex_groups[n].add([v.index],x,'REPLACE')
+# soften every seam the rules above cut (ear edge against the neck, legs against the belly): hard steps in the
+# weights tear the skin into shards when the body bends. By position, not along the edges: the mesh is split along
+# its UV seams, and copies of one point smoothed apart would crack open.
+def soften(radius=0.028, passes=3, keep=4):
+    ng=len(mesh.vertex_groups)
+    W=[{g.group:g.weight for g in v.groups if g.weight>0} for v in me.vertices]
+    kd=KDTree(len(me.vertices))
+    for v in me.vertices: kd.insert(v.co,v.index)
+    kd.balance()
+    near=[[(i,1-d/radius) for _,i,d in kd.find_range(v.co,radius)] for v in me.vertices]
+    for _ in range(passes):
+        out=[]
+        for vi in range(len(W)):
+            acc={}; tot=0.0
+            for i,w in near[vi]:
+                tot+=w
+                for g,x in W[i].items(): acc[g]=acc.get(g,0.0)+x*w
+            out.append({g:x/tot for g,x in acc.items()} if tot>0 else W[vi])
+        W=out
+    for v,w in zip(me.vertices,W):
+        top=sorted(w.items(),key=lambda kv:-kv[1])[:keep]
+        s_=sum(x for _,x in top) or 1.0
+        for g in list(v.groups): g.weight=0.0
+        for g,x in top: mesh.vertex_groups[g].add([v.index],x/s_,'REPLACE')
+soften()
+print("weights softened")
 # fill unweighted verts from the nearest weighted neighbour
 ok=[v for v in me.vertices if sum(g.weight for g in v.groups)>1e-6]
 kd=KDTree(len(ok))

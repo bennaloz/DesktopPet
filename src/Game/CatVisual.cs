@@ -110,6 +110,7 @@ public partial class CatVisual : Node3D
             skeleton.AddChild(_gaze);
         }
         if (skeleton != null) _tail = AddTail(skeleton);
+        if (skeleton != null) AddEars(skeleton);
 
         Recolor();
         UseFloorClipMaterials();
@@ -127,6 +128,15 @@ public partial class CatVisual : Node3D
         skeleton.AddChild(tail);
         tail.Setup(skeleton);
         return tail;
+    }
+
+    void AddEars(Skeleton3D skeleton)
+    {
+        var ears = _profile.EarBones.Select(chain => chain.Select(skeleton.FindBone).ToArray())
+                                    .Where(chain => chain.Length > 0 && chain.All(b => b >= 0)).ToArray();
+        int head = skeleton.FindBone(_profile.GazeBones.Head);
+        if (ears.Length == 0 || head < 0) return;
+        skeleton.AddChild(new EarModifier { Name = "Ears", Ears = ears, Head = head });
     }
 
     /// <summary>Ease the tail towards the mood's shape (a second or so), on in the gaits, off at rest.</summary>

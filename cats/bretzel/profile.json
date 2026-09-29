@@ -1,0 +1,36 @@
+{
+  "name": "Bretzel",
+  "species": "rabbit",
+  "model": "bretzel.glb",
+  "length_px": 110,
+  "yaw_offset_deg": 0,
+  "three_quarter_deg": 25,
+  "eat_reach": 0.42,
+  "gaze_bones": {
+    "neck": "Neck",
+    "head": "Head"
+  },
+  "ear_bones": [
+    ["Ear1.L", "Ear2.L", "Ear3.L", "Ear4.L"],
+    ["Ear1.R", "Ear2.R", "Ear3.R", "Ear4.R"]
+  ],
+  "actions": {
+    "idle": { "anims": ["Idle"], "loop": true },
+    "hop": { "anims": ["Hop"], "loop": true, "speed": 1.0, "ref_speed_px": 81 },
+    "run": { "anims": ["Run"], "loop": true, "speed": 1.0, "ref_speed_px": 437 },
+    "binky": { "anims": ["Binky"], "loop": false, "blend": 0.1 },
+    "jump": { "anims": ["Fall"], "loop": true },
+    "fall": { "anims": ["Fall"], "loop": true },
+    "land": { "anims": ["Land"], "loop": false, "blend": 0.1 },
+    "sit": { "anims": ["Sit"], "loop": true, "blend": 0.35 },
+    "loaf": { "anims": ["Loaf"], "loop": true, "blend": 0.5 },
+    "groom": { "anims": ["Groom"], "loop": true, "blend": 0.4 },
+    "eat": { "anims": ["Eat"], "loop": true },
+    "sleep": { "anims": ["Sleep"], "loop": true, "blend": 0.6 },
+    "flop": { "anims": ["Flop"], "loop": false, "blend": 0.15, "show_side": -1 },
+    "flopsleep": { "anims": ["FlopSleep"], "loop": true, "blend": 0.3, "show_side": -1 },
+    "thump": { "anims": ["Thump"], "loop": false, "blend": 0.1 },
+    "petted": { "anims": ["Petted"], "loop": true, "blend": 0.5 },
+    "held": { "anims": ["Held"], "loop": true }
+  }
+}

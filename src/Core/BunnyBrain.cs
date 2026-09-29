@@ -9,10 +9,10 @@ namespace ZairaPet.Core;
 /// </summary>
 public sealed class BunnyBrain : PetBrain
 {
-    /// <summary>The slow hop (px/s): about a third of its length per hop, two hops a second (Hop clip).</summary>
-    public const double HopSpeed = 63;
-    /// <summary>Dashing about: the Run clip sped up; a rabbit sprints far faster than it hops.</summary>
-    public const double RunSpeed = 380;
+    /// <summary>The slow hop (px/s): a third of its length per hop, two hops a second (Hop clip).</summary>
+    public const double HopSpeed = 80;
+    /// <summary>Dashing about (the half-bound, Run clip): a rabbit sprints far faster than it hops.</summary>
+    public const double RunSpeed = 440;
     public const double DashAccel = 1600, DashBrake = 2000, DashCreep = 30;
     /// <summary>Length of the one-shot clips (tools/blender/bretzel_anim.py).</summary>
     public const double BinkyTime = 26 / 30.0, FlopTime = 1.0, ThumpTime = 0.8;

@@ -26,6 +26,8 @@ public sealed class CatProfile
     [JsonPropertyName("gaze_bones")] public GazeBones GazeBones { get; set; } = new();
     /// <summary>Tail bones posed by the mood while walking or running (root first). Models without them keep the clip's tail.</summary>
     [JsonPropertyName("tail_bones")] public TailBones TailBones { get; set; } = new();
+    /// <summary>Floppy ear chains (root first), bounced by <see cref="EarModifier"/>; none for pricked-up ears.</summary>
+    [JsonPropertyName("ear_bones")] public List<List<string>> EarBones { get; set; } = new();
     [JsonPropertyName("material_colors")] public Dictionary<string, float[]> MaterialColors { get; set; } = new();
     [JsonPropertyName("actions")] public Dictionary<string, ActionClip> Actions { get; set; } = new();
 
@@ -68,6 +70,14 @@ public sealed class CatProfile
             "liedown" => "crouch",
             "climb" => "walk",
             "eat" => "idle",
+            // a rabbit's actions, for a model that lacks some of them
+            "hop" => "walk",
+            "petted" => "purr",
+            "flop" => "flopsleep",
+            "flopsleep" => "sleep",
+            "binky" => "jump",
+            "thump" => "idle",
+            "groom" => "sit",
             _ => null,
         };
         return fallback == null ? null : Resolve(fallback);
