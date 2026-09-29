@@ -34,8 +34,8 @@ public partial class CatVisual : Node3D
 
     /// <summary>What the tail shows while she walks or runs (set by the game every frame).</summary>
     public TailMood TailMood { get; set; } = TailMood.Calm;
-    /// <summary>Gaits whose tail follows the mood; at rest the poses place the tail themselves.</summary>
-    static readonly HashSet<string> MoodTailActions = new() { "walk", "trot", "lope", "run" };
+    /// <summary>Actions whose tail follows the mood (the profile's, or the gaits); otherwise the clip places it.</summary>
+    HashSet<string> _moodTailActions = new() { "walk", "trot", "lope", "run" };
     /// <summary>Self-test: the tail shape being shown and how much of it.</summary>
     internal (double[] lift, float weight)? TailShown => _tail == null ? null : (_tail.Lift, _tail.Weight);
 
@@ -124,7 +124,8 @@ public partial class CatVisual : Node3D
         var bones = _profile.TailBones.Bones.Select(skeleton.FindBone).ToArray();
         if (root < 0 || bones.Length == 0 || bones.Any(b => b < 0)) return null;
         var tail = new TailModifier { Name = "Tail", Hips = root, Tail = bones };
-        tail.Lift = (double[])TailMoods.Shape(TailMood.Calm).Lift.Clone();
+        tail.Lift = (double[])TailMoods.Shape(TailMood.Calm, _profile.Tail).Lift.Clone();
+        if (_profile.MoodTailActions.Count > 0) _moodTailActions = new HashSet<string>(_profile.MoodTailActions);
         skeleton.AddChild(tail);
         tail.Setup(skeleton);
         return tail;
@@ -143,7 +144,7 @@ public partial class CatVisual : Node3D
     void UpdateTail(double dt)
     {
         if (_tail == null) return;
-        var want = TailMoods.Shape(TailMood);
+        var want = TailMoods.Shape(TailMood, _profile.Tail);
         if (_action is "lope" or "run") want = TailMoods.Running(want);
         double k = Math.Min(1, dt * 2.5);
         for (int i = 0; i < _tail.Lift.Length && i < want.Lift.Length; i++) _tail.Lift[i] += (want.Lift[i] - _tail.Lift[i]) * k;
@@ -153,7 +154,7 @@ public partial class CatVisual : Node3D
         _tail.TipHz += (want.TipHz - _tail.TipHz) * k;
         _tail.TipJerky = want.TipJerky;
         _tail.Time += dt;
-        float on = MoodTailActions.Contains(_action) ? 1 : 0;
+        float on = _moodTailActions.Contains(_action) ? 1 : 0;
         _tail.Weight = Mathf.MoveToward(_tail.Weight, on, (float)dt * 3);
     }
 

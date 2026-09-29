@@ -5,6 +5,9 @@ namespace ZairaPet.Core;
 /// <summary>What the tail says while she walks or runs.</summary>
 public enum TailMood { Calm, Content, Playful, Tired, Annoyed, Zoomies }
 
+/// <summary>Whose tail: a cat's says it with its height and curl, a dog's with its wag.</summary>
+public enum TailStyle { Cat, Dog }
+
 /// <summary>
 /// How a tail mood looks. <see cref="Lift"/>: per tail bone from the root to the tip, degrees above straight back
 /// along the body (90 = straight up, more bends over forwards). The tail waves sideways: the whole of it
@@ -33,6 +36,26 @@ public static class TailMoods
     static readonly TailShape Tired = new(new double[] { -62, -55, -45, -30, -10 }, 3, 0.5, 2, 0.5, false);
     static readonly TailShape Annoyed = new(new double[] { -12, -4, 0, 2, 4 }, 2, 0.7, 28, 2.2, true);
     static readonly TailShape Zoomies = new(new double[] { -5, 2, 5, 5, 5 }, 1, 1.0, 1, 1.0, false);
+
+    // A dog's tail hangs when it is relaxed and wags when it is pleased: wide, quick sweeps of the whole tail,
+    // carried about level or a little up (a golden's plume never curls over its back). Hungry and waiting it
+    // wags hopefully; tired it hangs low and still.
+    static readonly TailShape DogCalm = new(new double[] { -45, -55, -60, -60, -55 }, 6, 0.8, 2, 0.8, false);
+    static readonly TailShape DogContent = new(new double[] { 5, 12, 18, 22, 26 }, 22, 2.8, 8, 2.8, false);
+    static readonly TailShape DogPlayful = new(new double[] { 20, 28, 34, 38, 42 }, 26, 3.4, 8, 3.4, false);
+    static readonly TailShape DogTired = new(new double[] { -60, -70, -74, -74, -70 }, 2, 0.5, 1, 0.5, false);
+    static readonly TailShape DogHungry = new(new double[] { -10, 0, 6, 10, 14 }, 15, 2.2, 6, 2.2, false);
+    static readonly TailShape DogZoomies = new(new double[] { -5, 2, 6, 8, 10 }, 3, 1.5, 2, 1.5, false);
+
+    public static TailShape Shape(TailMood mood, TailStyle style) => style == TailStyle.Cat ? Shape(mood) : mood switch
+    {
+        TailMood.Content => DogContent,
+        TailMood.Playful => DogPlayful,
+        TailMood.Tired => DogTired,
+        TailMood.Annoyed => DogHungry,
+        TailMood.Zoomies => DogZoomies,
+        _ => DogCalm,
+    };
 
     public static TailShape Shape(TailMood mood) => mood switch
     {

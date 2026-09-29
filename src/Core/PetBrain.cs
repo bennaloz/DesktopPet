@@ -29,6 +29,8 @@ public enum PetState
     Meow, Climb, Hunt,
     /// <summary>Rabbit only.</summary>
     Groom, Binky, Flop, Thump,
+    /// <summary>Dog only.</summary>
+    Bark,
 }
 
 /// <summary>Why the pet is travelling: decides what happens on arrival.</summary>
@@ -176,7 +178,7 @@ public abstract class PetBrain
     /// <summary>Something happened (a treat appeared, needs changed): a resting pet reconsiders right away.</summary>
     public void Notice()
     {
-        if (State is PetState.Idle or PetState.Sit or PetState.Wander or PetState.Petted or PetState.Meow)
+        if (State is PetState.Idle or PetState.Sit or PetState.Wander or PetState.Petted or PetState.Meow or PetState.Bark)
             Enter(PetState.Idle, 0.3);
     }
 
@@ -300,7 +302,7 @@ public abstract class PetBrain
     /// <summary>Grounded behaviour. Returns the horizontal walking speed.</summary>
     double Think(double dt, CatBody body, Needs needs, SurfaceMap map, IWorld world)
     {
-        bool calm = State is PetState.Idle or PetState.Sit or PetState.Wander or PetState.Meow or PetState.Petted
+        bool calm = State is PetState.Idle or PetState.Sit or PetState.Wander or PetState.Meow or PetState.Bark or PetState.Petted
                     || State == PetState.Travel && Goal == Goal.Explore;
         if (_petting > 0.6 && calm && State != PetState.Petted)
             Enter(PetState.Petted);

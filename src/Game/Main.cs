@@ -40,6 +40,8 @@ public partial class Main : Node3D
     Vector2 _mouse;
 
     CatProfile _profile = null!;
+    /// <summary>The cat tree is Zaira's: the dog and the rabbit sleep on the floor and never use it.</summary>
+    bool HasPerch => _profile.Species == "cat";
     /// <summary>The pet's folder name under cats/: its save file is named after it.</summary>
     string PetId => System.IO.Path.GetFileName(_profile.Folder.TrimEnd('/', '\\')).ToLowerInvariant();
 
@@ -189,7 +191,7 @@ public partial class Main : Node3D
         // then move whatever stands on that top. Otherwise the perch surface lags one scan behind.
         _world.Perch.Body.FollowSupport(SurfaceMap.Build(windows, work, Array.Empty<Platform>()));
         var extra = new List<Platform>();
-        if (_world.Perch.Body.Mode == BodyMode.Grounded)
+        if (HasPerch && _world.Perch.Body.Mode == BodyMode.Grounded)
             extra.Add(_world.Perch.TopPlatform());
         _map = SurfaceMap.Build(windows, work, extra);
         _world.PerchPlatform = _map.Platforms.FirstOrDefault(p => p.Kind == SurfaceKind.Perch);
@@ -241,6 +243,7 @@ public partial class Main : Node3D
         _world.Bowl = new Bowl(new Vec2(X(save.BowlX, 0.72), floor.Y)) { Name = "Bowl", Food = save.BowlFood };
         _world.Perch = new Perch(new Vec2(X(save.PerchX, 0.9), floor.Y)) { Name = "Perch" };
         AddChild(_world.Perch);
+        _world.Perch.Visible = HasPerch;
         AddChild(_world.Bowl);
         _world.Bowl.Body.PlaceOn(_map.NearestFloor(_world.Bowl.Body.Pos.X), _world.Bowl.Body.Pos.X);
         _world.Perch.Body.PlaceOn(_map.NearestFloor(_world.Perch.Body.Pos.X), _world.Perch.Body.Pos.X);
@@ -316,7 +319,7 @@ public partial class Main : Node3D
 
     IEnumerable<Prop> Props()
     {
-        yield return _world.Perch;
+        if (HasPerch) yield return _world.Perch;
         yield return _world.Bowl;
         if (_world.Treat != null) yield return _world.Treat;
     }
@@ -391,7 +394,7 @@ public partial class Main : Node3D
             _dragOffset = new Vector2(0, _visual.ScruffHeight);
             _body.MoveHeld(Held(local));
         }
-        else if (_world.Perch.ScreenRect.Contains(p.X, p.Y))
+        else if (HasPerch && _world.Perch.ScreenRect.Contains(p.X, p.Y))
         {
             _drag = Drag.Perch;
             _world.Perch.Body.Grab();

@@ -26,6 +26,11 @@ public sealed class CatProfile
     [JsonPropertyName("gaze_bones")] public GazeBones GazeBones { get; set; } = new();
     /// <summary>Tail bones posed by the mood while walking or running (root first). Models without them keep the clip's tail.</summary>
     [JsonPropertyName("tail_bones")] public TailBones TailBones { get; set; } = new();
+    /// <summary>"cat" (height and curl say the mood) or "dog" (the wag does).</summary>
+    [JsonPropertyName("tail_style")] public string TailStyle { get; set; } = "cat";
+    [JsonIgnore] public ZairaPet.Core.TailStyle Tail => TailStyle == "dog" ? ZairaPet.Core.TailStyle.Dog : ZairaPet.Core.TailStyle.Cat;
+    /// <summary>Actions whose tail follows the mood; empty: the gaits (walk, trot, lope, run).</summary>
+    [JsonPropertyName("mood_tail_actions")] public List<string> MoodTailActions { get; set; } = new();
     /// <summary>Floppy ear chains (root first), bounced by <see cref="EarModifier"/>; none for pricked-up ears.</summary>
     [JsonPropertyName("ear_bones")] public List<List<string>> EarBones { get; set; } = new();
     [JsonPropertyName("material_colors")] public Dictionary<string, float[]> MaterialColors { get; set; } = new();
@@ -78,6 +83,8 @@ public sealed class CatProfile
             "binky" => "jump",
             "thump" => "idle",
             "groom" => "sit",
+            // a dog's
+            "bark" => "meow",
             _ => null,
         };
         return fallback == null ? null : Resolve(fallback);

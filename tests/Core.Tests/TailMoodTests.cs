@@ -94,3 +94,40 @@ public class TailMoodTests
         Assert.True(Enumerable.Range(0, 100).All(i => TailMoods.Sideways(s, i * 0.01).All(y => Math.Abs(y) < 6)));
     }
 }
+
+/// <summary>A dog's tail: hanging relaxed, wagging wide and fast when pleased, never curled over like a cat's.</summary>
+public class DogTailTests
+{
+    static double Swing(TailShape s, int bone) =>
+        Enumerable.Range(0, 300).Select(i => TailMoods.Sideways(s, i * 0.01)[bone]).Max()
+        - Enumerable.Range(0, 300).Select(i => TailMoods.Sideways(s, i * 0.01)[bone]).Min();
+
+    [Fact]
+    public void Pleased_it_wags_wide_and_fast()
+    {
+        var happy = TailMoods.Shape(TailMood.Content, TailStyle.Dog);
+        var calm = TailMoods.Shape(TailMood.Calm, TailStyle.Dog);
+        Assert.True(Swing(happy, 4) > 50, "a wide wag");
+        Assert.True(happy.WaveHz >= 2.5, "a quick wag");
+        Assert.True(Swing(happy, 4) > 3 * Swing(calm, 4));
+    }
+
+    [Fact]
+    public void Relaxed_it_hangs_and_tired_lower_still()
+    {
+        var calm = TailMoods.Shape(TailMood.Calm, TailStyle.Dog).Lift;
+        var tired = TailMoods.Shape(TailMood.Tired, TailStyle.Dog).Lift;
+        Assert.All(calm, a => Assert.True(a < -30));
+        Assert.True(tired.Average() < calm.Average());
+    }
+
+    [Theory]
+    [InlineData(TailMood.Content)]
+    [InlineData(TailMood.Playful)]
+    public void Never_curls_over_like_a_cat(TailMood mood) =>
+        Assert.All(TailMoods.Shape(mood, TailStyle.Dog).Lift, a => Assert.InRange(a, -20, 70));
+
+    [Fact]
+    public void The_cat_style_is_the_default() =>
+        Assert.Same(TailMoods.Shape(TailMood.Content), TailMoods.Shape(TailMood.Content, TailStyle.Cat));
+}

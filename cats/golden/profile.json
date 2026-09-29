@@ -1,0 +1,164 @@
+{
+  "name": "Golden",
+  "model": "golden.glb",
+  "length_px": 200,
+  "yaw_offset_deg": 0,
+  "three_quarter_deg": 25,
+  "eat_reach": 0.4,
+  "gaze_bones": {
+    "neck": "Neck",
+    "head": "Head",
+    "chest": "Chest",
+    "keep": [
+      "Scapula.L",
+      "Scapula.R"
+    ]
+  },
+  "actions": {
+    "idle": {
+      "anims": [
+        "Idle",
+        "Idle_Look"
+      ],
+      "loop": true
+    },
+    "walk": {
+      "anims": [
+        "Walk"
+      ],
+      "loop": true,
+      "speed": 1.0,
+      "ref_speed_px": 148
+    },
+    "trot": {
+      "anims": [
+        "Trot"
+      ],
+      "loop": true,
+      "speed": 1.0,
+      "ref_speed_px": 218
+    },
+    "lope": {
+      "anims": [
+        "Run"
+      ],
+      "loop": true,
+      "speed": 1.0,
+      "ref_speed_px": 521
+    },
+    "run": {
+      "anims": [
+        "Sprint"
+      ],
+      "loop": true,
+      "speed": 1.0,
+      "ref_speed_px": 1194
+    },
+    "prejump": {
+      "anims": [
+        "Prejump"
+      ],
+      "loop": false
+    },
+    "aim": {
+      "anims": [
+        "Aim"
+      ],
+      "loop": true
+    },
+    "jump": {
+      "anims": [
+        "Jump"
+      ],
+      "loop": false,
+      "speed": 1.0
+    },
+    "fall": {
+      "anims": [
+        "Fall"
+      ],
+      "loop": false,
+      "speed": 1.0
+    },
+    "land": {
+      "anims": [
+        "Land"
+      ],
+      "loop": false,
+      "speed": 1.0
+    },
+    "sit": {
+      "anims": [
+        "Sit"
+      ],
+      "loop": true,
+      "anims_right": [
+        "Sit_R"
+      ]
+    },
+    "liedown": {
+      "anims": [
+        "LieDown"
+      ],
+      "loop": false,
+      "blend": 0.1,
+      "anims_right": [
+        "LieDown_R"
+      ]
+    },
+    "crouch": {
+      "anims": [
+        "Crouch"
+      ],
+      "loop": true,
+      "anims_right": [
+        "Crouch_R"
+      ]
+    },
+    "sleep": {
+      "anims": [
+        "Sleep"
+      ],
+      "loop": true,
+      "speed": 0.7,
+      "show_side": 1
+    },
+    "eat": {
+      "anims": [
+        "Eat"
+      ],
+      "loop": true
+    },
+    "held": {
+      "anims": [
+        "Held"
+      ],
+      "loop": true
+    },
+    "petted": {
+      "anims": [
+        "Idle"
+      ],
+      "loop": true,
+      "blend": 0.4
+    },
+    "bark": {
+      "anims": [
+        "Meow"
+      ],
+      "loop": false,
+      "blend": 0.1
+    }
+  },
+  "species": "dog",
+  "tail_style": "dog",
+  "mood_tail_actions": [
+    "walk",
+    "trot",
+    "lope",
+    "run",
+    "idle",
+    "petted",
+    "bark"
+  ]
+}

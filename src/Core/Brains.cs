@@ -8,6 +8,7 @@ public static class Brains
     public static PetBrain For(string? species, Random rng) => species switch
     {
         "rabbit" => new BunnyBrain(rng),
+        "dog" => new DogBrain(rng),
         _ => new CatBrain(rng),
     };
 }
