@@ -843,5 +843,14 @@ bake("Sleep", 120, sleep)
 bake("Eat", 40, eat)
 bake("Meow", 30, meow, loop=False)
 bake("Held", 60, held)
+if os.environ.get("PET") == "golden":
+    # a dog asleep: lying like a sphinx with its chin down on its front paws, breathing slowly
+    def chin_on_paws(p, t, f):
+        crouch(p, t, f)
+        br = math.sin(TAU * t)
+        p.x['Neck'] = p.x.get('Neck', 0.0) + 34
+        p.x['Head'] = p.x.get('Head', 0.0) + 22 + 1.5 * br
+        p.x['Spine'] = p.x.get('Spine', 0.0) + 1.0 * br
+    bake_both_sides("ChinOnPaws", 120, chin_on_paws)
 arm.animation_data.action = bpy.data.actions["Idle"]
 bpy.ops.wm.save_as_mainfile(filepath=work_file("anim.blend"))

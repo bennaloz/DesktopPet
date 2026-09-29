@@ -117,11 +117,14 @@
     },
     "sleep": {
       "anims": [
-        "Sleep"
+        "ChinOnPaws"
+      ],
+      "anims_right": [
+        "ChinOnPaws_R"
       ],
       "loop": true,
       "speed": 0.7,
-      "show_side": 1
+      "blend": 0.6
     },
     "eat": {
       "anims": [
