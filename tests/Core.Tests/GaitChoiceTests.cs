@@ -25,7 +25,7 @@ public class GaitChoiceTests
         public void ConsumeTreat() => TreatPos = null;
     }
 
-    static HashSet<string> ActionsWhile(World world, Needs needs, CatState state, int frames = 30 * 3,
+    static HashSet<string> ActionsWhile(World world, Needs needs, PetState state, int frames = 30 * 3,
                                          Action<CatBrain, CatBody>? before = null)
     {
         var map = SurfaceMap.Build(Array.Empty<WindowInfo>(), new[] { new RectI(0, 0, 1920, 1040) }, Array.Empty<Platform>());
@@ -47,7 +47,7 @@ public class GaitChoiceTests
     [Fact]
     public void A_starving_cat_lopes_to_the_bowl()
     {
-        var seen = ActionsWhile(new World { BowlX = 1700 }, new Needs { Hunger = 0.9, Energy = 1, Playfulness = 0 }, CatState.Travel);
+        var seen = ActionsWhile(new World { BowlX = 1700 }, new Needs { Hunger = 0.9, Energy = 1, Playfulness = 0 }, PetState.Travel);
         Assert.Contains("lope", seen);
         Assert.DoesNotContain("run", seen);
     }
@@ -55,7 +55,7 @@ public class GaitChoiceTests
     [Fact]
     public void A_hungry_cat_trots_happily_to_a_full_bowl()
     {
-        var seen = ActionsWhile(new World { BowlX = 1700, BowlFood = 1 }, new Needs { Hunger = 0.7, Energy = 1, Playfulness = 0 }, CatState.Travel);
+        var seen = ActionsWhile(new World { BowlX = 1700, BowlFood = 1 }, new Needs { Hunger = 0.7, Energy = 1, Playfulness = 0 }, PetState.Travel);
         Assert.Contains("trot", seen);
         Assert.DoesNotContain("walk", seen);
     }
@@ -64,7 +64,7 @@ public class GaitChoiceTests
     public void After_being_petted_it_trots_about_happily()
     {
         var needs = new Needs { Hunger = 0, Energy = 1, Playfulness = 0 };
-        var seen = ActionsWhile(new World { BowlX = 100 }, needs, CatState.Wander, 30 * 40,
+        var seen = ActionsWhile(new World { BowlX = 100 }, needs, PetState.Wander, 30 * 40,
             (brain, body) => brain.Cheer(20));
         Assert.Contains("trot", seen);
         Assert.DoesNotContain("walk", seen);
@@ -88,7 +88,7 @@ public class GaitChoiceTests
     public void A_treat_is_chased_at_a_sprint()
     {
         var world = new World { BowlX = 100, TreatPos = new Vec2(1700, 1040), TreatLanded = true };
-        var seen = ActionsWhile(world, new Needs { Hunger = 0.3, Energy = 1, Playfulness = 0 }, CatState.ChaseTreat);
+        var seen = ActionsWhile(world, new Needs { Hunger = 0.3, Energy = 1, Playfulness = 0 }, PetState.ChaseTreat);
         Assert.Contains("run", seen);
         Assert.DoesNotContain("trot", seen);
     }

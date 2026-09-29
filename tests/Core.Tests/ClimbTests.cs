@@ -129,7 +129,7 @@ public class ClimbBrainTests
         for (int i = 0; i < 30 * 30 && body.Support?.Owner != 1; i++)
         {
             brain.Update(1 / 30.0, body, needs, map, world);
-            climbed |= brain.State == CatState.Climb && brain.Action == "climb" && brain.Facing == 1;
+            climbed |= brain.State == PetState.Climb && brain.Action == "climb" && brain.Facing == 1;
         }
 
         Assert.True(climbed);

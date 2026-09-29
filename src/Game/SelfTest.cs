@@ -95,7 +95,7 @@ public sealed class SelfTest
                     Frame("", () => Motion(cat + new Vector2(s * 6, -s * 12), new Vector2(6, -12)));
                     if (s != 8) continue;
                     // Halfway through the drag: the cat is in hand and the window takes the whole mouse.
-                    Frame("check held", () => Expect(_main.Brain.State == CatState.Held, "gatto in braccio"));
+                    Frame("check held", () => Expect(_main.Brain.State == PetState.Held, "gatto in braccio"));
                     Frame("check region while dragging", () =>
                         Expect(InRegion(new Vec2(_main.OverlayWindow.Origin.X + 20, _main.OverlayWindow.Origin.Y + 20)),
                                "durante il trascinamento la finestra prende tutto il mouse"));
@@ -133,7 +133,7 @@ public sealed class SelfTest
                 Motion(CatPoint(0.4f) + new Vector2(dx * (k % 5) - 24, 0), new Vector2(dx, 0));
             }));
         }
-        list.Add((9.6, "check purring", () => Expect(_main.Brain.State == CatState.Petted, "fusa dopo le carezze")));
+        list.Add((9.6, "check purring", () => Expect(_main.Brain.State == PetState.Petted, "fusa dopo le carezze")));
         list.Add((9.7, "screenshot", Shot));
         list.Add((11.0, "double-click bowl", () =>
         {
@@ -201,7 +201,7 @@ public sealed class SelfTest
         double lies = down + CatBrain.TuckAfter.min + CatBrain.TuckTime;
         return new List<(double, string, Action)>
         {
-            (1.0, "sit up, then loaf", () => { _main.Summon(); _main.Brain.LoafFor(60); }),
+            (1.0, "sit up, then loaf", () => { _main.Summon(); ((CatBrain)_main.Brain).LoafFor(60); }),
             (lying - 0.5, "screenshot", Shot),
             (lying + 0.7, "screenshot (lying down)", Shot),
             (lying + 1.4, "screenshot (lying down)", Shot),
@@ -280,14 +280,14 @@ public sealed class SelfTest
         }
         void Show(Vec2 p)
         {
-            _main.Brain.ForgetHunt();   // each round starts fresh, without the pause after the previous hunt
+            ((CatBrain)_main.Brain).ForgetHunt();   // each round starts fresh, without the pause after the previous hunt
             _prey = p;
         }
         return new List<(double, string, Action)>
         {
             (1.0, "a little playful", () => Round(0.1)),
             (1.5, "cursor near", () => Show(at(170, 60))),
-            (3.5, "check watch", () => Expect(_main.Brain.State == CatState.Hunt && _main.Brain.Action == "idle", "poca voglia: si ferma e guarda il cursore")),
+            (3.5, "check watch", () => Expect(_main.Brain.State == PetState.Hunt && _main.Brain.Action == "idle", "poca voglia: si ferma e guarda il cursore")),
             (3.6, "screenshot", Shot),
             (4.0, "somewhat playful", () => Round(0.5)),
             (4.5, "cursor near", () => Show(at(200, 50))),
@@ -329,7 +329,7 @@ public sealed class SelfTest
     /// A script step that holds the script until the cat reaches <paramref name="state"/>: the steps after it
     /// run that much later. Not reaching it within <paramref name="timeout"/> seconds fails the check.
     /// </summary>
-    (double, string, Action) Until(double at, CatState state, double timeout, string what) =>
+    (double, string, Action) Until(double at, PetState state, double timeout, string what) =>
         (at, $"wait for {state}", () => _wait = (() => _main.Brain.State == state, timeout, what, _t));
 
     /// <summary>Queue a step for its own frame: steps run one per frame, in order, before the timed script goes on.</summary>
@@ -422,12 +422,12 @@ public sealed class SelfTest
             (26.0, "screenshot", Shot),
             (30.0, "restless", () => { _main.NeedsState.Hunger = 0.1; _main.NeedsState.Playfulness = 1; _main.Brain.Notice(); }),
             // She finishes eating and sits a moment before running off.
-            Until(30.01, CatState.Zoomies, 20, "corre all'impazzata quando ha voglia di giocare"),
+            Until(30.01, PetState.Zoomies, 20, "corre all'impazzata quando ha voglia di giocare"),
             (32.0, "screenshot", Shot),
             (34.0, "screenshot", Shot),
             (46.0, "tired", () => { _main.NeedsState.Playfulness = 0; _main.NeedsState.Energy = 0.1; _main.Brain.Notice(); }),
             // She walks to the perch, possibly across the screen, and falls asleep on it.
-            Until(46.01, CatState.Sleep, 45, "stanca, va a dormire sul trespolo"),
+            Until(46.01, PetState.Sleep, 45, "stanca, va a dormire sul trespolo"),
             (48.0, "screenshot", Shot),
             (52.0, "grab", Grab),
             (53.0, "screenshot", Shot),
@@ -465,7 +465,7 @@ public sealed class SelfTest
         }
 
         // Whenever the cat eats: the mouth must be over the bowl, and a picture shows it.
-        _eatTime = _main.Brain.State == CatState.Eat ? _eatTime + dt : 0;
+        _eatTime = _main.Brain.State == PetState.Eat ? _eatTime + dt : 0;
         if (!_eatChecked && _eatTime > 0.8)
         {
             _eatChecked = true;
@@ -484,7 +484,7 @@ public sealed class SelfTest
         if (_mode == "tour" && !_shotAim && _main.Brain.Action == "aim") { _shotAim = true; Shot(); }
         // Shot a moment into the leap, once the body has had time to turn upright.
         bool rising = _main.Body.Mode == BodyMode.Airborne && _main.Body.Vel.Y < -450
-                      && Math.Abs(_main.Body.Vel.X) < 400 && _main.Brain.State != CatState.Held;
+                      && Math.Abs(_main.Body.Vel.X) < 400 && _main.Brain.State != PetState.Held;
         if (_mode == "tour" && !_shotLeap)
         {
             _leapSince = rising ? (_leapSince < 0 ? 0 : _leapSince + dt) : -1;

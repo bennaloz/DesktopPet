@@ -15,9 +15,9 @@ public sealed record TailShape(double[] Lift, double WaveDeg, double WaveHz, dou
 
 public static class TailMoods
 {
-    public static TailMood For(CatState state, Needs needs, double happy)
+    public static TailMood For(PetState state, Needs needs, double happy)
     {
-        if (state == CatState.Zoomies) return TailMood.Zoomies;
+        if (state == PetState.Zoomies) return TailMood.Zoomies;
         if (needs.Hunger > 0.7) return TailMood.Annoyed;
         if (needs.Energy < 0.3) return TailMood.Tired;
         if (happy > 0 || needs.Affection > 0.8) return TailMood.Content;

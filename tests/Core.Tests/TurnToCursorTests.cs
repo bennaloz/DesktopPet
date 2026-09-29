@@ -53,7 +53,7 @@ public class TurnToCursorTests
         var behind = body.Pos + new Vec2(-facing * 150, -120);
         Run(brain, body, CatBrain.TurnToCursorAfter + 0.3, behind);
         Assert.Equal(-facing, brain.Facing);
-        Assert.Equal(CatState.Sit, brain.State);   // still sitting, only turned
+        Assert.Equal(PetState.Sit, brain.State);   // still sitting, only turned
     }
 
     [Fact]

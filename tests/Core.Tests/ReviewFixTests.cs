@@ -110,7 +110,7 @@ public class ReviewFixTests
         for (int i = 0; i < 30 * 120 && !slept; i++)
         {
             brain.Update(1 / 30.0, body, needs, map, world);
-            slept = brain.State == CatState.Sleep;
+            slept = brain.State == PetState.Sleep;
         }
         Assert.True(slept);
     }
@@ -130,7 +130,7 @@ public class ReviewFixTests
         for (int i = 0; i < 30 * 200 && !slept; i++)
         {
             brain.Update(1 / 30.0, body, needs, map, world);
-            slept = brain.State == CatState.Sleep;
+            slept = brain.State == PetState.Sleep;
         }
         Assert.True(slept);
     }

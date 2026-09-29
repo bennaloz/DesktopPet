@@ -20,12 +20,12 @@ public class GazeTests
     }
 
     static GazeInput Resting(Vec2? mouse = null) =>
-        new(CatState.Sit, Head, Facing: 1, Mouse: mouse, JumpTarget: null, Treat: null);
+        new(PetState.Sit, Head, Facing: 1, Mouse: mouse, JumpTarget: null, Treat: null);
 
     [Fact]
     public void A_sleeping_cat_looks_nowhere()
     {
-        var g = Run(new Gaze(new Random(1)), Resting() with { State = CatState.Sleep }, 20);
+        var g = Run(new Gaze(new Random(1)), Resting() with { State = PetState.Sleep }, 20);
         Assert.Equal(GazeKind.Ahead, g.Kind);
     }
 
@@ -65,7 +65,7 @@ public class GazeTests
     public void Before_and_during_a_jump_it_looks_where_it_will_land()
     {
         var landing = new Vec2(1300, 600);
-        var g = Run(new Gaze(new Random(5)), Resting(new Vec2(1100, 900)) with { State = CatState.Travel, JumpTarget = landing }, 0.2);
+        var g = Run(new Gaze(new Random(5)), Resting(new Vec2(1100, 900)) with { State = PetState.Travel, JumpTarget = landing }, 0.2);
         Assert.Equal(GazeKind.Point, g.Kind);
         Assert.Equal(landing, g.Point);
     }
@@ -74,7 +74,7 @@ public class GazeTests
     public void Chasing_a_treat_it_keeps_its_eyes_on_the_treat()
     {
         var treat = new Vec2(1500, 950);
-        var g = Run(new Gaze(new Random(6)), Resting() with { State = CatState.ChaseTreat, Treat = treat }, 0.5);
+        var g = Run(new Gaze(new Random(6)), Resting() with { State = PetState.ChaseTreat, Treat = treat }, 0.5);
         Assert.Equal(GazeKind.Point, g.Kind);
         Assert.Equal(treat, g.Point);
     }
@@ -83,7 +83,7 @@ public class GazeTests
     public void Walking_it_mostly_looks_ahead_with_the_odd_glance_at_the_viewer()
     {
         var seen = new List<GazeKind>();
-        Run(new Gaze(new Random(7)), Resting() with { State = CatState.Travel }, 120, seen);
+        Run(new Gaze(new Random(7)), Resting() with { State = PetState.Travel }, 120, seen);
         int ahead = seen.FindAll(k => k == GazeKind.Ahead).Count;
         Assert.True(ahead > seen.Count * 0.7);
         Assert.Contains(GazeKind.Viewer, seen);
@@ -93,7 +93,7 @@ public class GazeTests
     public void Hunting_it_never_takes_its_eyes_off_the_cursor()
     {
         var far = new Vec2(1500, 700);   // beyond the idle watching range
-        var g = Run(new Gaze(new Random(8)), Resting(far) with { State = CatState.Hunt }, 2);
+        var g = Run(new Gaze(new Random(8)), Resting(far) with { State = PetState.Hunt }, 2);
         Assert.Equal(GazeKind.Point, g.Kind);
         Assert.Equal(far, g.Point);
     }

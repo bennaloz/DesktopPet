@@ -34,17 +34,17 @@ public class HuntTests
         public readonly Needs Needs;
         public readonly World World = new();
         public readonly List<string> Actions = new();
-        public readonly List<CatState> States = new();
+        public readonly List<PetState> States = new();
         double _t;
 
-        public Scene(double playfulness, CatState start = CatState.Sit)
+        public Scene(double playfulness, PetState start = PetState.Sit)
         {
             var floor = Map.Platforms.First();
             World.BowlPlatform = floor;
             Body = new CatBody(new Vec2(800, 1040));
             Body.PlaceOn(floor, 800);
             Needs = new Needs { Hunger = 0.1, Energy = 0.9, Playfulness = playfulness };
-            if (start == CatState.Sit) Brain.SitFor(120);
+            if (start == PetState.Sit) Brain.SitFor(120);
         }
 
         /// <summary>Run with the cursor around a point, jiggling a few pixels (a hand on the mouse) unless still.</summary>
@@ -66,7 +66,7 @@ public class HuntTests
     {
         var s = new Scene(0.1);
         s.Run(3, new Vec2(950, 980));
-        Assert.Equal(CatState.Hunt, s.Brain.State);
+        Assert.Equal(PetState.Hunt, s.Brain.State);
         Assert.DoesNotContain("stalk", s.Actions);
         Assert.Equal(800, s.Body.Pos.X);
     }
@@ -76,7 +76,7 @@ public class HuntTests
     {
         var s = new Scene(0.5);
         s.Run(3, new Vec2(1000, 980));
-        Assert.Equal(CatState.Hunt, s.Brain.State);
+        Assert.Equal(PetState.Hunt, s.Brain.State);
         Assert.Equal("stalk", s.Brain.Action);
         Assert.DoesNotContain("wiggle", s.Actions);
     }
@@ -99,7 +99,7 @@ public class HuntTests
         s.Run(0.5, null);
         s.Run(6, cursor);
         Assert.Contains("wiggle", s.Actions);
-        Assert.Contains(CatState.Airborne, s.States);
+        Assert.Contains(PetState.Airborne, s.States);
         s.Run(2, null);
         Assert.Equal(BodyMode.Grounded, s.Body.Mode);
         // Lands with its head, not its body, on the cursor.
@@ -121,20 +121,20 @@ public class HuntTests
     {
         var s = new Scene(0.9);
         s.Run(5, new Vec2(950, 990), moving: false);
-        Assert.DoesNotContain(CatState.Hunt, s.States);
+        Assert.DoesNotContain(PetState.Hunt, s.States);
     }
 
     [Fact]
     public void A_sleeping_cat_ignores_the_cursor()
     {
-        var s = new Scene(0.9, start: CatState.Idle);
+        var s = new Scene(0.9, start: PetState.Idle);
         s.Needs.Energy = 0.1;
         s.Needs.Playfulness = 0;
         s.Run(3, null);          // goes to sleep (no perch: on the spot)
-        Assert.Equal(CatState.Sleep, s.Brain.State);
+        Assert.Equal(PetState.Sleep, s.Brain.State);
         s.Needs.Playfulness = 0.9;
         s.Run(3, new Vec2(900, 990));
-        Assert.Equal(CatState.Sleep, s.Brain.State);
+        Assert.Equal(PetState.Sleep, s.Brain.State);
     }
 
     [Fact]
@@ -142,11 +142,11 @@ public class HuntTests
     {
         var s = new Scene(0.5);
         s.Run(3, new Vec2(1000, 980));
-        Assert.Equal(CatState.Hunt, s.Brain.State);
+        Assert.Equal(PetState.Hunt, s.Brain.State);
         s.Run(3, new Vec2(1900, 100));            // the cursor goes away: the hunt ends
-        Assert.NotEqual(CatState.Hunt, s.Brain.State);
+        Assert.NotEqual(PetState.Hunt, s.Brain.State);
         s.States.Clear();
         s.Run(15, new Vec2(1000, 980));           // and comes back straight away
-        Assert.DoesNotContain(CatState.Hunt, s.States);
+        Assert.DoesNotContain(PetState.Hunt, s.States);
     }
 }

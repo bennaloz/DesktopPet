@@ -19,7 +19,7 @@ public partial class Main : Node3D
     readonly Random _rng = new();
     readonly Needs _needs = new();
     readonly GameWorld _world = new();
-    CatBrain _brain = null!;
+    PetBrain _brain = null!;
     Gaze _gaze = null!;
     CatBody _body = null!;
     CatVisual _visual = null!;
@@ -151,7 +151,7 @@ public partial class Main : Node3D
     void UpdateGaze(double dt)
     {
         var head = HeadPos;
-        _gaze.Update(dt, new GazeInput(_paused ? CatState.Sit : _brain.State, head, _brain.Facing,
+        _gaze.Update(dt, new GazeInput(_paused ? PetState.Sit : _brain.State, head, _brain.Facing,
             CursorScreen(), _brain.JumpTarget, _world.Treat?.Body.Pos));
         Vector3? target = _gaze.Kind switch
         {
@@ -320,7 +320,7 @@ public partial class Main : Node3D
     RectI CatRect()
     {
         float w = _visual.SizePx.X, h = Math.Max(_visual.SizePx.Y, 40);
-        if (_body.Mode is BodyMode.Held or BodyMode.Climbing || _brain.State == CatState.Sleep)
+        if (_body.Mode is BodyMode.Held or BodyMode.Climbing || _brain.State == PetState.Sleep)
         {
             w = Math.Max(w, h) * 0.9f;
             h = Math.Max(h, _visual.SizePx.X * 0.9f);
@@ -486,21 +486,12 @@ public partial class Main : Node3D
     }
 
     string Tooltip() =>
-        $"Zaira — {StateName(_brain.State)}\n" +
+        $"Zaira — {_brain.Describe(_brain.State)}\n" +
         $"Fame {Pct(_needs.Hunger)}  Energia {Pct(_needs.Energy)}\n" +
         $"Voglia di giocare {Pct(_needs.Playfulness)}  Contentezza {Pct(_needs.Affection)}\n" +
         $"Ciotola {Pct(_world.Bowl.Food)}";
 
     static string Pct(double v) => $"{v * 100:0}%";
-
-    static string StateName(CatState s) => s switch
-    {
-        CatState.Idle => "si guarda intorno", CatState.Wander => "passeggia", CatState.Travel => "va da qualche parte",
-        CatState.Zoomies => "zoomies!", CatState.Eat => "mangia", CatState.Sleep => "dorme", CatState.Sit => "seduta",
-        CatState.Meow => "reclama la pappa", CatState.ChaseTreat => "insegue il bocconcino", CatState.Petted => "fa le fusa",
-        CatState.Held => "in braccio", CatState.Airborne => "in volo", CatState.Landing => "atterra",
-        CatState.Climb => "si arrampica", _ => s.ToString(),
-    };
 
     void SetupTray()
     {
@@ -541,7 +532,7 @@ public partial class Main : Node3D
 
     // ------------------------------------------------------------------ self test hooks
 
-    internal CatBrain Brain => _brain;
+    internal PetBrain Brain => _brain;
     internal CatBody Body => _body;
     internal Needs NeedsState => _needs;
     /// <summary>Self-test: show this tail mood regardless of the needs.</summary>

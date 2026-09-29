@@ -52,7 +52,7 @@ public class JumpPrepTests
                 if (brain.Action is "prejump" or "aim") prep += 1 / 30.0;
                 if (brain.Action == "aim") aimed = true;
                 if (before == BodyMode.Grounded && body.Mode == BodyMode.Airborne) { preps.Add(prep); prep = 0; }
-                if (brain.State is CatState.Idle or CatState.Sit) break;
+                if (brain.State is PetState.Idle or PetState.Sit) break;
             }
         }
         Assert.True(preps.Count >= 20, $"{preps.Count} jumps");

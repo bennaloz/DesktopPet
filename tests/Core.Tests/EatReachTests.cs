@@ -39,10 +39,10 @@ public class EatReachTests
         var world = new World { BowlPlatform = floor, BowlX = 900 };
         var needs = new Needs { Hunger = 0.9, Energy = 1, Playfulness = 0 };
 
-        for (int i = 0; i < 30 * 20 && brain.State != CatState.Eat; i++)
+        for (int i = 0; i < 30 * 20 && brain.State != PetState.Eat; i++)
             brain.Update(1 / 30.0, body, needs, map, world);
 
-        Assert.Equal(CatState.Eat, brain.State);
+        Assert.Equal(PetState.Eat, brain.State);
         Assert.InRange(Math.Abs(body.Pos.X - 900), 76, 86);
         Assert.Equal(Math.Sign(900 - body.Pos.X), brain.Facing);
     }

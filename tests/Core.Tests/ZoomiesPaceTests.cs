@@ -38,7 +38,7 @@ public class ZoomiesPaceTests
         {
             needs.Playfulness = 1;
             brain.Update(dt, body, needs, map, new World());
-            if (brain.State != CatState.Zoomies || body.Mode != BodyMode.Grounded) { last = Math.Abs(body.Vel.X); continue; }
+            if (brain.State != PetState.Zoomies || body.Mode != BodyMode.Grounded) { last = Math.Abs(body.Vel.X); continue; }
             double v = Math.Abs(body.Vel.X);
             Assert.True(Math.Abs(v - last) <= CatBrain.ZoomBrake * dt + CatBrain.ZoomCreep, $"speed jumped {last:0} -> {v:0} at {t:0.00}s");
             last = v;

@@ -6,7 +6,7 @@ namespace ZairaPet.Core;
 public enum GazeKind { Ahead, Viewer, Point }
 
 /// <summary>What the gaze needs to know each frame. Positions are screen pixels.</summary>
-public readonly record struct GazeInput(CatState State, Vec2 Head, int Facing, Vec2? Mouse, Vec2? JumpTarget, Vec2? Treat);
+public readonly record struct GazeInput(PetState State, Vec2 Head, int Facing, Vec2? Mouse, Vec2? JumpTarget, Vec2? Treat);
 
 /// <summary>
 /// Decides what the cat looks at. The animation keeps playing; the visual turns neck and head on top of it.
@@ -42,17 +42,17 @@ public sealed class Gaze
             return;
         }
 
-        if (i.State is CatState.Sleep or CatState.Eat or CatState.Held or CatState.Climb or CatState.Zoomies)
+        if (i.State is PetState.Sleep or PetState.Eat or PetState.Held or PetState.Climb or PetState.Zoomies)
         {
             Set(GazeKind.Ahead);
             _left = 0;
             return;
         }
         if (i.JumpTarget is { } landing) { Set(GazeKind.Point, landing); return; }
-        if (i.State == CatState.Hunt && i.Mouse is { } prey) { Set(GazeKind.Point, prey); return; }
-        if (i.State == CatState.ChaseTreat && i.Treat is { } treat) { Set(GazeKind.Point, treat); return; }
+        if (i.State == PetState.Hunt && i.Mouse is { } prey) { Set(GazeKind.Point, prey); return; }
+        if (i.State == PetState.ChaseTreat && i.Treat is { } treat) { Set(GazeKind.Point, treat); return; }
 
-        bool resting = i.State is CatState.Idle or CatState.Sit or CatState.Petted or CatState.Meow or CatState.Landing;
+        bool resting = i.State is PetState.Idle or PetState.Sit or PetState.Petted or PetState.Meow or PetState.Landing;
         if (resting && i.Mouse is { } m && (m - i.Head).Length < MouseRange) { Set(GazeKind.Point, m); return; }
 
         bool walking = !resting;

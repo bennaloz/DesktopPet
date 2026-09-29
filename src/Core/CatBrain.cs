@@ -1,33 +1,12 @@
 using System;
-using System.Collections.Generic;
-using System.Linq;
 
 namespace ZairaPet.Core;
 
-/// <summary>What the brain needs to know about the props on the desktop.</summary>
-public interface IWorld
-{
-    Platform? BowlPlatform { get; }
-    double BowlX { get; }
-    double BowlFood { get; }
-    Platform? PerchTop { get; }
-    double PerchX { get; }
-    Vec2? TreatPos { get; }
-    bool TreatLanded { get; }
-    void EatFromBowl(double amount);
-    void ConsumeTreat();
-}
-
-public enum CatState { Idle, Wander, Travel, Zoomies, Eat, Sleep, Sit, Meow, ChaseTreat, Petted, Held, Airborne, Landing, Climb, Hunt }
-
-/// <summary>Why the cat is travelling: decides what happens on arrival.</summary>
-public enum Goal { None, Bowl, Perch, Treat, Explore, Wander, Zoom }
-
 /// <summary>
-/// Behaviour state machine. Each Update picks a behaviour from the needs, moves the body and exposes
-/// the logical animation (<see cref="Action"/>) and facing for the visual.
+/// The cat (Zaira): walks, trots and gallops; jumps and climbs onto windows; hunts the cursor; meows at an empty
+/// bowl; sits, lies down and tucks into a loaf; sleeps on the perch.
 /// </summary>
-public sealed class CatBrain
+public sealed class CatBrain : PetBrain
 {
     public const double WalkSpeed = 110;
     /// <summary>The happy trot: diagonal legs, bouncy, tail straight up.</summary>
@@ -40,13 +19,8 @@ public sealed class CatBrain
     /// <summary>Zoomies speed up and slow down like a cat (px/s²): flat out in about a third of a second, stopping in
     /// a quarter. Stopping dead from a gallop to turn round looked like a stutter.</summary>
     public const double ZoomAccel = 2400, ZoomBrake = 3200, ZoomCreep = 40;
-    public const double MaxJumpUp = 460;
-    public const double MaxJumpGap = 340;
-    public const double TravelTimeout = 45;
-    /// <summary>Time to stop and turn round before running the other way (the model turns through the viewer side).</summary>
-    public const double TurnTime = 0.3;
-    /// <summary>A target this close behind her counts as reached rather than worth turning round for.</summary>
-    public const double TurnSlack = 24;
+    public const double CatJumpUp = 460;
+    public const double CatJumpGap = 340;
     /// <summary>Loading the hind legs before a jump, and each extra "taking aim" after it.</summary>
     public const double CrouchTime = 0.45, AimTime = 0.5;
     /// <summary>How close (px from the body) a moving cursor must come to catch her eye.</summary>
@@ -62,266 +36,78 @@ public sealed class CatBrain
     /// <summary>Lying down from sitting and tucking the paws in take a cat this long: the length of the
     /// LieDown and Tuck clips (tools/blender/anim.py).</summary>
     public const double LieDownTime = 2.0, TuckTime = 1.6;
-    /// <summary>The cursor must stay behind her this long (s) before she turns round to face it...</summary>
-    public const double TurnToCursorAfter = 0.8;
-    /// <summary>...and be at least this far behind (px, from the middle of the body) and within this distance.</summary>
-    public const double TurnToCursorBehind = 50, TurnToCursorRange = 400;
 
-    readonly Random _rng;
-
-    public CatState State { get; private set; } = CatState.Idle;
-    public Goal Goal { get; private set; }
-    /// <summary>Logical animation: idle, walk, trot (happy), lope, run (sprint), stalk, wiggle, swat, prejump, aim, jump, fall, land, sit, liedown, crouch (lying, paws out), tuck, loaf, sleep, eat, meow, purr, held, climb.</summary>
-    public string Action { get; private set; } = "idle";
-    /// <summary>+1 facing right, -1 facing left.</summary>
-    public int Facing { get; private set; } = 1;
-    /// <summary>Short symbol shown over the cat: ♥ z ! or null.</summary>
-    public string? Emote { get; private set; }
-    /// <summary>How far ahead of the body centre the mouth reaches when eating (px): where to stop before food.</summary>
-    public double EatReach { get; init; } = 45;
-    /// <summary>Seconds of good mood left (after petting, when called): it trots about instead of walking.</summary>
-    public double Happy { get; private set; }
-    /// <summary>The mouse cursor on the desktop (screen px), set by the game every frame; null if unknown.</summary>
-    public Vec2? Cursor { get; set; }
-    /// <summary>Where the jump being prepared or flown will land (screen px), for the eyes; null otherwise.</summary>
-    public Vec2? JumpTarget { get; private set; }
-
-    double _stateTime;        // time spent in the current state
-    double _stateDuration;    // planned length for timed states
-    double _petting;          // recent petting, decays
     double _prejump;          // crouch before a jump
     double _prejumpPlan = -1; // how long this take-off lasts: 0 straight away, a crouch, or taking aim
-    double _speed = WalkSpeed;
-    double _zoomTarget = double.NaN;
-    Platform? _exploreTarget;
-    double _exploreX;
-    double _wanderX;
-    int _stuckFrames;
-    double _zoomLeft;
-    double _zoomSpeed;        // current zoomies speed, ramping up and down
-    Goal _afterLanding;
-    Vec2? _treatIgnored;      // a treat we could not reach: leave it alone
-    int _bowlFails;           // failed trips to the bowl in a row
-    double _bowlCooldown;     // seconds before trying the bowl again after giving up
-    double _turnLeft;         // stopped, turning round
-    Vec2? _lastCursor;
-    double _cursorStill = 99; // seconds since the cursor last moved
     double _huntCooldown;     // leave the cursor alone until this runs out
     int _huntLevel;           // 0 watch, 1 stalk, 2 stalk + wiggle + pounce
     double _swatLeft;         // a swat in progress
     int _swats;
     double _wiggleAt;         // when (state time) the rump wiggle starts
     double _pounceAt;         // when (state time) she leaps
-    double _cursorBehind;     // seconds the cursor has stayed behind her while she stood or sat about
     double _loafAt = -1;      // when (state time) a long sit turns into lying down; -1 never
     double _tuckAt;           // how long after lying down she tucks the front paws in (the loaf)
 
-    public CatBrain(Random rng) => _rng = rng;
+    public CatBrain(Random rng) : base(rng) { }
 
-    // ---------------------------------------------------------------- input from the game
-
-    public void OnGrab(CatBody body)
-    {
-        body.Grab();
-        Enter(CatState.Held);
-        Goal = Goal.None;
-    }
-
-    public void OnRelease(CatBody body, Vec2 throwVel, SurfaceMap? map = null)
-    {
-        body.Release(throwVel, map);
-        Enter(CatState.Airborne);
-        _afterLanding = Goal.None;
-    }
-
-    /// <summary>Called every frame the cursor strokes the cat.</summary>
-    public void OnPetting(double dt)
-    {
-        _petting = Math.Min(_petting + dt * 2, 3);
-        Cheer(25);
-    }
-
-    /// <summary>Put the cat in a good mood for a while.</summary>
-    public void Cheer(double seconds) => Happy = Math.Max(Happy, seconds);
-
-    /// <summary>Something happened (a treat appeared, needs changed): a resting cat reconsiders right away.</summary>
-    public void Notice()
-    {
-        if (State is CatState.Idle or CatState.Sit or CatState.Wander or CatState.Petted or CatState.Meow)
-            Enter(CatState.Idle, 0.3);
-    }
-
-    /// <summary>Keep the cat sitting still for a while (self test, debugging).</summary>
-    public void SitFor(double seconds)
-    {
-        Goal = Goal.None;
-        Enter(CatState.Sit, seconds);
-    }
-
-    /// <summary>Keep the cat standing still for a while (self test, debugging).</summary>
-    public void StandFor(double seconds)
-    {
-        Goal = Goal.None;
-        Enter(CatState.Idle, seconds);
-    }
+    protected override double StrollSpeed => WalkSpeed;
+    protected override double MaxJumpUp => CatJumpUp;
+    protected override double MaxJumpGap => CatJumpGap;
 
     /// <summary>Sit up, then lie down as a loaf for a while (self test, debugging).</summary>
     public void LoafFor(double seconds)
     {
-        Goal = Goal.None;
-        Enter(CatState.Sit, seconds);
+        SitFor(seconds);
         _loafAt = LoafAfter.min;
         _tuckAt = TuckAfter.min;
     }
 
-    /// <summary>Send the cat to a given spot (self test, debugging).</summary>
-    public void ExploreTo(Platform p, double x)
-    {
-        _exploreTarget = p;
-        _exploreX = x;
-        Goal = Goal.Explore;
-        Enter(CatState.Travel);
-    }
+    /// <summary>Forget the last hunt so the next moving cursor is chased at once (self test).</summary>
+    public void ForgetHunt() => _huntCooldown = 0;
 
-    /// <summary>Bring the cat back onto a floor (tray "call the cat").</summary>
-    public void Summon(CatBody body, Platform floor, double x)
+    public override string Describe(PetState s) => s switch
     {
-        body.PlaceOn(floor, x);
-        Goal = Goal.None;
-        Cheer(15);
-        Enter(CatState.Idle, 2);
-    }
+        PetState.Idle => "si guarda intorno", PetState.Wander => "passeggia", PetState.Travel => "va da qualche parte",
+        PetState.Zoomies => "zoomies!", PetState.Eat => "mangia", PetState.Sleep => "dorme", PetState.Sit => "seduta",
+        PetState.Meow => "reclama la pappa", PetState.ChaseTreat => "insegue il bocconcino", PetState.Petted => "fa le fusa",
+        PetState.Held => "in braccio", PetState.Airborne => "in volo", PetState.Landing => "atterra",
+        PetState.Climb => "si arrampica", _ => s.ToString(),
+    };
 
-    // ---------------------------------------------------------------- main loop
-
-    public void Update(double dt, CatBody body, Needs needs, SurfaceMap map, IWorld world)
+    protected override void Tick(double dt)
     {
-        _stateTime += dt;
-        _petting = Math.Max(0, _petting - dt);
-        _bowlCooldown = Math.Max(0, _bowlCooldown - dt);
-        _turnLeft = Math.Max(0, _turnLeft - dt);
-        Happy = Math.Max(0, Happy - dt);
         _huntCooldown = Math.Max(0, _huntCooldown - dt);
         _swatLeft = Math.Max(0, _swatLeft - dt);
-        bool moved = Cursor is { } cur && _lastCursor is { } last && (cur - last).Length > 0.5;
-        _cursorStill = moved ? 0 : _cursorStill + dt;
-        _lastCursor = Cursor;
-        needs.Tick(dt, State == CatState.Sleep);
-        Emote = null;
-
-        if (State == CatState.Held)
-        {
-            Action = "held";
-            if (_petting > 0.5) { needs.Pet(dt); Emote = "♥"; }
-            return;
-        }
-
-        double walk = 0;
-        if (body.Mode == BodyMode.Climbing)
-        {
-            if (State != CatState.Climb) Enter(CatState.Climb);
-            Action = "climb";
-            Facing = -body.Wall!.Side;   // facing the window side it hangs on
-        }
-        else if (body.Mode == BodyMode.Airborne)
-        {
-            if (State != CatState.Airborne)
-            {
-                _afterLanding = State is CatState.Travel or CatState.Zoomies or CatState.ChaseTreat ? Goal
-                              : State == CatState.Climb ? _afterLanding : Goal.None;
-                if (State == CatState.Zoomies) _zoomLeft = Math.Max(0, _stateDuration - _stateTime);
-                Enter(CatState.Airborne);
-            }
-            Action = Flight.Stretched(body.Vel) ? "jump" : "fall";
-            if (Math.Abs(body.Vel.X) > 20) Facing = Math.Sign(body.Vel.X);
-        }
-        else
-        {
-            walk = Think(dt, body, needs, map, world);
-            if (_turnLeft > 0 && Action is "run" or "lope" or "trot") Action = "idle";   // stopped for a moment, turning
-        }
-
-        body.Step(dt, map, walk);
-        if (body.Mode != BodyMode.Airborne && Action != "prejump") JumpTarget = null;
-
-        if (body.JustLanded)
-        {
-            if (State == CatState.Climb)
-                ResumeAfterLanding();
-            else if (body.LandingSpeed > 1100)
-                Enter(CatState.Landing, 0.45);
-            else if (body.LandingSpeed > 450)
-                Enter(CatState.Landing, 0.3);   // an ordinary jump: a quick absorb on the front legs
-            else
-                ResumeAfterLanding();
-        }
-        if (body.HitWall && State is CatState.Wander or CatState.Zoomies)
-        {
-            Facing = -Facing;
-            if (State == CatState.Zoomies) _turnLeft = TurnTime;
-            _zoomTarget = double.NaN;
-            _wanderX = body.Pos.X + Facing * 150;
-        }
     }
 
-    void ResumeAfterLanding()
+    protected override void OnEnter(PetState s)
     {
-        if (_afterLanding is Goal.Bowl or Goal.Perch or Goal.Treat or Goal.Explore)
-        {
-            Goal = _afterLanding;
-            Enter(Goal == Goal.Treat ? CatState.ChaseTreat : CatState.Travel);
-        }
-        else if (_afterLanding == Goal.Zoom)
-            Enter(CatState.Zoomies, _zoomLeft);
-        else
-            Enter(CatState.Idle, 1 + _rng.NextDouble());
-        _afterLanding = Goal.None;
+        _prejump = 0;
+        _prejumpPlan = -1;
+        _loafAt = -1;
     }
 
-    /// <summary>Grounded behaviour. Returns the horizontal walking speed.</summary>
-    double Think(double dt, CatBody body, Needs needs, SurfaceMap map, IWorld world)
+    protected override string? EnterAction(PetState s) => s switch
     {
-        bool calm = State is CatState.Idle or CatState.Sit or CatState.Wander or CatState.Meow or CatState.Petted
-                    || State == CatState.Travel && Goal == Goal.Explore;
-        if (_petting > 0.6 && calm && State != CatState.Petted)
-            Enter(CatState.Petted);
-        else if (calm && State is not (CatState.Petted or CatState.Meow) && _petting <= 0 && _huntCooldown <= 0
-                 && _cursorStill < 0.5 && CursorDistance(body) is > 45 and < HuntRange)
+        PetState.Meow => "meow",
+        PetState.Hunt => "idle",
+        _ => null,
+    };
+
+    protected override bool StopsToTurn(string action) => action is "run" or "lope" or "trot";
+
+    protected override void BeforeThink(double dt, CatBody body, Needs needs, bool calm)
+    {
+        if (calm && State is not (PetState.Petted or PetState.Meow) && _petting <= 0 && _huntCooldown <= 0
+            && _cursorStill < 0.5 && CursorDistance(body) is > 45 and < HuntRange)
             StartHunt(needs);
+    }
 
+    protected override double ThinkSpecial(double dt, CatBody body, Needs needs, SurfaceMap map, IWorld world)
+    {
         switch (State)
         {
-            case CatState.Landing:
-                Action = "land";
-                if (_stateTime >= _stateDuration) ResumeAfterLanding();
-                return 0;
-
-            case CatState.Airborne:
-                ResumeAfterLanding();
-                return 0;
-
-            case CatState.Petted:
-                Action = "purr";
-                Emote = "♥";
-                if (_petting > 0) needs.Pet(dt);
-                if (_petting <= 0 && _stateTime > 1.5) Enter(CatState.Sit, 4 + _rng.NextDouble() * 6);
-                return 0;
-
-            case CatState.Sleep:
-                Action = "sleep";
-                Emote = "z";
-                if (_petting > 0) needs.Pet(dt * 0.5);
-                if (needs.Energy >= 0.98) { Goal = Goal.None; Enter(CatState.Idle, 2); }
-                return 0;
-
-            case CatState.Eat:
-                Action = "eat";
-                if (world.BowlFood <= 0 || needs.Hunger <= 0.02) { Goal = Goal.None; Enter(CatState.Sit, 5); return 0; }
-                world.EatFromBowl(0.06 * dt);
-                needs.Eat(0.12 * dt);
-                return 0;
-
-            case CatState.Meow:
+            case PetState.Meow:
                 Action = (_stateTime % 5) < 1.2 ? "meow" : "sit";
                 if (Action == "meow") Emote = "!";
                 // Exhausted, or the bowl cannot be reached: stop insisting for a while.
@@ -330,77 +116,67 @@ public sealed class CatBrain
                     _bowlCooldown = 90;
                     _bowlFails = 0;
                     Goal = Goal.None;
-                    Enter(CatState.Idle, 1);
+                    Enter(PetState.Idle, 1);
                     return 0;
                 }
-                if (_stateTime > 5 && world.BowlFood > 0.05) { Goal = Goal.Bowl; Enter(CatState.Travel); }
-                if (needs.Hunger < 0.5) Enter(CatState.Idle, 1);
+                if (_stateTime > 5 && world.BowlFood > 0.05) { Goal = Goal.Bowl; Enter(PetState.Travel); }
+                if (needs.Hunger < 0.5) Enter(PetState.Idle, 1);
                 return 0;
 
-            case CatState.Zoomies:
-                _speed = RunSpeed;
-                if (_stateTime >= _stateDuration)
-                {
-                    needs.Play(0.8);
-                    Enter(CatState.Sit, 5);
-                    return 0;
-                }
-                return DoZoomies(dt, body, map);
-
-            case CatState.Travel:
-            case CatState.ChaseTreat:
-                // Watchdog: a trip that never ends means something unforeseen; give up and look around.
-                if (_stateTime > TravelTimeout) { Goal = Goal.None; Enter(CatState.Idle, 2); return 0; }
-                return DoTravel(dt, body, needs, map, world);
-
-            case CatState.Wander:
-                _speed = Happy > 0 ? TrotSpeed : WalkSpeed;
-                Action = Gait(_speed);
-                if (Math.Abs(body.Pos.X - _wanderX) < 4 || _stateTime > _stateDuration || !body.Support!.SpansX(_wanderX))
-                {
-                    Enter(CatState.Idle, 1 + _rng.NextDouble() * 3);
-                    return 0;
-                }
-                double wv = Toward(body.Pos.X, _wanderX, _speed, TurnSlack);
-                if (wv == 0 && _turnLeft <= 0) Enter(CatState.Idle, 1 + _rng.NextDouble() * 3);   // close enough: no walking on the spot
-                return wv;
-
-            case CatState.Hunt:
+            case PetState.Hunt:
                 return DoHunt(dt, body, needs);
 
-            case CatState.Sit:
-                Action = RestingAction();
-                if (Action == "sit") TurnToCursor(dt, body);
-                if (_stateTime >= _stateDuration) Decide(body, needs, map, world);
-                return 0;
-
-            default: // Idle
-                Action = "idle";
-                TurnToCursor(dt, body);
-                if (_stateTime >= _stateDuration) Decide(body, needs, map, world);
-                return 0;
+            default:
+                return StandAbout(dt, body, needs, map, world);
         }
     }
 
-    /// <summary>
-    /// The head turns only so far: a cursor that stays behind her makes her turn round to face it (the visual turns
-    /// her through the viewer's side). Straight above her or in front she just looks.
-    /// </summary>
-    void TurnToCursor(double dt, CatBody body)
+    // ---------------------------------------------------------------- decisions
+
+    protected override void GetSleepy(CatBody body, Needs needs)
     {
-        bool behind = Cursor is { } c && (c - body.Pos).Length < TurnToCursorRange
-                      && (c.X - body.Pos.X) * Facing < -TurnToCursorBehind;
-        _cursorBehind = behind ? _cursorBehind + dt : 0;
-        if (_cursorBehind < TurnToCursorAfter) return;
-        Facing = -Facing;
-        _cursorBehind = 0;
+        Goal = Goal.Perch;
+        Enter(PetState.Travel);
+    }
+
+    protected override void NoFood(bool unreachable) => Enter(PetState.Meow);
+
+    protected override void DecideIdle(CatBody body, Needs needs, SurfaceMap map, IWorld world)
+    {
+        double r = _rng.NextDouble();
+        if (Happy > 0) r *= 0.6;   // in a good mood: more strolling about, less sitting
+        if (r < 0.35)
+        {
+            var s = body.Support!;
+            _wanderX = MathX.SafeClamp(body.Pos.X + (_rng.NextDouble() * 2 - 1) * 400, s.X0 + 30, s.X1 - 30);
+            Enter(PetState.Wander, 12);
+        }
+        else if (r < 0.6 && PickExplore(body, map))
+        {
+            Goal = Goal.Explore;
+            Enter(PetState.Travel);
+        }
+        else if (r < 0.85)
+        {
+            Enter(PetState.Sit, 8 + _rng.NextDouble() * 20);
+            // Settling in for a long one: sit up for a moment, then tuck the paws in.
+            if (_stateDuration >= LoafFromSit)
+            {
+                _loafAt = LoafAfter.min + _rng.NextDouble() * (LoafAfter.max - LoafAfter.min);
+                _tuckAt = TuckAfter.min + _rng.NextDouble() * (TuckAfter.max - TuckAfter.min);
+            }
+        }
+        else if (needs.Energy < 0.5 && r < 0.93)
+            Enter(PetState.Sleep);  // cat nap on the spot
+        else
+            Enter(PetState.Idle, 3 + _rng.NextDouble() * 5);
     }
 
     /// <summary>
     /// A long sit: sitting up, lying down (the front paws stepping forward), lying with the paws out, tucking
     /// them in, then the loaf. Each change takes the time a cat takes; a short sit stays a sit.
     /// </summary>
-    string RestingAction()
+    protected override string RestingAction()
     {
         double t = _stateTime - _loafAt;
         if (_loafAt < 0 || t < 0) return "sit";
@@ -410,166 +186,31 @@ public sealed class CatBrain
         return t < _tuckAt + TuckTime ? "tuck" : "loaf";
     }
 
-    // ---------------------------------------------------------------- decisions
+    // ---------------------------------------------------------------- moving
 
-    void Decide(CatBody body, Needs needs, SurfaceMap map, IWorld world)
+    protected override double WanderSpeed() => Happy > 0 ? TrotSpeed : WalkSpeed;
+
+    protected override double TravelSpeed(Needs needs, IWorld world) =>
+        State == PetState.ChaseTreat ? RunSpeed
+        : Goal == Goal.Bowl && needs.Hunger > 0.8 ? LopeSpeed
+        : Goal == Goal.Bowl && world.BowlFood > 0.02 || Happy > 0 ? TrotSpeed   // pleased: food waiting, or cheered up
+        : WalkSpeed;
+
+    /// <summary>The animation for a ground speed: walk, happy trot, lope, sprint.</summary>
+    public override string GaitFor(double speed) =>
+        speed >= RunSpeed ? "run" : speed >= LopeSpeed ? "lope" : speed > WalkSpeed + 1 ? "trot" : "walk";
+
+    protected override void OnWalkingToStep() => _prejump = 0;
+
+    /// <summary>At the takeoff point: crouch briefly, then jump (or grab the window side).</summary>
+    protected override double TakeOff(double dt, CatBody body, NavStep hop)
     {
-        if (world.TreatPos is { } t && world.TreatLanded
-            && !(_treatIgnored is { } ig && (ig - t).Length < 3))
-        {
-            Goal = Goal.Treat;
-            Enter(CatState.ChaseTreat);
-            return;
-        }
-        if (needs.Hunger > 0.65 && world.BowlPlatform != null && _bowlCooldown <= 0)
-        {
-            Goal = Goal.Bowl;
-            Enter(CatState.Travel);
-            return;
-        }
-        if (needs.Energy < 0.25)
-        {
-            Goal = Goal.Perch;
-            Enter(CatState.Travel);
-            return;
-        }
-        if (needs.Playfulness > 0.75) { Goal = Goal.Zoom; Enter(CatState.Zoomies, 8 + _rng.NextDouble() * 5); return; }
-
-        double r = _rng.NextDouble();
-        if (Happy > 0) r *= 0.6;   // in a good mood: more strolling about, less sitting
-        if (r < 0.35)
-        {
-            var s = body.Support!;
-            _wanderX = MathX.SafeClamp(body.Pos.X + (_rng.NextDouble() * 2 - 1) * 400, s.X0 + 30, s.X1 - 30);
-            Enter(CatState.Wander, 12);
-        }
-        else if (r < 0.6 && PickExplore(body, map))
-        {
-            Goal = Goal.Explore;
-            Enter(CatState.Travel);
-        }
-        else if (r < 0.85)
-        {
-            Enter(CatState.Sit, 8 + _rng.NextDouble() * 20);
-            // Settling in for a long one: sit up for a moment, then tuck the paws in.
-            if (_stateDuration >= LoafFromSit)
-            {
-                _loafAt = LoafAfter.min + _rng.NextDouble() * (LoafAfter.max - LoafAfter.min);
-                _tuckAt = TuckAfter.min + _rng.NextDouble() * (TuckAfter.max - TuckAfter.min);
-            }
-        }
-        else if (needs.Energy < 0.5 && r < 0.93)
-            Enter(CatState.Sleep);  // cat nap on the spot
-        else
-            Enter(CatState.Idle, 3 + _rng.NextDouble() * 5);
-    }
-
-    bool PickExplore(CatBody body, SurfaceMap map)
-    {
-        var here = body.Support!;
-        // From up high, half of the time head back down; otherwise any other surface.
-        bool down = here.Kind != SurfaceKind.Floor && _rng.NextDouble() < 0.5;
-        var candidates = map.Platforms.Where(p => p.Id != here.Id && (!down || p.Kind == SurfaceKind.Floor)).ToList();
-        while (candidates.Count > 0)
-        {
-            var p = candidates[_rng.Next(candidates.Count)];
-            double x = p.X0 + 30 + _rng.NextDouble() * Math.Max(1, p.X1 - p.X0 - 60);
-            if (Navigator.FindPath(map, here, body.Pos.X, p, x, MaxJumpUp, MaxJumpGap) != null)
-            {
-                _exploreTarget = p;
-                _exploreX = x;
-                return true;
-            }
-            candidates.Remove(p);
-        }
-        return false;
-    }
-
-    // ---------------------------------------------------------------- travelling
-
-    (Platform platform, double x)? Destination(Needs needs, SurfaceMap map, IWorld world, CatBody body)
-    {
-        switch (Goal)
-        {
-            case Goal.Bowl when world.BowlPlatform != null:
-                // Stand beside the bowl, on the side we come from, with the mouth over it.
-                double side = body.Pos.X < world.BowlX ? -1 : 1;
-                return (Current(map, world.BowlPlatform) ?? world.BowlPlatform, world.BowlX + side * EatReach);
-            case Goal.Perch when world.PerchTop != null:
-                return (Current(map, world.PerchTop) ?? world.PerchTop, world.PerchX);
-            case Goal.Perch:
-                return (body.Support!, body.Pos.X);   // no perch: sleep where we are
-            case Goal.Treat when world.TreatPos is { } t && world.TreatLanded:
-                var tp = map.SupportAt(t.X, t.Y, 4);
-                if (tp == null) return null;
-                double tside = body.Pos.X < t.X ? -1 : 1;
-                return (tp, MathX.SafeClamp(t.X + tside * EatReach, tp.X0 + 1, tp.X1 - 1));
-            case Goal.Explore when _exploreTarget != null:
-                return (Current(map, _exploreTarget) ?? _exploreTarget, _exploreX);
-            default:
-                return null;
-        }
-    }
-
-    /// <summary>The same surface in a freshly built map (ids change on every rebuild).</summary>
-    static Platform? Current(SurfaceMap map, Platform p) =>
-        map.Platforms.FirstOrDefault(q => q.Kind == p.Kind && q.Owner == p.Owner && q.Y == p.Y && q.X0 <= p.Center && q.X1 > p.Center)
-        ?? map.Platforms.FirstOrDefault(q => q.Kind == p.Kind && q.Owner == p.Owner);
-
-    double DoTravel(double dt, CatBody body, Needs needs, SurfaceMap map, IWorld world)
-    {
-        var dest = Destination(needs, map, world, body);
-        if (dest == null) { Goal = Goal.None; Enter(CatState.Idle, 1); return 0; }
-        var (target, tx) = dest.Value;
-
-        var path = Navigator.FindPath(map, body.Support!, body.Pos.X, target, tx, MaxJumpUp, MaxJumpGap);
-        if (path == null)
-        {
-            // Unreachable: complain a bit if it was food, otherwise give up.
-            if (Goal == Goal.Bowl)
-            {
-                _bowlFails++;
-                Enter(CatState.Meow);
-                return 0;
-            }
-            if (Goal == Goal.Treat) _treatIgnored = world.TreatPos;
-            Goal = Goal.None;
-            Enter(CatState.Idle, 2);
-            return 0;
-        }
-
-        _speed = State == CatState.ChaseTreat ? RunSpeed
-               : Goal == Goal.Bowl && needs.Hunger > 0.8 ? LopeSpeed
-               : Goal == Goal.Bowl && world.BowlFood > 0.02 || Happy > 0 ? TrotSpeed   // pleased: food waiting, or cheered up
-               : WalkSpeed;
-        var step = path[0];
-        bool final = path.Count == 1;
-
-        if (Math.Abs(body.Pos.X - step.X) > 4)
-        {
-            Action = Gait(_speed);
-            _prejump = 0;
-            double v = Toward(body.Pos.X, step.X, _speed);
-            // Slow down on the last few pixels so we do not overshoot at 30 fps.
-            double remaining = Math.Abs(body.Pos.X - step.X);
-            if (remaining < Math.Abs(v) * dt) v = Math.Sign(v) * remaining / dt;
-            return v;
-        }
-
-        if (final)
-        {
-            Arrive(body, world, needs);
-            return 0;
-        }
-
-        // At the takeoff point: crouch briefly, then jump (or grab the window side).
-        var hop = path[1];
         if (hop.Kind == NavStepKind.Climb)
         {
             Facing = -hop.Via!.Side;
             _afterLanding = Goal;
             body.StartClimb(hop.Via, hop.Target, hop.LandX);
-            Enter(CatState.Climb);
+            Enter(PetState.Climb);
             return 0;
         }
         Facing = Math.Sign(hop.LandX - body.Pos.X) is var s && s != 0 ? s : Facing;
@@ -593,41 +234,16 @@ public sealed class CatBrain
         return 0;
     }
 
-    void Arrive(CatBody body, IWorld world, Needs needs)
+    protected override double DoZoomies(double dt, CatBody body, SurfaceMap map)
     {
-        switch (Goal)
-        {
-            case Goal.Bowl:
-                _bowlFails = 0;
-                Facing = world.BowlX > body.Pos.X ? 1 : -1;
-                Enter(world.BowlFood > 0.02 ? CatState.Eat : CatState.Meow);
-                break;
-            case Goal.Perch:
-                Enter(CatState.Sleep);
-                break;
-            case Goal.Treat:
-                world.ConsumeTreat();
-                needs.Eat(0.08);
-                needs.Play(0.15);
-                Goal = Goal.None;
-                Enter(CatState.Sit, 3);
-                break;
-            default:
-                Goal = Goal.None;
-                Enter(CatState.Idle, 1 + _rng.NextDouble() * 2);
-                break;
-        }
-    }
-
-    double DoZoomies(double dt, CatBody body, SurfaceMap map)
-    {
+        _speed = RunSpeed;
         var s = body.Support!;
         if (double.IsNaN(_zoomTarget) || Math.Abs(body.Pos.X - _zoomTarget) < 8 || !s.SpansX(_zoomTarget))
         {
             // Sometimes leap onto another surface in the middle of a sprint.
             if (_rng.NextDouble() < 0.3 && PickExplore(body, map))
             {
-                var path = Navigator.FindPath(map, s, body.Pos.X, _exploreTarget!, _exploreX, MaxJumpUp, MaxJumpGap);
+                var path = FindPath(map, s, body.Pos.X, _exploreTarget!, _exploreX);
                 if (path != null && path.Count >= 2 && path[1].Kind is NavStepKind.Jump or NavStepKind.Drop
                     && Math.Abs(path[0].X - body.Pos.X) < 400)
                 {
@@ -648,35 +264,15 @@ public sealed class CatBrain
                 _zoomTarget = s.X0 + 30 + _rng.NextDouble() * Math.Max(1, span);
             }
         }
-        _stuckFrames = Math.Abs(body.Vel.X) < 1 ? _stuckFrames + 1 : 0;
-        if (_stuckFrames > 15)
-        {
-            // Pinned against a screen edge: pick a new target next frame.
-            _zoomTarget = double.NaN;
-            _stuckFrames = 0;
-            return 0;
-        }
-        // Brake in time to stop on the target, speed up again after it: no dead stop from a gallop.
-        double remaining = Math.Abs(body.Pos.X - _zoomTarget);
-        // (down to a creep by the 8 px that count as arrived)
-        double want = Math.Min(RunSpeed, Math.Max(ZoomCreep, Math.Sqrt(2 * ZoomBrake * Math.Max(0, remaining - 8))));
-        _zoomSpeed = want > _zoomSpeed ? Math.Min(want, _zoomSpeed + ZoomAccel * dt) : Math.Max(want, _zoomSpeed - ZoomBrake * dt);
-        double v = Toward(body.Pos.X, _zoomTarget, RunSpeed, TurnSlack);   // (a running turn: stops to turn round)
-        if (v == 0) _zoomSpeed = 0;   // turning round
-        else v = Math.Sign(v) * _zoomSpeed;
+        double v = RunTowardsZoomTarget(dt, body, RunSpeed, ZoomAccel, ZoomBrake, ZoomCreep);
         // the gait follows the speed: gallop, lope, trot while slowing down or getting going
         Action = _zoomSpeed > (LopeSpeed + RunSpeed) / 2 ? "run" : _zoomSpeed > TrotSpeed ? "lope" : "trot";
-        // Brake on the last few pixels: at speed she would overshoot and turn back, again and again.
-        if (remaining < Math.Abs(v) * dt) v = Math.Sign(v) * remaining / dt;
         return v;
     }
 
     // ---------------------------------------------------------------- hunting the cursor
 
     /// <summary>Distance from the cursor to the middle of the body (it moves the head, not the feet).</summary>
-    /// <summary>Forget the last hunt so the next moving cursor is chased at once (self test).</summary>
-    public void ForgetHunt() => _huntCooldown = 0;
-
     double CursorDistance(CatBody body) =>
         Cursor is { } c ? (c - (body.Pos + new Vec2(0, -40))).Length : double.MaxValue;
 
@@ -688,14 +284,14 @@ public sealed class CatBrain
         _wiggleAt = 0.8 + _rng.NextDouble() * 0.6;
         _pounceAt = _wiggleAt + 1.2 + _rng.NextDouble();
         Goal = Goal.None;
-        Enter(CatState.Hunt);
+        Enter(PetState.Hunt);
     }
 
     void EndHunt(Needs needs, double played)
     {
         needs.Play(played);
         _huntCooldown = 25 + _rng.NextDouble() * 35;
-        Enter(CatState.Sit, 3 + _rng.NextDouble() * 3);
+        Enter(PetState.Sit, 3 + _rng.NextDouble() * 3);
     }
 
     double DoHunt(double dt, CatBody body, Needs needs)
@@ -735,51 +331,5 @@ public sealed class CatBrain
         needs.Play(0.4);
         _huntCooldown = 25 + _rng.NextDouble() * 35;
         return 0;
-    }
-
-    // ---------------------------------------------------------------- helpers
-
-    /// <summary>The animation for a ground speed: walk, happy trot, lope, sprint.</summary>
-    static string Gait(double speed) =>
-        speed >= RunSpeed ? "run" : speed >= LopeSpeed ? "lope" : speed > WalkSpeed + 1 ? "trot" : "walk";
-
-    double Toward(double from, double to, double speed, double slack = 0)
-    {
-        double d = to - from;
-        if (double.IsNaN(d) || Math.Abs(d) < 1) return 0;
-        int dir = Math.Sign(d);
-        // A cat does not turn round for a few pixels behind it: close enough.
-        if (dir != Facing && Math.Abs(d) < slack) return 0;
-        if (dir != Facing && speed > WalkSpeed + 1) _turnLeft = TurnTime;   // running the other way: turn first
-        Facing = dir;
-        return _turnLeft > 0 ? 0 : Facing * speed;
-    }
-
-    void Enter(CatState s, double duration = 0)
-    {
-        State = s;
-        _stateTime = 0;
-        _stateDuration = duration;
-        if (s != CatState.Zoomies) _zoomTarget = double.NaN;
-        _zoomSpeed = 0;
-        _prejump = 0;
-        _prejumpPlan = -1;
-        _loafAt = -1;
-        Action = s switch
-        {
-            CatState.Sleep => "sleep",
-            CatState.Zoomies => "run",
-            CatState.Eat => "eat",
-            CatState.Meow => "meow",
-            CatState.Sit => "sit",
-            CatState.Petted => "purr",
-            CatState.Held => "held",
-            CatState.Landing => "land",
-            CatState.Wander => "walk",
-            CatState.Idle => "idle",
-            CatState.Climb => "climb",
-            CatState.Hunt => "idle",
-            _ => Action,
-        };
     }
 }

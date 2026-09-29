@@ -33,7 +33,7 @@ public class LoafTests
         public readonly CatBrain Brain;
         public readonly Needs Needs = new() { Hunger = 0.1, Energy = 0.9, Playfulness = 0.1 };
         public readonly World World = new();
-        public readonly List<(string action, CatState state, double time)> Log = new();
+        public readonly List<(string action, PetState state, double time)> Log = new();
 
         public Scene(int seed)
         {
@@ -72,7 +72,7 @@ public class LoafTests
         {
             var (action, state, _) = s.Log[i];
             string before = s.Log[i - 1].action;
-            if (action is "liedown" or "crouch" or "tuck" or "loaf") Assert.Equal(CatState.Sit, state);
+            if (action is "liedown" or "crouch" or "tuck" or "loaf") Assert.Equal(PetState.Sit, state);
             if (action == before) continue;
             // always in this order: lies down from sitting (never from walking), tucks in the paws of a cat already lying
             string expected = action switch { "liedown" => "sit", "crouch" => "liedown", "tuck" => "crouch", "loaf" => "tuck", _ => before };
@@ -91,7 +91,7 @@ public class LoafTests
         int loaf = s.Log.FindIndex(e => e.action == "loaf");
         Assert.True(lying > 0 && down > lying && tucking > down && loaf > tucking);
         int sitStart = lying;
-        while (sitStart > 0 && s.Log[sitStart - 1].state == CatState.Sit) sitStart--;
+        while (sitStart > 0 && s.Log[sitStart - 1].state == PetState.Sit) sitStart--;
         double Took(int from, int to) => s.Log[to].time - s.Log[from].time;
         Assert.InRange(Took(sitStart, lying), CatBrain.LoafAfter.min - 0.05, CatBrain.LoafAfter.max + 0.05);
         Assert.InRange(Took(lying, down), CatBrain.LieDownTime - 0.05, CatBrain.LieDownTime + 0.05);
@@ -121,6 +121,6 @@ public class LoafTests
         Assert.Equal("tuck", s.Brain.Action);
         s.Run(CatBrain.TuckTime);
         Assert.Equal("loaf", s.Brain.Action);
-        Assert.Equal(CatState.Sit, s.Brain.State);
+        Assert.Equal(PetState.Sit, s.Brain.State);
     }
 }

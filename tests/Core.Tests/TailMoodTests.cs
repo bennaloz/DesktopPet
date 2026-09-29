@@ -17,14 +17,14 @@ public class TailMoodTests
         new() { Hunger = hunger, Energy = energy, Playfulness = play, Affection = affection };
 
     [Theory]
-    [InlineData(CatState.Zoomies, 0.9, 0.1, 1.0, 0.9, 0, TailMood.Zoomies)]   // zoomies beat everything
-    [InlineData(CatState.Travel, 0.8, 0.8, 0.3, 0.9, 0, TailMood.Annoyed)]    // hungry beats pleased
-    [InlineData(CatState.Wander, 0.3, 0.2, 0.3, 0.9, 0, TailMood.Tired)]
-    [InlineData(CatState.Wander, 0.3, 0.8, 0.3, 0.5, 10, TailMood.Content)]   // just petted or called
-    [InlineData(CatState.Wander, 0.3, 0.8, 0.3, 0.85, 0, TailMood.Content)]   // feeling loved
-    [InlineData(CatState.Wander, 0.3, 0.8, 0.7, 0.5, 0, TailMood.Playful)]
-    [InlineData(CatState.Wander, 0.3, 0.8, 0.3, 0.5, 0, TailMood.Calm)]
-    public void Mood_comes_from_the_needs(CatState state, double hunger, double energy, double play, double affection,
+    [InlineData(PetState.Zoomies, 0.9, 0.1, 1.0, 0.9, 0, TailMood.Zoomies)]   // zoomies beat everything
+    [InlineData(PetState.Travel, 0.8, 0.8, 0.3, 0.9, 0, TailMood.Annoyed)]    // hungry beats pleased
+    [InlineData(PetState.Wander, 0.3, 0.2, 0.3, 0.9, 0, TailMood.Tired)]
+    [InlineData(PetState.Wander, 0.3, 0.8, 0.3, 0.5, 10, TailMood.Content)]   // just petted or called
+    [InlineData(PetState.Wander, 0.3, 0.8, 0.3, 0.85, 0, TailMood.Content)]   // feeling loved
+    [InlineData(PetState.Wander, 0.3, 0.8, 0.7, 0.5, 0, TailMood.Playful)]
+    [InlineData(PetState.Wander, 0.3, 0.8, 0.3, 0.5, 0, TailMood.Calm)]
+    public void Mood_comes_from_the_needs(PetState state, double hunger, double energy, double play, double affection,
                                           double happy, TailMood expected) =>
         Assert.Equal(expected, TailMoods.For(state, N(hunger, energy, play, affection), happy));
 

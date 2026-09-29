@@ -57,7 +57,7 @@ public class CatBrainTests
         var sim = new Sim();
         sim.Needs.Hunger = 0.9;
 
-        Assert.True(sim.RunUntil(() => sim.Brain.State == CatState.Eat, 30));
+        Assert.True(sim.RunUntil(() => sim.Brain.State == PetState.Eat, 30));
         Assert.InRange(Math.Abs(sim.Body.Pos.X - sim.World.BowlX), 0, 80);
 
         Assert.True(sim.RunUntil(() => sim.Needs.Hunger < 0.1, 30));
@@ -71,7 +71,7 @@ public class CatBrainTests
         sim.Needs.Hunger = 0.9;
         sim.World.BowlFood = 0;
 
-        Assert.True(sim.RunUntil(() => sim.Brain.State == CatState.Meow, 30));
+        Assert.True(sim.RunUntil(() => sim.Brain.State == PetState.Meow, 30));
     }
 
     [Fact]
@@ -83,11 +83,11 @@ public class CatBrainTests
         sim.World.PerchX = 1055;
         sim.Needs.Energy = 0.1;
 
-        Assert.True(sim.RunUntil(() => sim.Brain.State == CatState.Sleep, 40));
+        Assert.True(sim.RunUntil(() => sim.Brain.State == PetState.Sleep, 40));
         Assert.Equal(800, sim.Body.Pos.Y);
         Assert.Equal("sleep", sim.Brain.Action);
 
-        Assert.True(sim.RunUntil(() => sim.Brain.State != CatState.Sleep, 4000));
+        Assert.True(sim.RunUntil(() => sim.Brain.State != PetState.Sleep, 4000));
         Assert.True(sim.Needs.Energy > 0.9);
     }
 
@@ -107,9 +107,9 @@ public class CatBrainTests
         var sim = new Sim();
         sim.Needs.Playfulness = 1;
 
-        Assert.True(sim.RunUntil(() => sim.Brain.State == CatState.Zoomies, 10));
+        Assert.True(sim.RunUntil(() => sim.Brain.State == PetState.Zoomies, 10));
         Assert.Equal("run", sim.Brain.Action);
-        Assert.True(sim.RunUntil(() => sim.Brain.State != CatState.Zoomies, 30));
+        Assert.True(sim.RunUntil(() => sim.Brain.State != PetState.Zoomies, 30));
         Assert.True(sim.Needs.Playfulness < 0.5);
     }
 
@@ -125,7 +125,7 @@ public class CatBrainTests
             sim.Brain.Update(1 / 30.0, sim.Body, sim.Needs, sim.Map, sim.World);
         }
 
-        Assert.Equal(CatState.Petted, sim.Brain.State);
+        Assert.Equal(PetState.Petted, sim.Brain.State);
         Assert.Equal("purr", sim.Brain.Action);
     }
 
@@ -136,7 +136,7 @@ public class CatBrainTests
         sim.Brain.OnGrab(sim.Body);
         sim.Body.MoveHeld(new Vec2(600, 400));
         sim.Brain.Update(1 / 30.0, sim.Body, sim.Needs, sim.Map, sim.World);
-        Assert.Equal(("held", CatState.Held), (sim.Brain.Action, sim.Brain.State));
+        Assert.Equal(("held", PetState.Held), (sim.Brain.Action, sim.Brain.State));
 
         sim.Brain.OnRelease(sim.Body, new Vec2(0, 0));
         Assert.True(sim.RunUntil(() => sim.Body.Mode == BodyMode.Grounded, 5));
@@ -187,7 +187,7 @@ public class CatBrainTests
             }
             brain.Update(1 / 30.0, body, needs, map, world);
             if (body.Support?.Kind == SurfaceKind.WindowTop) visitedWindow = true;
-            travelling = brain.State is CatState.Travel or CatState.ChaseTreat ? travelling + 1 / 30.0 : 0;
+            travelling = brain.State is PetState.Travel or PetState.ChaseTreat ? travelling + 1 / 30.0 : 0;
             longestTrip = Math.Max(longestTrip, travelling);
             Assert.InRange(body.Pos.X, 0, 1920);
             Assert.True(body.Pos.Y <= 1041, $"y={body.Pos.Y} at frame {frame}");
