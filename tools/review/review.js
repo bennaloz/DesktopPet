@@ -724,10 +724,11 @@ $("prev").onclick = () => step(-1);
 $("next").onclick = () => step(1);
 $("rate").onchange = (e) => (S.rate = +e.target.value);
 $("scrub").addEventListener("input", (e) => {
+  const at = +e.target.value * S.clip.duration;   // read first: resetting the pose redraws the slider
   if (!confirmDiscard()) return renderClock();
   resetEdits();
   setPlaying(false);
-  moveTime(+e.target.value * S.clip.duration);
+  moveTime(at);
 });
 for (const b of document.querySelectorAll("#views button")) b.onclick = () => setView(b.dataset.view);
 for (const b of document.querySelectorAll("#modeRow button")) b.onclick = () => {
