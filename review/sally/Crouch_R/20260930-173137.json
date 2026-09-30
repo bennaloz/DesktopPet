@@ -1,0 +1,20 @@
+{
+  "pet": "sally",
+  "clip": "Crouch_R",
+  "time": 1.6601,
+  "frame": 50,
+  "frames": 90,
+  "phase": 0.553,
+  "duration": 3,
+  "view": "desktop",
+  "facing": 1,
+  "note": "palmi verso l'alto e problema della zampa dietro",
+  "summary": [],
+  "legs": {},
+  "bones": {},
+  "actions": [
+    "crouch"
+  ],
+  "fingerprint": "a692097f",
+  "units": "before_deg/after_deg: rotazione locale dell'osso (Euler XYZ, gradi); *_m: metri del GLB negli assi del corpo (avanti = verso il muso, su, sinistra = fianco sinistro dell'animale); points_*: direzione in cui punta l'osso negli stessi assi"
+}

@@ -1,0 +1,20 @@
+{
+  "pet": "sally",
+  "clip": "LieDown_R",
+  "time": 0.0333,
+  "frame": 1,
+  "frames": 59,
+  "phase": 0.017,
+  "duration": 1.9667,
+  "view": "desktop",
+  "facing": 1,
+  "note": "idem rispetto a liedown e poi forse anche la schiena che è un palo",
+  "summary": [],
+  "legs": {},
+  "bones": {},
+  "actions": [
+    "liedown"
+  ],
+  "fingerprint": "ce73086d",
+  "units": "before_deg/after_deg: rotazione locale dell'osso (Euler XYZ, gradi); *_m: metri del GLB negli assi del corpo (avanti = verso il muso, su, sinistra = fianco sinistro dell'animale); points_*: direzione in cui punta l'osso negli stessi assi"
+}

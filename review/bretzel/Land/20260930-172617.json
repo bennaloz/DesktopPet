@@ -1,0 +1,20 @@
+{
+  "pet": "bretzel",
+  "clip": "Land",
+  "time": 0.2938,
+  "frame": 9,
+  "frames": 11,
+  "phase": 0.801,
+  "duration": 0.3667,
+  "view": "desktop",
+  "facing": 1,
+  "note": "Può aver senso, ma è da sistemare la cosa della pelle",
+  "summary": [],
+  "legs": {},
+  "bones": {},
+  "actions": [
+    "land"
+  ],
+  "fingerprint": "a8cd5ea0",
+  "units": "before_deg/after_deg: rotazione locale dell'osso (Euler XYZ, gradi); *_m: metri del GLB negli assi del corpo (avanti = verso il muso, su, sinistra = fianco sinistro dell'animale); points_*: direzione in cui punta l'osso negli stessi assi"
+}

@@ -1,0 +1,20 @@
+{
+  "pet": "sally",
+  "clip": "Sit",
+  "time": 2.7204,
+  "frame": 82,
+  "frames": 90,
+  "phase": 0.907,
+  "duration": 3,
+  "view": "desktop",
+  "facing": -1,
+  "note": "è seduta proprio male, poi perché ci sono dei flash nelle animazioni a volte?",
+  "summary": [],
+  "legs": {},
+  "bones": {},
+  "actions": [
+    "sit"
+  ],
+  "fingerprint": "a2fb73d8",
+  "units": "before_deg/after_deg: rotazione locale dell'osso (Euler XYZ, gradi); *_m: metri del GLB negli assi del corpo (avanti = verso il muso, su, sinistra = fianco sinistro dell'animale); points_*: direzione in cui punta l'osso negli stessi assi"
+}

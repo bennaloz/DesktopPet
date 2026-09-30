@@ -1,0 +1,20 @@
+{
+  "pet": "bretzel",
+  "clip": "Groom",
+  "time": 1.5407,
+  "frame": 46,
+  "frames": 60,
+  "phase": 0.77,
+  "duration": 2,
+  "view": "desktop",
+  "facing": 1,
+  "note": "Ok, ma no, da rifare completamente",
+  "summary": [],
+  "legs": {},
+  "bones": {},
+  "actions": [
+    "groom"
+  ],
+  "fingerprint": "8bb543a8",
+  "units": "before_deg/after_deg: rotazione locale dell'osso (Euler XYZ, gradi); *_m: metri del GLB negli assi del corpo (avanti = verso il muso, su, sinistra = fianco sinistro dell'animale); points_*: direzione in cui punta l'osso negli stessi assi"
+}

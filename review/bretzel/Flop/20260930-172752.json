@@ -1,0 +1,20 @@
+{
+  "pet": "bretzel",
+  "clip": "Flop",
+  "time": 0.02,
+  "frame": 1,
+  "frames": 29,
+  "phase": 0.021,
+  "duration": 0.9667,
+  "view": "desktop",
+  "facing": -1,
+  "note": "carino ma di solito si allungano",
+  "summary": [],
+  "legs": {},
+  "bones": {},
+  "actions": [
+    "flop"
+  ],
+  "fingerprint": "0bc4127e",
+  "units": "before_deg/after_deg: rotazione locale dell'osso (Euler XYZ, gradi); *_m: metri del GLB negli assi del corpo (avanti = verso il muso, su, sinistra = fianco sinistro dell'animale); points_*: direzione in cui punta l'osso negli stessi assi"
+}

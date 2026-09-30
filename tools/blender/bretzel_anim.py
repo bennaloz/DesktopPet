@@ -325,13 +325,13 @@ def run(p, t, f):
          chest=curve(t, [(0.0, 2.0), (0.35, -6.0), (0.5, 0.0), (0.8, 2.0)]),
          neck=curve(t, [(0.0, -6.0), (0.33, -8.0), (0.5, -10.0), (0.75, -8.0)]),
          head=curve(t, [(0.0, 2.0), (0.33, 4.0), (0.5, 6.0), (0.75, 2.0)]))
-    p.length = curve(t, [(0.0, 0.84), (0.2, 1.25), (0.36, 1.55), (0.52, 1.25), (0.72, 0.9), (0.9, 0.82)])
+    p.length = curve(t, [(0.0, 0.88), (0.2, 1.18), (0.36, 1.35), (0.52, 1.18), (0.72, 0.92), (0.9, 0.86)])
     plans = []
     for key, land in (('FL', 0.45), ('FR', 0.52)):
         y, z, m, down = foot(t, land, 0.24, S, -0.22, 0.14, 25, -40)
         plans.append((key, y, z, m, down))
     for key in ('HL', 'HR'):
-        y, z, m, down = foot(t, 0.0, 0.26, S, -0.22, 0.16, 55, 10, trail=0.18, trail_until=0.35)
+        y, z, m, down = foot(t, 0.0, 0.26, S, -0.14, 0.12, 45, 10, trail=0.08, trail_until=0.35)
         plans.append((key, y, z, m, down))
     lower_to_reach(p, [q[:4] for q in plans if q[4]])
     for q in plans: plant(p, q[0], dy=q[1], dz=q[2], dmeta=q[3])

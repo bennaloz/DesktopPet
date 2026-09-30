@@ -118,25 +118,53 @@ for v in me.vertices:
     if tot>1e-6:
         for g in v.groups: g.weight/=tot
 print("fixes",fixed)
-# the rump behind the heel sits on the folded hind leg at rest, and the automatic weights hand it to the shin
-# and the foot: a hind leg swinging forward then drags it out into a fin. Behind the heel it follows the hips.
+# the back half, by geometry rather than bone heat (inside this round body the heat spread the shin over the top
+# of the haunch and the foot under the belly, so the legs moved under a still "blanket" of skin). Along the back,
+# chest -> spine -> hips in wide blends; the haunch (an oval on each flank round the folded hind leg) follows its
+# leg, shared among thigh, shin and foot by how near each bone runs; the midline (top of the back, the belly)
+# stays with the trunk, so each haunch stretches from it instead of sliding over it.
+import math
 def sstep(x,a,b):
     t=max(0.0,min(1.0,(x-a)/(b-a))); return t*t*(3-2*t)
-LOWER=groups(lambda n: n.split('.')[0] in ('Shin','Foot','Toe'))
-THIGH=groups(lambda n: n.startswith('Thigh'))
-hips=gi['Hips']; moved=0
+def seg_dist(p,a,b):
+    dy,dz=b[0]-a[0],b[1]-a[1]; L2=dy*dy+dz*dz
+    u=max(0.0,min(1.0,((p[0]-a[0])*dy+(p[1]-a[1])*dz)/L2)) if L2>0 else 0.0
+    return math.hypot(p[0]-a[0]-u*dy, p[1]-a[1]-u*dz)
+HAUNCH=(0.21,0.16,0.165,0.15)          # centre y, z and half sizes of the haunch seen from the side
+def hind_weights(v):
+    x,y,z=v.co
+    side='L' if x>0 else 'R'
+    wc=1-sstep(y,-0.04,0.10); wh=sstep(y,0.14,0.32); ws=max(0.0,1-wc-wh)
+    trunk={'Chest':wc,'Spine':ws,'Hips':wh}
+    cy,cz,ry,rz=HAUNCH
+    e=math.sqrt(((y-cy)/ry)**2+((z-cz)/rz)**2)
+    h=0.9*(1-sstep(e,0.45,1.5))*sstep(abs(x),0.02,0.12)
+    if z<0.07: h=max(h,sstep(abs(x),0.05,0.11)*(1-sstep(y,0.30,0.36)))     # the long hind feet
+    leg={}
+    for n in ('Thigh','Shin','Foot','Toe'):
+        a,b=B[f'{n}.{side}'][0],B[f'{n}.{side}'][1]
+        d=seg_dist((y,z),(a[1],a[2]),(b[1],b[2]))
+        leg[f'{n}.{side}']=1/(d*d+1e-3)
+    # behind the heel the rump sits on the folded leg: it follows the thigh, not the shin and foot lifting the heel
+    behind=sstep(y,0.22,0.34)
+    for n in ('Shin','Foot','Toe'): leg[f'{n}.{side}']*=1-behind
+    tot=sum(leg.values())
+    out={n:w*(1-h) for n,w in trunk.items()}
+    for n,w in leg.items(): out[n]=out.get(n,0.0)+w/tot*h
+    return out
+moved=0
 for v in me.vertices:
     x,y,z=v.co
-    if z>0.30: continue
-    k_low=1-sstep(y,0.22,0.32)          # shin and foot let go behind the heel
-    k_thigh=1-sstep(y,0.34,0.44)        # the thigh a little further back
-    lost=0.0
-    for g in v.groups:
-        k=k_low if g.group in LOWER else k_thigh if g.group in THIGH else 1.0
-        if k<1.0 and g.weight>0: lost+=g.weight*(1-k); g.weight*=k
-    if lost>0:
-        mesh.vertex_groups['Hips'].add([v.index],lost,'ADD'); moved+=1
-print("rump verts handed to the hips",moved)
+    if y<-0.06 or in_ear(x,y,z) or in_scut(x,y,z): continue
+    keep=1-sstep(y,-0.06,0.04)          # towards the chest, fade into the automatic weights (shoulders, front legs)
+    old={mesh.vertex_groups[g.group].name:g.weight for g in v.groups if g.weight>0}
+    new=hind_weights(v)
+    fin={n:keep*old.get(n,0.0)+(1-keep)*new.get(n,0.0) for n in set(old)|set(new)}
+    for g in v.groups: g.weight=0.0
+    for n,w in fin.items():
+        if w>1e-4: mesh.vertex_groups[n].add([v.index],w,'REPLACE')
+    moved+=1
+print("back half reweighted",moved)
 # ears: weighted procedurally along their chain (the proxy fuses them to the cheeks)
 for side in ('L','R'):
     names=[f'Ear{i}.{side}' for i in range(1,5)]
@@ -162,7 +190,7 @@ for side in ('L','R'):
 # soften every seam the rules above cut (ear edge against the neck, legs against the belly): hard steps in the
 # weights tear the skin into shards when the body bends. By position, not along the edges: the mesh is split along
 # its UV seams, and copies of one point smoothed apart would crack open.
-def soften(radius=0.028, passes=3, keep=4):
+def soften(radius=0.028, passes=3, keep=4, only=None):
     ng=len(mesh.vertex_groups)
     W=[{g.group:g.weight for g in v.groups if g.weight>0} for v in me.vertices]
     kd=KDTree(len(me.vertices))
@@ -172,6 +200,7 @@ def soften(radius=0.028, passes=3, keep=4):
     for _ in range(passes):
         out=[]
         for vi in range(len(W)):
+            if only and not only[vi]: out.append(W[vi]); continue
             acc={}; tot=0.0
             for i,w in near[vi]:
                 tot+=w
@@ -184,6 +213,10 @@ def soften(radius=0.028, passes=3, keep=4):
         for g in list(v.groups): g.weight=0.0
         for g,x in top: mesh.vertex_groups[g].add([v.index],x/s_,'REPLACE')
 soften()
+# the back half again, wider: the haunch has to stretch from the flank, not fold against it
+soften(radius=0.055, passes=2, only=[v.co.y>-0.02 and not in_ear(*v.co) for v in me.vertices])
+# and the shoulders, where the upper arm meets the side of the chest
+soften(radius=0.045, passes=2, only=[-0.26<v.co.y<=-0.02 and v.co.z<0.42 and not in_ear(*v.co) for v in me.vertices])
 print("weights softened")
 # fill unweighted verts from the nearest weighted neighbour
 ok=[v for v in me.vertices if sum(g.weight for g in v.groups)>1e-6]

@@ -1,0 +1,20 @@
+{
+  "pet": "bretzel",
+  "clip": "Binky",
+  "time": 0.5144,
+  "frame": 15,
+  "frames": 25,
+  "phase": 0.617,
+  "duration": 0.8333,
+  "view": "desktop",
+  "facing": 1,
+  "note": "Malissimo, il coniglio quando salta stende le zampe e poi spesso scalcia di traverso se è questo il senso di questa animazione",
+  "summary": [],
+  "legs": {},
+  "bones": {},
+  "actions": [
+    "binky"
+  ],
+  "fingerprint": "46465159",
+  "units": "before_deg/after_deg: rotazione locale dell'osso (Euler XYZ, gradi); *_m: metri del GLB negli assi del corpo (avanti = verso il muso, su, sinistra = fianco sinistro dell'animale); points_*: direzione in cui punta l'osso negli stessi assi"
+}

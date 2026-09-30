@@ -1,0 +1,20 @@
+{
+  "pet": "bretzel",
+  "clip": "Eat",
+  "time": 0.9004,
+  "frame": 27,
+  "frames": 30,
+  "phase": 0.9,
+  "duration": 1,
+  "view": "desktop",
+  "facing": 1,
+  "note": "dipende dall'altezza della ciotola onestamente, magari potrebbe andare anche bene",
+  "summary": [],
+  "legs": {},
+  "bones": {},
+  "actions": [
+    "eat"
+  ],
+  "fingerprint": "2a79cd93",
+  "units": "before_deg/after_deg: rotazione locale dell'osso (Euler XYZ, gradi); *_m: metri del GLB negli assi del corpo (avanti = verso il muso, su, sinistra = fianco sinistro dell'animale); points_*: direzione in cui punta l'osso negli stessi assi"
+}

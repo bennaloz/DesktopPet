@@ -1,0 +1,20 @@
+{
+  "pet": "bretzel",
+  "clip": "Hop",
+  "time": 0.001,
+  "frame": 0,
+  "frames": 15,
+  "phase": 0.002,
+  "duration": 0.5,
+  "view": "desktop",
+  "facing": 1,
+  "note": "Hop sarebbe il passo? La pelle non va bene, sembra abbia una coperta al posto della pelle",
+  "summary": [],
+  "legs": {},
+  "bones": {},
+  "actions": [
+    "hop"
+  ],
+  "fingerprint": "3caae17c",
+  "units": "before_deg/after_deg: rotazione locale dell'osso (Euler XYZ, gradi); *_m: metri del GLB negli assi del corpo (avanti = verso il muso, su, sinistra = fianco sinistro dell'animale); points_*: direzione in cui punta l'osso negli stessi assi"
+}

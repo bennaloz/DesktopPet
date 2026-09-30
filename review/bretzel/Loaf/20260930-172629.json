@@ -1,0 +1,20 @@
+{
+  "pet": "bretzel",
+  "clip": "Loaf",
+  "time": 1.1404,
+  "frame": 34,
+  "frames": 90,
+  "phase": 0.38,
+  "duration": 3,
+  "view": "desktop",
+  "facing": 1,
+  "note": "Questo non è a pagnotta",
+  "summary": [],
+  "legs": {},
+  "bones": {},
+  "actions": [
+    "loaf"
+  ],
+  "fingerprint": "c43c3500",
+  "units": "before_deg/after_deg: rotazione locale dell'osso (Euler XYZ, gradi); *_m: metri del GLB negli assi del corpo (avanti = verso il muso, su, sinistra = fianco sinistro dell'animale); points_*: direzione in cui punta l'osso negli stessi assi"
+}

@@ -1,0 +1,38 @@
+{
+  "Crouch_R": {
+    "impronta": "a692097f",
+    "nota": "",
+    "quando": "2026-09-30T15:31",
+    "stato": "da_rifare"
+  },
+  "Fall": {
+    "impronta": "b8b5f216",
+    "nota": "",
+    "quando": "2026-09-30T15:29",
+    "stato": "da_rifare"
+  },
+  "Jump": {
+    "impronta": "1867e84e",
+    "nota": "jump e fall credo siano da rivedere",
+    "quando": "2026-09-30T15:29",
+    "stato": "da_rifare"
+  },
+  "LieDown": {
+    "impronta": "bc054103",
+    "nota": "",
+    "quando": "2026-09-30T15:30",
+    "stato": "da_rifare"
+  },
+  "Sit": {
+    "impronta": "a2fb73d8",
+    "nota": "",
+    "quando": "2026-09-30T15:29",
+    "stato": "da_rifare"
+  },
+  "Sit_R": {
+    "impronta": "11f97bd3",
+    "nota": "",
+    "quando": "2026-09-30T15:29",
+    "stato": "da_rifare"
+  }
+}

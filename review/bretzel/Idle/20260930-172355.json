@@ -1,0 +1,20 @@
+{
+  "pet": "bretzel",
+  "clip": "Idle",
+  "time": 0.6406,
+  "frame": 19,
+  "frames": 90,
+  "phase": 0.214,
+  "duration": 3,
+  "view": "desktop",
+  "facing": 1,
+  "note": "Sì muove poco il naso",
+  "summary": [],
+  "legs": {},
+  "bones": {},
+  "actions": [
+    "idle"
+  ],
+  "fingerprint": "dfaf85cf",
+  "units": "before_deg/after_deg: rotazione locale dell'osso (Euler XYZ, gradi); *_m: metri del GLB negli assi del corpo (avanti = verso il muso, su, sinistra = fianco sinistro dell'animale); points_*: direzione in cui punta l'osso negli stessi assi"
+}

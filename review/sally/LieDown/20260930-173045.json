@@ -1,0 +1,20 @@
+{
+  "pet": "sally",
+  "clip": "LieDown",
+  "time": 1.6686,
+  "frame": 50,
+  "frames": 59,
+  "phase": 0.848,
+  "duration": 1.9667,
+  "view": "desktop",
+  "facing": -1,
+  "note": "Non male, ma manca l'articolazione del ginocchio dietro",
+  "summary": [],
+  "legs": {},
+  "bones": {},
+  "actions": [
+    "liedown"
+  ],
+  "fingerprint": "bc054103",
+  "units": "before_deg/after_deg: rotazione locale dell'osso (Euler XYZ, gradi); *_m: metri del GLB negli assi del corpo (avanti = verso il muso, su, sinistra = fianco sinistro dell'animale); points_*: direzione in cui punta l'osso negli stessi assi"
+}

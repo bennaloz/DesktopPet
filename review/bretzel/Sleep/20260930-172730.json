@@ -1,0 +1,20 @@
+{
+  "pet": "bretzel",
+  "clip": "Sleep",
+  "time": 0.2203,
+  "frame": 7,
+  "frames": 120,
+  "phase": 0.055,
+  "duration": 4,
+  "view": "desktop",
+  "facing": 1,
+  "note": "dorme in piedi con gli occhi aperti?",
+  "summary": [],
+  "legs": {},
+  "bones": {},
+  "actions": [
+    "sleep"
+  ],
+  "fingerprint": "1ebeaa69",
+  "units": "before_deg/after_deg: rotazione locale dell'osso (Euler XYZ, gradi); *_m: metri del GLB negli assi del corpo (avanti = verso il muso, su, sinistra = fianco sinistro dell'animale); points_*: direzione in cui punta l'osso negli stessi assi"
+}

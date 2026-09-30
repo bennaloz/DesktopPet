@@ -1,0 +1,20 @@
+{
+  "pet": "bretzel",
+  "clip": "Run",
+  "time": 0.2741,
+  "frame": 8,
+  "frames": 10,
+  "phase": 0.822,
+  "duration": 0.3333,
+  "view": "desktop",
+  "facing": 1,
+  "note": "idem di hop, e poi considera che il coniglio se allunga le zampe, la pelle non è collegata alle zampe",
+  "summary": [],
+  "legs": {},
+  "bones": {},
+  "actions": [
+    "run"
+  ],
+  "fingerprint": "4aa6fb39",
+  "units": "before_deg/after_deg: rotazione locale dell'osso (Euler XYZ, gradi); *_m: metri del GLB negli assi del corpo (avanti = verso il muso, su, sinistra = fianco sinistro dell'animale); points_*: direzione in cui punta l'osso negli stessi assi"
+}
