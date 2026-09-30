@@ -53,11 +53,11 @@ Primi 2 minuti di prova, se qualcosa non va: `%APPDATA%\Godotpp_userdata\Zaira 
 
 ## Gli altri animali (29/09)
 
-Oltre a Zaira ci sono **Bretzel**, il coniglio ariete di Valentina, e **il golden** della sorella (il nome in
-`cats/golden/profile.json` e' provvisorio: "Golden"). Uno alla volta, scelto all'avvio:
+Oltre a Zaira ci sono **Bretzel**, il coniglio ariete di Valentina, e **Sally**, la golden retriever della
+sorella. Uno alla volta, scelto all'avvio:
 
     run.bat -- --cat=bretzel
-    run.bat -- --cat=golden
+    run.bat -- --cat=sally
 
 Ogni animale ha la sua cartella `cats/<nome>/` (modello + `profile.json`, con `species`: `cat`, `rabbit`, `dog`)
 e il suo salvataggio (`save-<nome>.json`; il vecchio `save.json` resta di Zaira). Il cervello e' diviso:
@@ -69,15 +69,15 @@ e il suo salvataggio (`save-<nome>.json`; il vecchio `save.json` resta di Zaira)
   arrivano ai lati e davanti), dai dati di letteratura. Pagnotta, all'erta, lavata al muso, binky nelle
   corse pazze, flop sul fianco se si addormenta contento, thump quando la pappa manca. Orecchie a molla
   (`EarModifier`). Pipeline: `tools/blender/bretzel_rig.py` → `bretzel_anim.py` → `bretzel_export.py`.
-- **Golden**: stesso scheletro di Zaira, quindi le sue clip (`PET=golden` davanti a `anim.py` ed
-  `export.py`; il rig viene da `golden_rig.py`, che ricolora anche il pelo grigio della texture). Passo,
+- **Sally**: stesso scheletro di Zaira, quindi le sue clip (`PET=sally` davanti a `anim.py` ed
+  `export.py`; il rig viene da `sally_rig.py`, che ricolora anche il pelo grigio della texture). Passo,
   trotto contento, galoppo nelle corse pazze, solo sul pavimento; seduto, poi sdraiato a sfinge; abbaia per
   la pappa; la coda scodinzola (stile `dog`) anche da fermo e alle coccole. Il tiragraffi c'e' solo per Zaira.
 
 Da fare per loro:
 - Bretzel: le orecchie possono solo dondolare poco (nella mesh sono il fianco della testa); corsa e saltello
   da rivedere dal vivo; la "z" del sonno e' tarata sull'altezza in piedi.
-- Golden: nome vero; le clip di riposo sono quelle di un gatto (seduta con la coda attorno, acciambellato):
+- Sally: le clip di riposo sono quelle di un gatto (seduta con la coda attorno, acciambellato):
   un cane sdraiato sul fianco e il "play bow" sarebbero piu' suoi; un lembo sul retro della coscia al galoppo.
 
 ## Cosa provare

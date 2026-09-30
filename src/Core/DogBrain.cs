@@ -9,7 +9,7 @@ namespace ZairaPet.Core;
 /// </summary>
 public sealed class DogBrain : PetBrain
 {
-    // Speeds of its clips at 200 px long (the Zaira clips on the dog's legs: tools/blender/anim.py, PET=golden).
+    // Speeds of its clips at 200 px long (the Zaira clips on the dog's legs: tools/blender/anim.py, PET=sally).
     public const double WalkSpeed = 145;
     public const double TrotSpeed = 215;
     public const double LopeSpeed = 420;

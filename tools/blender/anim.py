@@ -843,7 +843,7 @@ bake("Sleep", 120, sleep)
 bake("Eat", 40, eat)
 bake("Meow", 30, meow, loop=False)
 bake("Held", 60, held)
-if os.environ.get("PET") == "golden":
+if os.environ.get("PET") == "sally":
     # a dog asleep: lying like a sphinx with its chin down on its front paws, breathing slowly
     def chin_on_paws(p, t, f):
         crouch(p, t, f)

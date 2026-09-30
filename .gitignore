@@ -16,7 +16,7 @@ cats/*/*_Color*.jpg.import
 # Pipeline Blender: intermedi e anteprime, rigenerati da tools/blender
 assets/zaira/work/
 assets/bretzel/work/
-assets/golden/work/
+assets/sally/work/
 *.blend1
 __pycache__/
 # Modelli di terze parti non usati dal gioco
