@@ -19,6 +19,11 @@ const LEG_COLORS = { hindL: 0xe11d48, hindR: 0xf59e0b, foreL: 0x2563eb, foreR: 0
 const box = $("canvasBox");
 const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
 renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.localClippingEnabled = true;
+// As in the game: on the ground whatever goes below the floor is cut away (CatVisual's floor clip, half a pixel
+// under the feet); in the air (jump, fall, held) nothing is.
+const floorCut = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
+const AIR_ACTIONS = ["jump", "fall", "held"];
 box.appendChild(renderer.domElement);
 const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(22, 1, 0.01, 100);
@@ -63,9 +68,9 @@ function makeFloor() {
   const size = 8;
   tex.repeat.set(size / (2 * SQUARE), size / (2 * SQUARE));
   tex.anisotropy = 8;
-  // see-through: clips played in the air in the game (falling, jumping, held) reach below the feet's floor
+  // see-through for the clips played in the air (falling, jumping, held), which reach below the feet's floor
   const m = new THREE.Mesh(new THREE.PlaneGeometry(size, size),
-    new THREE.MeshBasicMaterial({ map: tex, transparent: true, opacity: 0.6, depthWrite: false }));
+    new THREE.MeshBasicMaterial({ map: tex, transparent: true, opacity: 1, depthWrite: false }));
   m.rotation.x = -Math.PI / 2;
   m.position.y = -0.001;
   return m;
@@ -133,6 +138,7 @@ async function openPet(id) {
   for (const [name, b] of S.bones) S.rest.set(name, [b.position.clone(), b.quaternion.clone(), b.scale.clone()]);
   S.meshes = [];
   S.model.traverse((o) => { if (o.isSkinnedMesh) { S.meshes.push(o); o.frustumCulled = false; } });
+  S.model.traverse((o) => { if (o.isMesh) for (const m of [o.material].flat()) m.clippingPlanes = [floorCut]; });
   fitModel();
   makeGhost();
   S.legs = L.legChains([...S.bones.keys()]);
@@ -187,7 +193,7 @@ function makeGhost() {
       // moved show as a pale-blue outline of where they were
       const g = new THREE.MeshBasicMaterial({
         color: 0x7cc4ff, transparent: true, opacity: 0.35, depthWrite: false,
-        polygonOffset: true, polygonOffsetFactor: 4, polygonOffsetUnits: 40,
+        polygonOffset: true, polygonOffsetFactor: 4, polygonOffsetUnits: 40, clippingPlanes: [floorCut],
       });
       g.name = m.name;
       return g;
@@ -254,6 +260,9 @@ function openClip(name) {
   S.loc = L.locomotion(name, S.profile);
   S.speed = L.clipSpeed(name, S.profile);
   S.facing = L.facingFor(name, S.profile);
+  const air = L.clipActions(name, S.profile).some((a) => AIR_ACTIONS.includes(a));
+  floorCut.constant = air ? 1e6 : 0.5 / S.profile.length_px;
+  floor.material.opacity = air ? 0.55 : 1;
   S.t = 0;
   S.dist = 0;
   trail.items = [];
