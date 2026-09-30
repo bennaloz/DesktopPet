@@ -118,6 +118,7 @@ async function openPet(id) {
   const pet = S.pets.find((p) => p.id === id);
   status(`carico ${pet.name}…`);
   save("pet", id);
+  $("pet").value = id;
   const gltf = await loader.loadAsync(`/cats/${id}/${pet.model}?v=${Date.now()}`);
   dropModel();
   S.pet = pet;
@@ -136,6 +137,8 @@ async function openPet(id) {
   makeMarkers();
   S.fingerprints = {};
   for (const c of S.clips) S.fingerprints[c.name] = L.clipFingerprint(c.tracks);
+  S.skin = L.skinFingerprint(S.meshes.map((m) => ({
+    index: m.geometry.attributes.skinIndex.array, weight: m.geometry.attributes.skinWeight.array })));
   await refreshReview();
   const names = L.orderClips(S.clips.map((c) => c.name), S.profile);
   const last = load(`clip:${id}`);
@@ -580,14 +583,14 @@ function computeChanges() {
 
 // ------------------------------------------------------------------ saving
 
-function capture() {
+function capture(draw) {
   const hidden = [tc.getHelper(), trail.points, ...S.markers.values()].filter((o) => o.visible);
   hidden.forEach((o) => (o.visible = false));
   const bg = getComputedStyle(document.body).backgroundColor;
   renderer.setClearColor(new THREE.Color(bg), 1);
   renderer.render(scene, camera);
   renderer.setClearColor(0x000000, 0);
-  const url = renderer.domElement.toDataURL("image/png");
+  const url = draw ? draw(renderer.domElement) : renderer.domElement.toDataURL("image/png");
   hidden.forEach((o) => (o.visible = true));
   return url;
 }
@@ -609,7 +612,7 @@ async function saveFeedback() {
     pet: S.pet.id, clip: S.clip.name, time: +S.t.toFixed(4), frame: Math.round(S.t * FPS) % Math.max(1, Math.round(d * FPS)) + 1,
     frames: Math.max(1, Math.round(d * FPS)), phase: +(S.t / d).toFixed(3), duration: +d.toFixed(4),
     view: S.view, facing: S.facing, note, summary: ch.summary, legs: ch.legs, bones: ch.bones,
-    actions: L.clipActions(S.clip.name, S.profile), fingerprint: S.fingerprints[S.clip.name],
+    actions: L.clipActions(S.clip.name, S.profile), fingerprint: S.fingerprints[S.clip.name], skin: S.skin,
     units: "frame: da 1 a frames, a 30 fps, come nella pagina; before_deg/after_deg: rotazione locale dell'osso (Euler XYZ, gradi); *_m: metri del GLB negli assi "
       + "del corpo (avanti = verso il muso, su, sinistra = fianco sinistro dell'animale); points_*: direzione in "
       + "cui punta l'osso negli stessi assi",
@@ -627,7 +630,7 @@ async function saveFeedback() {
 async function decide(stato) {
   const name = S.clip.name;
   S.state[name] = {
-    stato, nota: $("verdictNote").value.trim(), impronta: S.fingerprints[name],
+    stato, nota: $("verdictNote").value.trim(), impronta: S.fingerprints[name], pelle: S.skin,
     quando: localStamp(),
   };
   const r = await fetch(`/api/state/${S.pet.id}`, {
@@ -642,7 +645,9 @@ async function decide(stato) {
 
 function clipStatus(name) {
   const st = S.state[name];
-  const isNew = !!st && st.impronta !== S.fingerprints[name];
+  // changed since the decision: the clip's tracks, or the skin (decisions saved before `pelle` existed only
+  // compare the tracks)
+  const isNew = !!st && (st.impronta !== S.fingerprints[name] || (st.pelle !== undefined && st.pelle !== S.skin));
   const icon = !st || isNew ? "⚪" : st.stato === "approvata" ? "✅" : "🔴";
   return { st, isNew, icon };
 }
@@ -807,6 +812,35 @@ function drawTrail() {
   pos.needsUpdate = col.needsUpdate = true;
   trail.points.geometry.setDrawRange(0, trail.items.length);
 }
+
+/** Contact sheet of the current clip, for a quick look from the console: `await review.sheet(8)`. */
+S.sheet = async (n = 8, cols = 4, w = 480) => {
+  const was = S.t, h = Math.round(w * box.clientHeight / box.clientWidth);
+  const out = document.createElement("canvas");
+  out.width = cols * w;
+  out.height = Math.ceil(n / cols) * h;
+  const g = out.getContext("2d");
+  for (let i = 0; i < n; i++) {
+    moveTime((i / n) * S.clip.duration);
+    capture((c) => g.drawImage(c, (i % cols) * w, Math.floor(i / cols) * h, w, h));
+    g.fillStyle = "#000";
+    g.font = "16px sans-serif";
+    g.fillText(`${S.clip.name} ${((i / n) * S.clip.duration).toFixed(2)} s`, (i % cols) * w + 8, Math.floor(i / cols) * h + 20);
+  }
+  moveTime(was);
+  let el = document.getElementById("sheet");
+  if (!el) {
+    el = document.createElement("img");
+    el.id = "sheet";
+    el.style.cssText = "position:fixed;inset:0;width:100%;height:100%;object-fit:contain;background:#fff;z-index:9";
+    el.onclick = () => el.remove();
+    document.body.append(el);
+  }
+  el.src = out.toDataURL();
+  return `${n} fotogrammi`;
+};
+S.open = (pet, clip) => (pet && pet !== S.pet?.id ? openPet(pet) : Promise.resolve()).then(() => clip && openClip(clip));
+S.setView = setView;
 
 start().catch((e) => { status("errore: " + e.message); console.error(e); });
 frame();

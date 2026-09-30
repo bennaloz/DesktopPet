@@ -22,6 +22,22 @@ export function clipFingerprint(tracks) {
   return fnv1a(parts.join(";"));
 }
 
+/**
+ * Fingerprint of the skin: the joints and weights of the skinned meshes (every value, weights rounded to 1e-3), so
+ * new weights mark every clip changed even when the tracks are the same. arrays: [{index, weight}] typed arrays.
+ */
+export function skinFingerprint(arrays) {
+  let h = 0x811c9dc5;
+  const mix = (n) => {
+    for (let k = 0; k < 4; k++) { h ^= (n >>> (k * 8)) & 0xff; h = Math.imul(h, 0x01000193) >>> 0; }
+  };
+  for (const { index, weight } of arrays) {
+    for (let i = 0; i < index.length; i++) mix(index[i]);
+    for (let i = 0; i < weight.length; i++) mix(Math.round(weight[i] * 1000));
+  }
+  return h.toString(16).padStart(8, "0");
+}
+
 /** The profile's actions that play a clip (as `anims` or `anims_right`), in profile order. */
 export function clipActions(clip, profile) {
   return Object.entries(profile.actions ?? {})

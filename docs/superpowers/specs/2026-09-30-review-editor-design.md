@@ -119,6 +119,10 @@ Stato (`review/<animale>/stato.json`):
 mostra **nuova** e il suo stato visibile torna "da vedere" (il file non si tocca finché l'utente non
 decide di nuovo).
 
+`pelle` (aggiunta dopo): impronta dei pesi della pelle (indici delle ossa e pesi arrotondati a 1e-3 di tutte
+le mesh con scheletro). Pesi nuovi cambiano l'aspetto di ogni clip anche a tracce identiche, quindi anche una
+`pelle` diversa segna la clip **nuova**. Le decisioni salvate prima che esistesse confrontano solo `impronta`.
+
 ## 4. Il giro di lavoro
 
 1. L'utente rivede, approva o salva feedback.

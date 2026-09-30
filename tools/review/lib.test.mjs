@@ -2,7 +2,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {
-  fnv1a, clipFingerprint, clipActions, orderClips, locomotion, clipSpeed, facingFor, boneLabel, legChains, legOf,
+  fnv1a, clipFingerprint, skinFingerprint, clipActions, orderClips, locomotion, clipSpeed, facingFor, boneLabel, legChains, legOf,
   describe, wrapDeg, stepFrame,
 } from "./lib.js";
 
@@ -90,4 +90,12 @@ test("angles wrap and frames step round the loop", () => {
   assert.ok(Math.abs(stepFrame(0, -1, 1) - 29 / 30) < 1e-9);
   assert.ok(Math.abs(stepFrame(29 / 30, 1, 1) - 0) < 1e-9);
   assert.ok(Math.abs(stepFrame(0.2334, 1, 1) - 8 / 30) < 1e-9);
+});
+
+test("the skin fingerprint changes with the weights, not with float noise", () => {
+  const a = [{ index: Uint16Array.from([0, 1, 2, 3]), weight: Float32Array.from([0.5, 0.3, 0.2, 0]) }];
+  const noisy = [{ index: a[0].index, weight: a[0].weight.map((w) => w + 1e-5) }];
+  const moved = [{ index: a[0].index, weight: Float32Array.from([0.4, 0.4, 0.2, 0]) }];
+  assert.equal(skinFingerprint(a), skinFingerprint(noisy));
+  assert.notEqual(skinFingerprint(a), skinFingerprint(moved));
 });
