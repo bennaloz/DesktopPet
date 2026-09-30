@@ -21,3 +21,6 @@ assets/sally/work/
 __pycache__/
 # Modelli di terze parti non usati dal gioco
 assets/extra/
+
+# Editor di revisione: gli screenshot dei feedback restano in locale
+review/**/*.png

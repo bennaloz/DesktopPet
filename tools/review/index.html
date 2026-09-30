@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="it">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Revisione animazioni</title>
+  <link rel="stylesheet" href="review.css">
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js",
+        "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"
+      }
+    }
+  </script>
+</head>
+<body>
+  <aside id="left">
+    <label class="field">Animale
+      <select id="pet"></select>
+    </label>
+    <div class="legend">⚪ da vedere · ✅ approvata · 🔴 da rifare</div>
+    <ul id="clips"></ul>
+  </aside>
+
+  <main id="stage">
+    <div id="toolbar">
+      <div class="group" id="views">
+        <button data-view="desktop" class="on" title="Come sul desktop: di fianco, girata di tre quarti">Desktop</button>
+        <button data-view="lato" title="Di fianco pura">Lato</button>
+        <button data-view="tre-quarti">Tre quarti</button>
+        <button data-view="dietro" title="Da dietro: per vedere le zampe di lato">Dietro</button>
+        <button data-view="alto">Alto</button>
+      </div>
+      <div class="group">
+        <label><input type="checkbox" id="floorMoves" checked> Pavimento che scorre</label>
+        <label><input type="checkbox" id="trail"> Scia dei piedi</label>
+        <label><input type="checkbox" id="ghost" checked> Fantasma</label>
+      </div>
+      <button id="help" title="Cosa mostra la pagina">?</button>
+    </div>
+    <div id="canvasBox">
+      <div id="status"></div>
+    </div>
+    <div id="timeline">
+      <button id="prev" title="Fotogramma indietro (←)">⏮</button>
+      <button id="play" title="Play / pausa (spazio)">▶</button>
+      <button id="next" title="Fotogramma avanti (→)">⏭</button>
+      <input type="range" id="scrub" min="0" max="1" step="0.0001" value="0">
+      <span id="clock">–</span>
+      <select id="rate" title="Velocità">
+        <option value="1">1×</option>
+        <option value="0.5">½×</option>
+        <option value="0.25">¼×</option>
+        <option value="0.1">⅒×</option>
+      </select>
+    </div>
+  </main>
+
+  <aside id="right">
+    <section>
+      <h2>Correzione</h2>
+      <p class="hint" id="selHint">Metti in pausa e clicca una parte del corpo: le zampe si trascinano per il pallino
+        del piede, il resto si ruota con gli anelli.</p>
+      <div id="selection" hidden>
+        <div id="selName"></div>
+        <div class="row" id="modeRow" hidden>
+          <button data-mode="rotate" class="on">Ruota</button>
+          <button data-mode="translate">Sposta</button>
+        </div>
+      </div>
+      <div class="row">
+        <button id="undo" title="Ctrl+Z" disabled>Annulla</button>
+        <button id="reset" disabled>Ripristina posa</button>
+      </div>
+      <ul id="changes"></ul>
+      <textarea id="note" rows="3" placeholder="Cosa non va, e come deve essere (es. qui le zampe dietro sono già a terra davanti a quelle anteriori)"></textarea>
+      <button id="save" class="primary" disabled>Salva feedback</button>
+    </section>
+
+    <section>
+      <h2>La clip</h2>
+      <div id="clipInfo"></div>
+      <textarea id="verdictNote" rows="2" placeholder="Nota generale (facoltativa)"></textarea>
+      <div class="row">
+        <button id="approve">✅ Approvata</button>
+        <button id="redo">🔴 Da rifare</button>
+      </div>
+    </section>
+
+    <section>
+      <h2>Feedback aperti</h2>
+      <ul id="feedback"></ul>
+    </section>
+  </aside>
+
+  <dialog id="helpBox">
+    <h2>Cosa vedi qui</h2>
+    <p>Le clip così come sono nel GLB che usa il gioco (<code>cats/&lt;animale&gt;/</code>), cioè quello che producono
+      gli script Blender. Il gioco ci aggiunge sopra alcuni ritocchi che qui <b>non</b> si vedono: la coda d'umore
+      (compresa la coda che scodinzola di Sally), le orecchie a molla di Bretzel, lo sguardo verso il cursore,
+      l'inclinazione in volo.</p>
+    <p><b>Pavimento che scorre</b>: nelle clip di movimento il pavimento passa sotto l'animale alla velocità a cui il
+      gioco lo sposta. Un piede appoggiato deve restare fermo sui quadretti: se scivola, passo e velocità non sono
+      d'accordo. La <b>scia dei piedi</b> lo rende evidente: un piede fermo lascia un puntino solo.</p>
+    <p><b>Correggere</b>: in pausa clicca zampa, testa, collo, schiena, pancia, bacino, coda o orecchie. Il fantasma
+      azzurro è la posa originale. <b>Salva feedback</b> salva la posa corretta, l'istante, la nota e due screenshot
+      in <code>review/&lt;animale&gt;/&lt;clip&gt;/</code>: Claude li legge e sistema gli script.</p>
+    <p>Tasti: spazio play/pausa · ← → fotogramma · Ctrl+Z annulla · Esc deseleziona.</p>
+    <form method="dialog"><button>Chiudi</button></form>
+  </dialog>
+
+  <script type="module" src="review.js"></script>
+</body>
+</html>

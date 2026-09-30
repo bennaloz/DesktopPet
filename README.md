@@ -80,6 +80,17 @@ Da fare per loro:
 - Sally: le clip di riposo sono quelle di un gatto (seduta con la coda attorno, acciambellato):
   un cane sdraiato sul fianco e il "play bow" sarebbero piu' suoi; un lembo sul retro della coscia al galoppo.
 
+## Revisione delle animazioni (30/09)
+
+Doppio clic su `review.bat`: apre nel browser l'editor di revisione (`tools/review/`, server locale su
+`127.0.0.1:8765`). Si sceglie l'animale e la clip, si guarda a velocità piena o rallentata, col pavimento che
+scorre alla velocità del gioco e la scia dei piedi (un piede appoggiato deve restare fermo sui quadretti). In pausa
+si correggono zampe (trascinando il pallino del piede), testa, collo, schiena, pancia, bacino, coda e orecchie;
+**Salva feedback** scrive posa corretta, istante, nota e due screenshot in `review/<animale>/<clip>/`, e ogni clip
+si segna approvata o da rifare (`review/<animale>/stato.json`). Le clip cambiate da un nuovo export tornano "da
+vedere" col bollino **nuova**. Gli screenshot restano fuori da git. Test: `python -m unittest
+tools/review/test_serve.py` e `node --test tools/review/lib.test.mjs`.
+
 ## Cosa provare
 
 | Azione | Come |
