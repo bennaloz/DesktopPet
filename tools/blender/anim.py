@@ -819,6 +819,84 @@ def held(p, t, f):
         p.x[n] = [-15, -5, 0, 5, 5][i]
         p.yz[n] = (0.0, 6 * math.sin(TAU * t - i * 0.6))
 
+if os.environ.get("PET") == "sally":
+    # ------------------------------------------------------------ a dog's resting poses (the ones above are a cat's)
+    # Sitting, a dog holds its body upright (about 50 degrees) with the chest brought forward over straight front
+    # legs, the hind feet flat beside the haunches, the tail lying out behind. Lying down it rolls its hips onto
+    # one side, the hind legs folded beside it with the knee forward (the cat's sphinx piled thigh and shin on
+    # top of each other and the knee disappeared); the side is the viewer's, like the tail of the "_R" clips.
+    DOG_SIT = dict(pitch=-50, spine=6, chest=16, neck=20, hock_back=-0.005)
+    DOG_SIT_TAIL, DOG_SIT_TAIL_SIDE = [-70, -40, -6, 0, 0], [0, 0, 12, 16, 16]
+    DOG_CROUCH_DROP, DOG_CROUCH_FOOT, DOG_HIP_ROLL = -0.27, (-0.10, 0.0, -80), 18
+
+    def front_reach_drop(p, dmeta=8.0):
+        """How far the body must come down for the straight front legs to reach the floor under the shoulders."""
+        gap = 0.0
+        for key in ('FL', 'FR'):
+            u, l, m, t, fwd = LEGS[key]
+            H = p.point(REST[u]['parent'], REST[u]['h'])
+            Az = PAW[key][1] - REST[m]['L'] * math.sin(D(META[key] + dmeta))
+            gap = max(gap, (H[1] - Az) - 0.985 * (REST[u]['L'] + REST[l]['L']))
+        return gap
+
+    def sit_pose(p, breathe=0.0, t=0.0):
+        k = DOG_SIT
+        p.hips = (0.03, SIT_DROP)
+        p.x['Hips'] = k['pitch']
+        p.x['Spine'] = k['spine']
+        p.x['Chest'] = k['chest'] + breathe
+        p.x['Neck'] = k['neck'] - breathe
+        p.x['Head'] = -(k['pitch'] + k['spine'] + k['chest'] + k['neck']) + 10
+        gap = front_reach_drop(p)
+        if gap > 0: p.hips = (p.hips[0], p.hips[1] - gap)
+        plant_under_shoulder(p, 'FL', 8, ahead=0.03)
+        plant_under_shoulder(p, 'FR', 8, ahead=0.03)
+        fold_hind(p, 'HL', k['hock_back'])
+        fold_hind(p, 'HR', k['hock_back'])
+        p.yz['Thigh.L'] = (0.0, -8)
+        p.yz['Thigh.R'] = (0.0, 8)
+        chain_world(p, TAILS, DOG_SIT_TAIL, DOG_SIT_TAIL_SIDE)
+
+    def sit(p, t, f):
+        sit_pose(p, breathe=1.0 * math.sin(TAU * t), t=t)
+
+    _cat_crouch = crouch
+    def crouch(p, t, f):
+        global CROUCH_DROP, CROUCH_FOOT
+        keep = CROUCH_DROP, CROUCH_FOOT
+        CROUCH_DROP, CROUCH_FOOT = DOG_CROUCH_DROP, DOG_CROUCH_FOOT
+        try: _cat_crouch(p, t, f)
+        finally: CROUCH_DROP, CROUCH_FOOT = keep
+        # hips rolled towards the viewer (her left, +X, in the plain clip), the chest kept level
+        roll = -DOG_HIP_ROLL * TAIL_SIDE
+        p.yz['Hips'] = (roll, 0.0)
+        p.yz['Spine'] = (-roll, 0.0)
+
+    # A golden's gallop is flatter than a cat's push-and-vault: the body stays high and nearly level, the back
+    # flexes less and hardly shortens, the head is steadier; the legs still sweep long arcs.
+    DOG_SPRINT_G = dict(SPRINT_G, pitch=5, flex=11, squash=0.06, drop=0.0, bounce=0.05, neck=10, head=-6,
+                        steady=0.65, lift=0.11, roll=30, curl=55)
+    DOG_RUN_G = dict(RUN_G, pitch=4, flex=8, squash=0.04, drop=0.0, bounce=0.03, neck=8, head=-4, steady=0.65,
+                     lift=0.08)
+
+    def sprint(p, t, f):
+        gallop(p, t, dict(DOG_SPRINT_G, reach=SPRINT_REACH, extend=(0.12, 0.08), centre=SPRINT_CENTRE))
+
+    def run(p, t, f):
+        gallop(p, t, dict(DOG_RUN_G, reach=RUN_REACH, extend=RUN_EXTEND, centre=RUN_CENTRE))
+
+    # Dropped (or stepping down off a window): nose down towards the floor, front legs stretched down and forward
+    # to take it, hind legs down behind, tail up; the legs paddle a little.
+    DOG_FALL = dict(dz=0.0, pitch=16.0, spine=2.0, chest=0.0, neck=-14.0, head=6.0, tail=45.0,
+                    legs={'FL': (-0.15, -0.05, -45.0), 'FR': (-0.12, -0.04, -45.0),
+                          'HL': (0.13, -0.02, 45.0), 'HR': (0.15, -0.01, 45.0)})
+
+    def fall(p, t, f):
+        q = dict(DOG_FALL)
+        s = math.sin(TAU * t)
+        q['legs'] = {k: (dy + 0.02 * s * (1 if k[1] == 'L' else -1), dz, dm) for k, (dy, dz, dm) in DOG_FALL['legs'].items()}
+        pose_from(p, q)
+
 bake("Idle", 90, idle)
 bake("Idle_Look", 120, idle_look)
 bake("Walk", 24, walk)
