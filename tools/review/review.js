@@ -63,7 +63,9 @@ function makeFloor() {
   const size = 8;
   tex.repeat.set(size / (2 * SQUARE), size / (2 * SQUARE));
   tex.anisotropy = 8;
-  const m = new THREE.Mesh(new THREE.PlaneGeometry(size, size), new THREE.MeshBasicMaterial({ map: tex }));
+  // see-through: clips played in the air in the game (falling, jumping, held) reach below the feet's floor
+  const m = new THREE.Mesh(new THREE.PlaneGeometry(size, size),
+    new THREE.MeshBasicMaterial({ map: tex, transparent: true, opacity: 0.6, depthWrite: false }));
   m.rotation.x = -Math.PI / 2;
   m.position.y = -0.001;
   return m;
