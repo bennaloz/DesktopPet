@@ -84,6 +84,7 @@ button.primary { background: var(--accent); color: var(--accent-ink); border-col
 #feedback li:hover { border-color: var(--accent); }
 #feedback img { width: 100%; border-radius: 4px; background: var(--bg); }
 #feedback .when { color: var(--muted); font-size: 12px; }
+#feedback .reply { margin-top: 6px; padding: 6px 8px; border-radius: 6px; background: var(--on); font-size: 13px; }
 #feedback .sum { font-size: 12px; color: var(--muted); margin: 2px 0 0; padding-left: 16px; }
 dialog { max-width: 560px; border: 1px solid var(--line); border-radius: 10px; background: var(--panel); color: var(--ink); }
 code { font-size: 12px; }

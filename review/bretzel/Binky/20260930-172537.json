@@ -16,5 +16,6 @@
     "binky"
   ],
   "fingerprint": "46465159",
-  "units": "before_deg/after_deg: rotazione locale dell'osso (Euler XYZ, gradi); *_m: metri del GLB negli assi del corpo (avanti = verso il muso, su, sinistra = fianco sinistro dell'animale); points_*: direzione in cui punta l'osso negli stessi assi"
+  "units": "before_deg/after_deg: rotazione locale dell'osso (Euler XYZ, gradi); *_m: metri del GLB negli assi del corpo (avanti = verso il muso, su, sinistra = fianco sinistro dell'animale); points_*: direzione in cui punta l'osso negli stessi assi",
+  "risposta": "Rifatto: carica, spinta con le zampe tese, in aria si allunga, la testa si gira da una parte e il posteriore scalcia di lato, poi atterra sulle zampe davanti. La torsione è distribuita su tutta la schiena, così la pelle non si piega."
 }

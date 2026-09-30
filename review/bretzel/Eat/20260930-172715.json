@@ -16,5 +16,6 @@
     "eat"
   ],
   "fingerprint": "2a79cd93",
-  "units": "before_deg/after_deg: rotazione locale dell'osso (Euler XYZ, gradi); *_m: metri del GLB negli assi del corpo (avanti = verso il muso, su, sinistra = fianco sinistro dell'animale); points_*: direzione in cui punta l'osso negli stessi assi"
+  "units": "before_deg/after_deg: rotazione locale dell'osso (Euler XYZ, gradi); *_m: metri del GLB negli assi del corpo (avanti = verso il muso, su, sinistra = fianco sinistro dell'animale); points_*: direzione in cui punta l'osso negli stessi assi",
+  "risposta": "Lasciato com'è; con la pelle nuova il posteriore ora segue meglio. Se la ciotola ti sembra troppo bassa o alta, dimmelo."
 }

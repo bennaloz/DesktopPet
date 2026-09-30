@@ -697,10 +697,12 @@ function renderFeedback() {
   for (const f of mine) {
     const li = document.createElement("li");
     const img = f.dopo ? `<img src="/review/${S.pet.id}/${f.clip}/${f.base}-dopo.png" alt="">` : "";
-    li.innerHTML = `${img}<div class="when"></div><div class="text"></div><ul class="sum"></ul>`;
+    li.innerHTML = `${img}<div class="when"></div><div class="text"></div><ul class="sum"></ul><div class="reply"></div>`;
     li.querySelector(".when").textContent = `${f.base} · ${(f.time ?? 0).toFixed(3)} s`;
     li.querySelector(".text").textContent = f.note;
     for (const s of f.summary) { const x = document.createElement("li"); x.textContent = s; li.querySelector(".sum").append(x); }
+    const reply = li.querySelector(".reply");
+    if (f.risposta) reply.textContent = `Claude: ${f.risposta}`; else reply.remove();
     li.onclick = () => { if (confirmDiscard()) { resetEdits(); setPlaying(false); moveTime(f.time ?? 0); } };
     ul.append(li);
   }

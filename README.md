@@ -75,10 +75,13 @@ e il suo salvataggio (`save-<nome>.json`; il vecchio `save.json` resta di Zaira)
   la pappa; la coda scodinzola (stile `dog`) anche da fermo e alle coccole. Il tiragraffi c'e' solo per Zaira.
 
 Da fare per loro:
-- Bretzel: le orecchie possono solo dondolare poco (nella mesh sono il fianco della testa); corsa e saltello
-  da rivedere dal vivo; la "z" del sonno e' tarata sull'altezza in piedi.
-- Sally: le clip di riposo sono quelle di un gatto (seduta con la coda attorno, acciambellato):
-  un cane sdraiato sul fianco e il "play bow" sarebbero piu' suoi; un lembo sul retro della coscia al galoppo.
+- Bretzel: le orecchie possono solo dondolare poco (nella mesh sono il fianco della testa); la "z" del sonno
+  e' tarata sull'altezza in piedi. La pancia del modello e' scura e ruvida (la foto non la vedeva): le pose
+  che la mostrano (seduto dritto, flop visto dal davanti) vanno evitate. Pelle della meta' posteriore pesata
+  per geometria in `bretzel_rig.py` (30/09); resta una piega sulla spalla nell'atterraggio della corsa.
+- Sally: seduta, sdraiata (bacino su un fianco), galoppo e caduta da cane sotto `PET=sally` in `anim.py`
+  (30/09); passo, trotto, salto e le altre clip sono ancora quelle di Zaira. Un lembo sul retro della coscia
+  al galoppo.
 
 ## Revisione delle animazioni (30/09)
 

@@ -16,5 +16,6 @@
     "crouch"
   ],
   "fingerprint": "a692097f",
-  "units": "before_deg/after_deg: rotazione locale dell'osso (Euler XYZ, gradi); *_m: metri del GLB negli assi del corpo (avanti = verso il muso, su, sinistra = fianco sinistro dell'animale); points_*: direzione in cui punta l'osso negli stessi assi"
+  "units": "before_deg/after_deg: rotazione locale dell'osso (Euler XYZ, gradi); *_m: metri del GLB negli assi del corpo (avanti = verso il muso, su, sinistra = fianco sinistro dell'animale); points_*: direzione in cui punta l'osso negli stessi assi",
+  "risposta": "Rifatta da cane: il bacino è ruotato su un fianco verso chi guarda, le zampe dietro ripiegate di lato col ginocchio in avanti. I cuscinetti in su venivano dalla zampa schiacciata sotto. Anche i lampi erano il difetto dell'editor, ora corretto."
 }

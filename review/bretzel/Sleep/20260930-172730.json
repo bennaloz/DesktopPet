@@ -16,5 +16,6 @@
     "sleep"
   ],
   "fingerprint": "1ebeaa69",
-  "units": "before_deg/after_deg: rotazione locale dell'osso (Euler XYZ, gradi); *_m: metri del GLB negli assi del corpo (avanti = verso il muso, su, sinistra = fianco sinistro dell'animale); points_*: direzione in cui punta l'osso negli stessi assi"
+  "units": "before_deg/after_deg: rotazione locale dell'osso (Euler XYZ, gradi); *_m: metri del GLB negli assi del corpo (avanti = verso il muso, su, sinistra = fianco sinistro dell'animale); points_*: direzione in cui punta l'osso negli stessi assi",
+  "risposta": "Ora dorme come una pagnotta afflosciata, un po' inclinata, col muso giù fino a terra e il respiro lento. Gli occhi restano aperti perché sono nella texture (e i conigli spesso dormono davvero a occhi aperti)."
 }

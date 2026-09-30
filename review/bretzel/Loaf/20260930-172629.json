@@ -16,5 +16,6 @@
     "loaf"
   ],
   "fingerprint": "c43c3500",
-  "units": "before_deg/after_deg: rotazione locale dell'osso (Euler XYZ, gradi); *_m: metri del GLB negli assi del corpo (avanti = verso il muso, su, sinistra = fianco sinistro dell'animale); points_*: direzione in cui punta l'osso negli stessi assi"
+  "units": "before_deg/after_deg: rotazione locale dell'osso (Euler XYZ, gradi); *_m: metri del GLB negli assi del corpo (avanti = verso il muso, su, sinistra = fianco sinistro dell'animale); points_*: direzione in cui punta l'osso negli stessi assi",
+  "risposta": "Rifatta. Il modello è già accovacciato con la pancia a terra; ora il petto scende sulle zampe davanti ripiegate sotto, la testa rientra e le orecchie vanno indietro."
 }

@@ -122,7 +122,7 @@ class Review:
                 data = json.loads(f.read_text(encoding="utf-8"))
                 out.append({
                     "clip": clip_dir.name, "base": f.stem, "time": data.get("time"), "note": data.get("note", ""),
-                    "summary": data.get("summary", []),
+                    "summary": data.get("summary", []), "risposta": data.get("risposta", ""),
                     "prima": (clip_dir / f"{f.stem}-prima.png").is_file(),
                     "dopo": (clip_dir / f"{f.stem}-dopo.png").is_file(),
                 })

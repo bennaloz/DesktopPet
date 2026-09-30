@@ -97,6 +97,7 @@ class ServeTests(unittest.TestCase):
         listed = json.loads(self.call("GET", "/api/feedback/bretzel")[1])
         self.assertEqual({base, base2}, {f["base"] for f in listed})
         self.assertEqual("zampe dietro avanti", listed[0]["note"])
+        self.assertEqual("", listed[0]["risposta"])
         code, png, ctype = self.call("GET", f"/review/bretzel/Run/{base}-dopo.png")
         self.assertEqual((200, "image/png"), (code, ctype))
 

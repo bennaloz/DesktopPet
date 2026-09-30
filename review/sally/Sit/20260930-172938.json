@@ -16,5 +16,6 @@
     "sit"
   ],
   "fingerprint": "a2fb73d8",
-  "units": "before_deg/after_deg: rotazione locale dell'osso (Euler XYZ, gradi); *_m: metri del GLB negli assi del corpo (avanti = verso il muso, su, sinistra = fianco sinistro dell'animale); points_*: direzione in cui punta l'osso negli stessi assi"
+  "units": "before_deg/after_deg: rotazione locale dell'osso (Euler XYZ, gradi); *_m: metri del GLB negli assi del corpo (avanti = verso il muso, su, sinistra = fianco sinistro dell'animale); points_*: direzione in cui punta l'osso negli stessi assi",
+  "risposta": "Rifatta da cane: busto dritto a circa 50 gradi, petto in avanti sulle zampe davanti dritte a terra, zampe dietro raccolte, coda stesa dietro. I lampi erano un difetto dell'editor (ossa ferme rimesse a riposo), ora corretto."
 }

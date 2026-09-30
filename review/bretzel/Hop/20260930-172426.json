@@ -16,5 +16,6 @@
     "hop"
   ],
   "fingerprint": "3caae17c",
-  "units": "before_deg/after_deg: rotazione locale dell'osso (Euler XYZ, gradi); *_m: metri del GLB negli assi del corpo (avanti = verso il muso, su, sinistra = fianco sinistro dell'animale); points_*: direzione in cui punta l'osso negli stessi assi"
+  "units": "before_deg/after_deg: rotazione locale dell'osso (Euler XYZ, gradi); *_m: metri del GLB negli assi del corpo (avanti = verso il muso, su, sinistra = fianco sinistro dell'animale); points_*: direzione in cui punta l'osso negli stessi assi",
+  "risposta": "Sì, Hop è il passo (il saltello lento). Ho rifatto i pesi della pelle della metà posteriore: prima lo stinco comandava il sopra del quarto posteriore e le zampe si muovevano sotto una coperta ferma. Ora il quarto segue la zampa e si allunga con la spinta."
 }

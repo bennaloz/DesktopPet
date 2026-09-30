@@ -16,5 +16,6 @@
     "run"
   ],
   "fingerprint": "4aa6fb39",
-  "units": "before_deg/after_deg: rotazione locale dell'osso (Euler XYZ, gradi); *_m: metri del GLB negli assi del corpo (avanti = verso il muso, su, sinistra = fianco sinistro dell'animale); points_*: direzione in cui punta l'osso negli stessi assi"
+  "units": "before_deg/after_deg: rotazione locale dell'osso (Euler XYZ, gradi); *_m: metri del GLB negli assi del corpo (avanti = verso il muso, su, sinistra = fianco sinistro dell'animale); points_*: direzione in cui punta l'osso negli stessi assi",
+  "risposta": "Pelle rifatta (vedi Hop). La coscia girava di 145 gradi in un decimo di secondo: ora i piedi dietro vanno meno avanti e meno indietro e la schiena si allunga fino a 1,35 invece di 1,55. Resta una piega sulla spalla nell'atterraggio."
 }

@@ -16,5 +16,6 @@
     "flop"
   ],
   "fingerprint": "0bc4127e",
-  "units": "before_deg/after_deg: rotazione locale dell'osso (Euler XYZ, gradi); *_m: metri del GLB negli assi del corpo (avanti = verso il muso, su, sinistra = fianco sinistro dell'animale); points_*: direzione in cui punta l'osso negli stessi assi"
+  "units": "before_deg/after_deg: rotazione locale dell'osso (Euler XYZ, gradi); *_m: metri del GLB negli assi del corpo (avanti = verso il muso, su, sinistra = fianco sinistro dell'animale); points_*: direzione in cui punta l'osso negli stessi assi",
+  "risposta": "Sul fianco ora si allunga: zampe dietro tese all'indietro oltre il sedere, zampe davanti in avanti, schiena più lunga. Nel gioco si vede dal lato del dorso."
 }

@@ -17,5 +17,6 @@
     "fall"
   ],
   "fingerprint": "257c4b4b",
-  "units": "before_deg/after_deg: rotazione locale dell'osso (Euler XYZ, gradi); *_m: metri del GLB negli assi del corpo (avanti = verso il muso, su, sinistra = fianco sinistro dell'animale); points_*: direzione in cui punta l'osso negli stessi assi"
+  "units": "before_deg/after_deg: rotazione locale dell'osso (Euler XYZ, gradi); *_m: metri del GLB negli assi del corpo (avanti = verso il muso, su, sinistra = fianco sinistro dell'animale); points_*: direzione in cui punta l'osso negli stessi assi",
+  "risposta": "È la posa in aria quando cade o lo lasci andare. L'editor prima nascondeva le zampe sotto il pavimento; ora, per le clip in aria, il pavimento è semitrasparente. Le zampe sono tese verso il basso a cercare terra."
 }

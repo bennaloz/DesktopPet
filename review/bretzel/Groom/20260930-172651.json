@@ -16,5 +16,6 @@
     "groom"
   ],
   "fingerprint": "8bb543a8",
-  "units": "before_deg/after_deg: rotazione locale dell'osso (Euler XYZ, gradi); *_m: metri del GLB negli assi del corpo (avanti = verso il muso, su, sinistra = fianco sinistro dell'animale); points_*: direzione in cui punta l'osso negli stessi assi"
+  "units": "before_deg/after_deg: rotazione locale dell'osso (Euler XYZ, gradi); *_m: metri del GLB negli assi del corpo (avanti = verso il muso, su, sinistra = fianco sinistro dell'animale); points_*: direzione in cui punta l'osso negli stessi assi",
+  "risposta": "Rifatta. Seduto dritto mostrava la pancia, che nel modello è scura e ruvida. Ora resta accovacciato, gira la testa verso una zampa, la porta alla guancia, la lecca e la passa sull'occhio fino al naso; poi l'altra."
 }

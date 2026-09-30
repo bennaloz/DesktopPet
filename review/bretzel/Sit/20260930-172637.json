@@ -16,5 +16,6 @@
     "sit"
   ],
   "fingerprint": "09b57b85",
-  "units": "before_deg/after_deg: rotazione locale dell'osso (Euler XYZ, gradi); *_m: metri del GLB negli assi del corpo (avanti = verso il muso, su, sinistra = fianco sinistro dell'animale); points_*: direzione in cui punta l'osso negli stessi assi"
+  "units": "before_deg/after_deg: rotazione locale dell'osso (Euler XYZ, gradi); *_m: metri del GLB negli assi del corpo (avanti = verso il muso, su, sinistra = fianco sinistro dell'animale); points_*: direzione in cui punta l'osso negli stessi assi",
+  "risposta": "Forse avevi visto un difetto dell'editor: le ossa ferme della clip restavano nella posa di riposo e davano scatti e lampi. Ora è corretto. La posa è comunque più ferma: si muovono solo naso e orecchie."
 }
