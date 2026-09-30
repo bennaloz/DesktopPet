@@ -200,7 +200,7 @@ def ears(p, swing=0.0, out=0.0, t=0.0, lag=0.35):
             p.yz[f'Ear{i}.{s}'] = (0.0, -sgn * out * w)
 
 def nose(p, t, rate=7.0, amp=4.0):
-    """Twitching nose: quick little up-downs."""
+    """Twitching nose: quick little up-downs, `rate` twitches over the clip (a whole number, or the loop jumps)."""
     p.x['Nose'] = amp * max(0.0, math.sin(TAU * rate * t)) ** 3
 
 # ---------------------------------------------------------------- baking
@@ -235,7 +235,8 @@ def idle(p, t, f):
     settle_front(p)
     stand(p)
     ears(p, swing=3 * math.sin(TAU * t - 0.6))
-    nose(p, t * 3)
+    # the nose twitches in bursts, fast, then rests a moment
+    nose(p, t, rate=12, amp=9 * (0.35 + 0.65 * smooth(math.sin(TAU * t * 2) * 2)))   # 4 a second
 
 def curve(t, keys):
     """A looping curve through (phase, value) keys, eased between them."""
@@ -308,7 +309,7 @@ def hop(p, t, f):
     for q in plans: plant(p, q[0], dy=q[1], dz=q[2], dmeta=q[3])
     spread(p, 6 * lift)
     ears(p, swing=curve(t, [(0.0, 0.0), (0.45, -3.0), (0.75, 5.0), (0.9, 1.0)]))
-    nose(p, t * 2, amp=2)
+    nose(p, t, rate=2, amp=3)      # 4 a second
 
 RUN_S, RUN_FRAMES = 1.30, 10      # the half-bound: 1.3 m per stride at 3 strides a second (3.9 m/s)
 def run(p, t, f):
@@ -339,59 +340,99 @@ def run(p, t, f):
     ears(p, swing=curve(t, [(0.0, 2.0), (0.33, -5.0), (0.5, 5.0), (0.8, 1.0)]))
 
 def binky(p, t, f):
-    """Crouch, leap up twisting the head one way and the rump the other, flick the hind feet, land."""
-    crouch = smooth(t / 0.2) * (1 - smooth((t - 0.2) / 0.1))
-    air = bump(t, 0.25, 0.8)
+    """The happy leap: a quick crouch, the hind legs drive it up stretched out long, legs straight; at the top the
+    rump flips sideways and the hind feet kick out to the side while the head turns the other way; it straightens
+    out, the front paws come down first and it lands."""
+    crouch = bump(t, 0.0, 0.26)
+    push = bump(t, 0.18, 0.40)
+    air = smooth((t - 0.24) / 0.12) * (1 - smooth((t - 0.74) / 0.12))
+    height = math.sin(math.pi * max(0.0, min(1.0, (t - 0.24) / 0.58))) if 0.24 < t < 0.82 else 0.0
+    twist = bump(t, 0.40, 0.76)
     land = bump(t, 0.78, 1.0)
-    twist = math.sin(math.pi * min(1, max(0, (t - 0.28) / 0.5)))
-    body(p, dz=-0.05 * crouch + 0.36 * air - 0.03 * land, pitch=6 * crouch - 12 * air * (1 - t) + 4 * land,
-         spine=-6 * air + 4 * crouch, neck=-8 * air, head=4 * air)
-    p.yz['Hips'] = (0.0, -22 * twist)
-    p.yz['Neck'] = (0.0, 30 * twist)
-    p.yz['Chest'] = (0.0, 8 * twist)
-    # legs: gathered in the air, the hind feet flicked out and back at the top
-    kick = bump(t, 0.4, 0.7)
+    body(p, dz=-0.05 * crouch + 0.42 * height - 0.03 * land,
+         pitch=8 * crouch - 14 * push + 6 * land + 4 * bump(t, 0.62, 0.84),
+         spine=5 * crouch - 8 * air, chest=-4 * air, neck=-12 * air + 6 * crouch, head=4 * air)
+    p.length = 1 + 0.16 * push + 0.06 * air
+    # the twist: rump one way, head the other, the body rolling a little with it
+    # spread along the whole back, or the skin folds where one bone does all the turning
+    p.yz['Hips'] = (-3 * twist, -12 * twist)
+    p.yz['Spine'] = (-2 * twist, -7 * twist)
+    p.yz['Chest'] = (2 * twist, 6 * twist)
+    p.yz['Neck'] = (0.0, 24 * twist)
+    p.yz['Head'] = (0.0, 10 * twist)
     up = max(0.0, p.hips[1])
-    for key in ('FL', 'FR'): plant(p, key, dy=-0.02 * air, dz=up * 0.85 + 0.02 * air, dmeta=-25 * air)
-    for key in ('HL', 'HR'): plant(p, key, dy=0.10 * kick, dz=up * 0.8 + 0.05 * kick, dmeta=40 * air)
-    for s, sgn in (('L', 1), ('R', -1)): p.yz[f'Thigh.{s}'] = (0.0, sgn * 18 * kick)
-    ears(p, swing=10 * math.sin(TAU * t * 1.5), out=5 * air)
+    # legs: straight and long in the air (front reaching down-forward, hind stretched down-back), then the kick
+    kick = bump(t, 0.44, 0.72)
+    for key in ('FL', 'FR'):
+        plant(p, key, dy=-0.07 * air + 0.03 * crouch, dz=up * 0.9 - 0.05 * air, dmeta=-35 * air)
+    for key in ('HL', 'HR'):
+        # stretched down and back a little under the body (the long feet do it, the thigh stays near its place)
+        plant(p, key, dy=0.10 * push + 0.04 * air - 0.03 * kick, dz=up - 0.05 * air + 0.05 * kick,
+              dmeta=40 * max(push, air))
+    for s_, sgn in (('L', 1), ('R', -1)):
+        # both hind feet flick out to the same side (the rump's twist), one a little more than the other
+        p.yz[f'Thigh.{s_}'] = (0.0, -(10 + 4 * sgn) * kick)
+    ears(p, swing=12 * math.sin(TAU * t * 1.5) - 6 * air, out=6 * air)
+
+def tuck_front(p, back=0.12):
+    """Front paws folded in under the chest (the way a loafing rabbit hides them): the forearms lie back along
+    the floor, the paws flat just in front of the knees."""
+    for key in ('FL', 'FR'): plant(p, key, dy=back, dz=0.006, dmeta=25)
 
 def loaf(p, t, f):
-    """Hunkered down: belly on the floor, front paws tucked under the chest, ears relaxed, breathing."""
+    """The loaf: the round body settled on the floor (the model already sits on its belly), the chest down onto the
+    folded front paws, head drawn in, ears lying back, breathing."""
     br = math.sin(TAU * t * 2)
-    body(p, dz=-0.04 + 0.004 * br, pitch=2, spine=2 + 1.0 * br, neck=6, head=4)
+    body(p, dz=-0.004 + 0.003 * br, pitch=10, spine=3 + 0.8 * br, neck=1, head=2)
     for key in ('HL', 'HR'): plant(p, key)
-    for key in ('FL', 'FR'): plant(p, key, dy=0.03)
-    ears(p, swing=-2)
-    nose(p, t * 2, amp=1.5)
+    tuck_front(p)
+    ears(p, swing=-6)
+    nose(p, t, rate=9, amp=4)      # 3 a second, calm
 
 def sleep(p, t, f):
-    br = math.sin(TAU * t * 1)
-    body(p, dz=-0.05 + 0.005 * br, pitch=4, spine=3 + 1.2 * br, neck=14, head=8)
+    """Asleep: loafed and gone limp, leaning a little, the head sunk until the chin rests on the floor, ears
+    back, slow deep breaths and the nose still."""
+    br = math.sin(TAU * t * 2)
+    p.roll = 7
+    body(p, dz=-0.006 + 0.005 * br, pitch=11, spine=5 + 1.4 * br, neck=20, head=14)
     for key in ('HL', 'HR'): plant(p, key)
-    for key in ('FL', 'FR'): plant(p, key, dy=0.03)
-    ears(p, swing=-4)
+    tuck_front(p, back=0.11)
+    ears(p, swing=-9)
 
 def sit(p, t, f):
-    """Alert: up on all four legs, front raised a little, head up looking about, ears lifted, nose busy."""
+    """Alert: up on all four legs, front raised a little, head up, still; only the nose and the ears are busy."""
     br = math.sin(TAU * t * 2)
-    body(p, dz=0.015, pitch=-5 + 0.5 * br, spine=-3, neck=-10 + 4 * math.sin(TAU * t), head=-4)
+    body(p, dz=0.015, pitch=-5 + 0.3 * br, spine=-3, neck=-10, head=-4)
     settle_front(p)
     stand(p)
-    ears(p, swing=-4 + 2 * math.sin(TAU * t), out=2)
-    nose(p, t * 4, amp=3)
+    ears(p, swing=-4 + 1.5 * math.sin(TAU * t), out=2)
+    nose(p, t, rate=10, amp=9)     # 5 a second
 
 def groom(p, t, f):
-    """Sitting up, washing the face: both front paws rub up the muzzle, the head dips into them."""
-    rub = math.sin(TAU * t * 3)
-    body(p, dz=0.02, dy=0.03, pitch=-24, spine=-8, chest=-4, neck=26 + 6 * rub, head=14 + 4 * rub)
-    for key in ('HL', 'HR'): plant(p, key)
+    """Washing the face, crouched (sitting up would show the belly, which the model has only rough and dark): the
+    head bows and turns towards one front paw, the paw comes up to the cheek, is licked, and wipes down over the
+    eye to the nose; then the other paw. Two wipes, one per paw."""
+    half = 0 if t < 0.5 else 1
+    u = (t * 2) % 1.0
+    key, other, sgn = (('FL', 'FR', 1), ('FR', 'FL', -1))[half]
+    up = bump(u, 0.05, 0.95)
+    wipe = smooth((u - 0.45) / 0.35)                      # 0 at the cheek, 1 down at the nose
+    lick = bump(u, 0.22, 0.45)
+    body(p, dz=0.012 * up, pitch=-6 * up, spine=-2 * up, neck=16 + 12 * up + 6 * wipe, head=8 + 4 * lick)
+    p.yz['Neck'] = (0.0, 10 * sgn * up)
+    p.yz['Head'] = (0.0, 6 * sgn * up)
+    for k in ('HL', 'HR'): plant(p, k)
+    plant(p, other)
     mz = muzzle(p)
-    for key, ph in (('FL', 0.0), ('FR', 0.5)):
-        r = math.sin(TAU * (t * 3 + ph))
-        reach(p, key, (mz[0] + 0.07, mz[1] - 0.10 + 0.05 * r), dmeta=-100)
-    ears(p, swing=3 * rub)
+    # from the floor up to the cheek, a little lick, then down the face to the nose, and back to the floor
+    cheek = (mz[0] + 0.10, mz[1] + 0.09 - 0.02 * lick)
+    nosept = (mz[0] + 0.04, mz[1] - 0.03)
+    tgt = (lerp(cheek[0], nosept[0], wipe), lerp(cheek[1], nosept[1], wipe))
+    rest = PAW[key]                                        # its spot on the floor
+    lift = smooth(u / 0.25) * (1 - smooth((u - 0.82) / 0.18))
+    reach(p, key, (lerp(rest[0], tgt[0], lift), lerp(rest[1], tgt[1], lift)), dmeta=-80 * lift)
+    ears(p, swing=3 * up - 2)
+    p.x['Nose'] = 7 * lick * max(0.0, math.sin(TAU * u * 8))
 
 def eat(p, t, f):
     chew = math.sin(TAU * t * 6)
@@ -401,12 +442,15 @@ def eat(p, t, f):
     ears(p, swing=2 * chew)
 
 def flop_pose(p, k, br=0.0):
-    """Lying on its side (k = how far over, 0..1), the hind legs stretched out behind."""
+    """Lying on its side (k = how far over, 0..1), stretched out long: hind legs out straight behind, front paws
+    forward, the back lengthened, the head laid down."""
     p.roll = 85 * smooth(k)      # onto its right side, the back towards +X (the underside of the mesh is dark and rough)
-    body(p, dz=-0.05 * smooth(k), pitch=0, spine=-4 * k + br, neck=10 * k, head=4 * k)
-    for key in ('HL', 'HR'): plant(p, key, dy=0.10 * k, dz=0.03 * k, dmeta=25 * k)
-    for key in ('FL', 'FR'): plant(p, key, dy=-0.03 * k, dz=0.02 * k, dmeta=-20 * k)
-    ears(p, swing=-4 * k)
+    body(p, dz=-0.05 * smooth(k), pitch=0, spine=-6 * k + br, neck=6 * k, head=2 * k)
+    p.length = 1 + 0.12 * smooth(k)
+    # hind legs straight out behind, the feet (soles back) beyond the rump; front paws reaching forward
+    for key in ('HL', 'HR'): plant(p, key, dy=0.40 * k, dz=0.07 * k, dmeta=150 * k)
+    for key in ('FL', 'FR'): plant(p, key, dy=-0.10 * k, dz=0.04 * k, dmeta=-40 * k)
+    ears(p, swing=-5 * k)
 
 def flop(p, t, f):
     # a moment gathering, then over it goes in a quarter of a second, with a little bounce
@@ -433,11 +477,12 @@ def held(p, t, f):
     ears(p, swing=4 * s)
 
 def fall(p, t, f):
+    """Dropping: all four legs straight down reaching for the floor, the back hollow, head up, ears flying up."""
     s = math.sin(TAU * t * 2)
-    body(p, pitch=-4, spine=-6, neck=-8)
-    for key in ('HL', 'HR'): plant(p, key, dy=0.05, dz=-0.06, dmeta=25 + 5 * s)
-    for key in ('FL', 'FR'): plant(p, key, dy=-0.05, dz=-0.03, dmeta=-20)
-    ears(p, swing=10, out=6 + 2 * s)
+    body(p, pitch=-6, spine=-8, neck=-14, head=-4)
+    for key in ('HL', 'HR'): plant(p, key, dy=0.08, dz=-0.13, dmeta=60 + 4 * s)
+    for key in ('FL', 'FR'): plant(p, key, dy=0.06, dz=-0.09, dmeta=-70)     # straight down under the shoulders
+    ears(p, swing=14, out=9 + 2 * s)
 
 def land(p, t, f):
     a = bump(t, 0.0, 1.0)
