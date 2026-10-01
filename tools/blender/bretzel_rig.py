@@ -39,7 +39,7 @@ B={ # name: (head, tail, parent, connected)
  'Chest':((0,-0.06,0.465),(0,-0.19,0.47),'Spine',True),
  'Neck':((0,-0.19,0.47),(0,-0.27,0.60),'Chest',True),        # up into the skull: the crown goes with the head
  'Head':((0,-0.27,0.60),(0,-0.46,0.55),'Neck',True),
- 'Nose':((0,-0.44,0.51),(0,-0.495,0.50),'Head',False),
+ 'Nose':((0.035,-0.43,0.52),(0.035,-0.488,0.505),'Head',False),   # the nostrils (the head is turned a little)
  'Tail':((0.03,0.40,0.29),(0.05,0.47,0.27),'Hips',False),
 }
 for s,sg in (('L',1),('R',-1)):
@@ -203,6 +203,38 @@ soften(radius=0.055, passes=2, only=[v.co.y>-0.02 and not in_ear(*v.co) for v in
 # and the shoulders, where the upper arm meets the side of the chest
 soften(radius=0.045, passes=2, only=[-0.26<v.co.y<=-0.02 and v.co.z<0.42 and not in_ear(*v.co) for v in me.vertices])
 print("weights softened")
+def sstep(x,a,b):
+    t=max(0.0,min(1.0,(x-a)/(b-a))); return t*t*(3-2*t)
+def regroup(v, w):
+    for g in v.groups: g.weight=0.0
+    for n,x in w.items():
+        if x>1e-4: mesh.vertex_groups[n].add([v.index],x,'REPLACE')
+# the front legs come out from under the chest at the elbow: above it the skin is the chest's and the shoulder's,
+# or reaching forward the forearm drags a web of chest skin down with it
+for v in me.vertices:
+    x,y,z=v.co
+    if y>-0.02 or z<0.17 or in_ear(x,y,z): continue
+    f=sstep(z,0.17,0.23); w={mesh.vertex_groups[g.group].name:g.weight for g in v.groups if g.weight>0}
+    for s_ in 'LR':
+        moved=0.0
+        for n in (f'Forearm.{s_}',f'Hand.{s_}'):
+            if n in w: moved+=w[n]*f; w[n]*=1-f
+        if moved: w[f'UpperArm.{s_}']=w.get(f'UpperArm.{s_}',0.0)+moved
+    regroup(v,w)
+# the nose: only the nostrils over the mouth twitch (the bone heat spread it over the whole muzzle and chin)
+NOSE=V3((0.035,-0.478,0.505))
+for v in me.vertices:
+    w={mesh.vertex_groups[g.group].name:g.weight for g in v.groups if g.weight>0}
+    k=(1-sstep((V3(v.co)-NOSE).length,0.015,0.045))*sstep(v.co.z,0.486,0.496)
+    if k<=0 and 'Nose' not in w: continue
+    rest=w.pop('Nose',0.0)
+    if k>0:
+        tot=sum(w.values()) or 1.0
+        w={n:x/tot*(1-k) for n,x in w.items()} if w else {'Head':1-k}
+        w['Nose']=k
+    elif rest: w['Head']=w.get('Head',0.0)+rest
+    regroup(v,w)
+print("elbows and nose regrouped")
 # fill unweighted verts from the nearest weighted neighbour
 ok=[v for v in me.vertices if sum(g.weight for g in v.groups)>1e-6]
 kd=KDTree(len(ok))

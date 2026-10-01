@@ -1,0 +1,22 @@
+{
+  "pet": "bretzel",
+  "clip": "Run",
+  "time": 0.3201,
+  "frame": 1,
+  "frames": 10,
+  "phase": 0.96,
+  "duration": 0.3333,
+  "view": "desktop",
+  "facing": 1,
+  "note": "Corre come un cane, il coniglio corre con dei balzi",
+  "summary": [],
+  "legs": {},
+  "bones": {},
+  "actions": [
+    "run"
+  ],
+  "fingerprint": "823a9eb4",
+  "skin": "46fb680e",
+  "units": "frame: da 1 a frames, a 30 fps, come nella pagina; before_deg/after_deg: rotazione locale dell'osso (Euler XYZ, gradi); *_m: metri del GLB negli assi del corpo (avanti = verso il muso, su, sinistra = fianco sinistro dell'animale); points_*: direzione in cui punta l'osso negli stessi assi",
+  "risposta": "Ora corre a balzi: falcate più lunghe e meno fitte, in volo il corpo è staccato da terra con le zampe davanti protese e quelle dietro tese, le davanti atterrano quasi insieme e la schiena si richiude prima del balzo dopo."
+}

@@ -1,0 +1,22 @@
+{
+  "pet": "bretzel",
+  "clip": "Hop",
+  "time": 0.1804,
+  "frame": 6,
+  "frames": 15,
+  "phase": 0.361,
+  "duration": 0.5,
+  "view": "desktop",
+  "facing": 1,
+  "note": "Hop non è salto? Sta camminando e comunque ha la pelle sempre attaccata al gomito delle zampe davanti",
+  "summary": [],
+  "legs": {},
+  "bones": {},
+  "actions": [
+    "hop"
+  ],
+  "fingerprint": "4a879451",
+  "skin": "46fb680e",
+  "units": "frame: da 1 a frames, a 30 fps, come nella pagina; before_deg/after_deg: rotazione locale dell'osso (Euler XYZ, gradi); *_m: metri del GLB negli assi del corpo (avanti = verso il muso, su, sinistra = fianco sinistro dell'animale); points_*: direzione in cui punta l'osso negli stessi assi",
+  "risposta": "Ora è un saltello vero: seduto accucciato spinge con le zampe dietro, fa un piccolo volo basso con le zampe davanti in avanti, atterra prima davanti, le zampe dietro arrivano subito dietro e resta un attimo accucciato prima del salto dopo. La pelle del petto non resta più attaccata al gomito: sopra il gomito segue la spalla."
+}

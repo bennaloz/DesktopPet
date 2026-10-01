@@ -1,0 +1,22 @@
+{
+  "pet": "bretzel",
+  "clip": "Idle",
+  "time": 0.4377,
+  "frame": 14,
+  "frames": 90,
+  "phase": 0.146,
+  "duration": 3,
+  "view": "desktop",
+  "facing": 1,
+  "note": "muove la bocca non il naso",
+  "summary": [],
+  "legs": {},
+  "bones": {},
+  "actions": [
+    "idle"
+  ],
+  "fingerprint": "eb1e2862",
+  "skin": "46fb680e",
+  "units": "frame: da 1 a frames, a 30 fps, come nella pagina; before_deg/after_deg: rotazione locale dell'osso (Euler XYZ, gradi); *_m: metri del GLB negli assi del corpo (avanti = verso il muso, su, sinistra = fianco sinistro dell'animale); points_*: direzione in cui punta l'osso negli stessi assi",
+  "risposta": "Il naso trascinava mezza faccia, dal naso al mento: ora si muovono solo le narici, sopra la bocca."
+}

@@ -1,9 +1,9 @@
 {
   "Binky": {
-    "impronta": "46465159",
+    "impronta": "6d2d6236",
     "nota": "",
-    "pelle": "pesi-29-09",
-    "quando": "2026-09-30T15:25",
+    "pelle": "46fb680e",
+    "quando": "2026-10-01T10:00",
     "stato": "da_rifare"
   },
   "Fall": {
@@ -28,17 +28,17 @@
     "stato": "da_rifare"
   },
   "Hop": {
-    "impronta": "3caae17c",
+    "impronta": "4a879451",
     "nota": "",
-    "pelle": "pesi-29-09",
-    "quando": "2026-09-30T15:24",
+    "pelle": "46fb680e",
+    "quando": "2026-10-01T09:59",
     "stato": "da_rifare"
   },
   "Idle": {
-    "impronta": "dfaf85cf",
+    "impronta": "eb1e2862",
     "nota": "",
-    "pelle": "pesi-29-09",
-    "quando": "2026-09-30T15:23",
+    "pelle": "46fb680e",
+    "quando": "2026-10-01T09:57",
     "stato": "da_rifare"
   },
   "Land": {
@@ -56,10 +56,10 @@
     "stato": "da_rifare"
   },
   "Run": {
-    "impronta": "4aa6fb39",
+    "impronta": "823a9eb4",
     "nota": "",
-    "pelle": "pesi-29-09",
-    "quando": "2026-09-30T15:25",
+    "pelle": "46fb680e",
+    "quando": "2026-10-01T10:00",
     "stato": "da_rifare"
   },
   "Sit": {

@@ -1,0 +1,22 @@
+{
+  "pet": "bretzel",
+  "clip": "Binky",
+  "time": 0.073,
+  "frame": 3,
+  "frames": 25,
+  "phase": 0.088,
+  "duration": 0.8333,
+  "view": "desktop",
+  "facing": 1,
+  "note": "Binky cosa fa?",
+  "summary": [],
+  "legs": {},
+  "bones": {},
+  "actions": [
+    "binky"
+  ],
+  "fingerprint": "6d2d6236",
+  "skin": "46fb680e",
+  "units": "frame: da 1 a frames, a 30 fps, come nella pagina; before_deg/after_deg: rotazione locale dell'osso (Euler XYZ, gradi); *_m: metri del GLB negli assi del corpo (avanti = verso il muso, su, sinistra = fianco sinistro dell'animale); points_*: direzione in cui punta l'osso negli stessi assi",
+  "risposta": "Rifatto da capo: si raccoglie, spinge, a metà salto il sedere si gira e si inclina e le zampe dietro calciano di lato (verso chi guarda, da qualunque lato sia girato: ci sono due versioni), la testa gira dall'altra parte; poi atterra davanti e si riaccuccia."
+}
