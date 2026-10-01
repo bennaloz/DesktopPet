@@ -161,6 +161,15 @@ function collectBones(root) {
 }
 
 /** Like Godot's FitToLength: the longer of X/Z becomes 1, feet on the floor; plus facing +Z. */
+/** The animal's box, without the props it holds (Prop_*, like the rabbit's hay: out at full size at rest). */
+function bodyBox() {
+  const b = new THREE.Box3();
+  S.model.traverse((o) => {
+    if (o.isMesh && !o.name.startsWith("Prop_") && !o.parent?.name?.startsWith("Prop_")) b.expandByObject(o, true);
+  });
+  return b;
+}
+
 function fitModel() {
   holder.position.set(0, 0, 0);
   holder.rotation.set(0, 0, 0);
@@ -173,11 +182,11 @@ function fitModel() {
   // forward in the GLB's own frame (for the feedback's metres)
   S.fwd.set(f.x, 0, f.z).normalize();
   holder.updateMatrixWorld(true);
-  let b = new THREE.Box3().setFromObject(S.model, true);
+  let b = bodyBox();
   const size = b.getSize(new THREE.Vector3());
   holder.scale.setScalar(1 / Math.max(size.x, size.z));
   holder.updateMatrixWorld(true);
-  b = new THREE.Box3().setFromObject(S.model, true);
+  b = bodyBox();
   const c = b.getCenter(new THREE.Vector3());
   holder.position.set(-c.x, -b.min.y, -c.z);
   holder.updateMatrixWorld(true);
@@ -498,18 +507,127 @@ function pinGroundedPaws() {
 tc.addEventListener("dragging-changed", (e) => {
   orbit.enabled = !e.value;
   if (e.value) S.undo.push(snapshot());
-  if (e.value && S.selected?.bone && !["Belly", "Neck", "Head", "Nose", "Tail"].includes(S.selected.bone)
-      && !S.selected.bone.startsWith("Ear")) pinGroundedPaws();
+  if (e.value && movesBody(S.selected)) pinGroundedPaws();
   else renderEdits();
 });
 
-tc.addEventListener("objectChange", () => {
+tc.addEventListener("objectChange", afterEdit);
+
+/** After any change to the pose: pinned paws are put back on their handles. */
+function afterEdit() {
   S.edited = S.dirty = true;
   if (S.selected?.leg) S.pinned.add(S.selected.leg.id);
   holder.updateMatrixWorld(true);
   for (const leg of S.legs) if (S.pinned.has(leg.id)) solveLeg(leg);
   updateMarkers();
-});
+}
+
+// ------------------------------------------------------------------ buttons (the same moves as the arrows and rings)
+
+const UP = new THREE.Vector3(0, 1, 0);
+const STEPS = { piccolo: [0.005, 2], medio: [0.015, 5], grande: [0.04, 12] };   // metres of the GLB, degrees
+/** An offset in the GLB's own metres (its frame: S.fwd ahead, y up) as a world vector. */
+function toWorld(v) { return v.clone().applyMatrix3(new THREE.Matrix3().setFromMatrix4(S.model.matrixWorld)); }
+const leftOf = () => new THREE.Vector3(0, 1, 0).cross(S.fwd);
+/** The direction a bone points, in the world. */
+const along = (b) => new THREE.Vector3(0, 1, 0).applyQuaternion(b.getWorldQuaternion(new THREE.Quaternion())).normalize();
+/** The sign that makes a turn about `axis` carry a point at `r` towards `want`. */
+const towards = (axis, r, want) => Math.sign(new THREE.Vector3().crossVectors(axis, r).dot(want)) || 1;
+
+function moveBy(obj, d) {
+  const p = obj.getWorldPosition(new THREE.Vector3()).add(d);
+  obj.position.copy(obj.parent.worldToLocal(p));
+  obj.updateMatrixWorld(true);
+}
+
+/** Turn a bone about a world axis, about its own joint or about a world point. */
+function turnBy(b, axis, ang, about = null) {
+  const q = new THREE.Quaternion().setFromAxisAngle(axis, ang);
+  if (about) {
+    const at = b.getWorldPosition(new THREE.Vector3());
+    moveBy(b, at.clone().sub(about).applyQuaternion(q).add(about).sub(at));
+  }
+  const world = q.multiply(b.getWorldQuaternion(new THREE.Quaternion()));
+  b.quaternion.copy(b.parent.getWorldQuaternion(new THREE.Quaternion()).invert().multiply(world));
+  b.updateMatrixWorld(true);
+}
+
+/** The buttons for what is selected: [label, title, move(step metres, step radians)]. */
+function nudges(sel) {
+  const lat = () => toWorld(leftOf()).normalize();
+  const shift = (obj, dir) => (m) => moveBy(obj, toWorld(dir.clone().multiplyScalar(m)));
+  if (sel.leg) {
+    const m = S.markers.get(sel.leg.id);
+    return [["zampa su", "", shift(m, UP)], ["zampa giù", "", shift(m, UP.clone().negate())],
+      ["zampa avanti", "Verso il muso", shift(m, S.fwd.clone())],
+      ["zampa indietro", "Verso la coda", shift(m, S.fwd.clone().negate())]];
+  }
+  const b = boneOf(sel.bone);
+  const turn = (axisOf, want) => (_, a) => { const ax = axisOf(); turnBy(b, ax, towards(ax, along(b), want()) * a); };
+  const roll = (side) => (_, a) => { const ax = along(b); turnBy(b, ax, towards(ax, UP, lat().multiplyScalar(side)) * a); };
+  const out = [
+    ["punta su", "La parte ruota: la sua estremità sale", turn(lat, () => UP)],
+    ["punta giù", "La parte ruota: la sua estremità scende", turn(lat, () => UP.clone().negate())],
+    ["gira a sx", "Verso il fianco sinistro dell'animale", turn(() => UP.clone(), () => lat())],
+    ["gira a dx", "Verso il fianco destro dell'animale", turn(() => UP.clone(), () => lat().negate())],
+    ["inclina a sx", "Rollio: la parte gira sul proprio asse", roll(-1)],
+    ["inclina a dx", "Rollio: la parte gira sul proprio asse", roll(1)],
+  ];
+  if (sel.bone === "Hips") {
+    // the rump down or up, the front staying where it is: the body turns about the middle of the back (where the
+    // chest begins) and the chest turns back as much, so only the back bends
+    const rump = (want) => (_, a) => {
+      const chest = boneOf("Chest") ?? b, mid = chest.getWorldPosition(new THREE.Vector3()), ax = lat();
+      const ang = towards(ax, b.getWorldPosition(new THREE.Vector3()).sub(mid), want) * a;
+      turnBy(b, ax, ang, mid);
+      if (chest !== b) turnBy(chest, ax, -ang);
+    };
+    out.unshift(["sedere giù", "Abbassa il sedere, le spalle restano dove sono", rump(UP.clone().negate())],
+      ["sedere su", "Alza il sedere, le spalle restano dove sono", rump(UP)]);
+  }
+  if (movable(sel.bone))
+    out.push(["sposta su", "", shift(b, UP)], ["sposta giù", "", shift(b, UP.clone().negate())],
+      ["sposta avanti", "Verso il muso", shift(b, S.fwd.clone())],
+      ["sposta indietro", "Verso la coda", shift(b, S.fwd.clone().negate())]);
+  return out;
+}
+
+/** The body itself (not a leg, not the head or the tail or the belly skin): its paws on the floor stay put. */
+const movesBody = (sel) => !!sel?.bone && ["Hips", "Spine", "Chest"].includes(sel.bone);
+
+function renderNudges() {
+  const box = $("nudge");
+  box.replaceChildren();
+  const sel = S.selected;
+  if (!sel) return;
+  for (const [label, title, act] of nudges(sel)) {
+    const btn = document.createElement("button");
+    btn.textContent = label;
+    if (title) btn.title = title;
+    const once = () => {
+      const [m, deg] = STEPS[$("stepSize").value] ?? STEPS.medio;
+      act(m, deg * DEG);
+      afterEdit();
+      renderEdits();
+    };
+    btn.onpointerdown = (e) => {
+      e.preventDefault();
+      if (S.playing) setPlaying(false);
+      S.undo.push(snapshot());
+      if (movesBody(sel)) pinGroundedPaws();
+      once();
+      stopNudge();
+      // held down: after a moment, again and again (a click is one step)
+      nudgeTimer = setTimeout(() => { nudgeTimer = setInterval(once, 100); }, 450);
+    };
+    btn.onpointerleave = btn.onpointercancel = stopNudge;
+    box.append(btn);
+  }
+}
+
+let nudgeTimer = null;
+function stopNudge() { clearTimeout(nudgeTimer); clearInterval(nudgeTimer); nudgeTimer = null; }
+window.addEventListener("pointerup", stopNudge);     // let go anywhere: it stops
 
 // picking: a click (not a drag) on a paw handle or on the body
 const ray = new THREE.Raycaster();
@@ -564,10 +682,10 @@ function inModel(root, bone) {
 }
 
 function pointing(root, bone) {
-  const child = bone.children.find((c) => c.isBone);
+  // along the bone's own length (its local y): the first child is not always its tip (the head's are the nose and
+  // the ears, off to one side)
   const a = inModel(root, bone);
-  const tip = child ? inModel(root, child)
-    : root.worldToLocal(bone.localToWorld(new THREE.Vector3(0, 1, 0).divide(bone.getWorldScale(new THREE.Vector3()))));
+  const tip = root.worldToLocal(bone.localToWorld(new THREE.Vector3(0, 1, 0).divide(bone.getWorldScale(new THREE.Vector3()))));
   return tip.sub(a).normalize();
 }
 
@@ -748,11 +866,12 @@ function renderSelection() {
   const sel = S.selected;
   $("selection").hidden = !sel;
   $("selHint").hidden = !!sel;
-  if (!sel) return;
+  if (!sel) return renderNudges();
   $("selName").textContent = sel.leg ? `${sel.leg.label} (trascina il pallino)` : L.boneLabel(sel.bone);
   $("modeRow").hidden = !movable(sel.bone);
   for (const x of document.querySelectorAll("#modeRow button")) x.classList.toggle("on", x.dataset.mode === S.moveMode);
   $("pick").value = sel.leg ? `leg:${sel.leg.id}` : `bone:${sel.bone}`;
+  renderNudges();
 }
 
 function renderEdits() {

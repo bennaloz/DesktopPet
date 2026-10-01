@@ -60,9 +60,9 @@
   <aside id="right">
     <section>
       <h2>Correzione</h2>
-      <p class="hint" id="selHint">Metti in pausa e clicca una parte del corpo, o sceglila dalla lista: le zampe si
-        trascinano per il pallino del piede, il resto si ruota con gli anelli. Il bacino e la pancia si possono anche
-        spostare; spostando o ruotando il corpo, i piedi a terra restano dove sono.</p>
+      <p class="hint" id="selHint">Metti in pausa e clicca una parte del corpo, o sceglila dalla lista. Poi usa i tasti
+        che compaiono (sedere giù, punta su, gira, sposta…), oppure trascina: le zampe per il pallino del piede, il
+        resto con gli anelli e le frecce. Spostando o ruotando il corpo, i piedi a terra restano dove sono.</p>
       <select id="pick" title="Le parti che col clic non si prendono (il sedere prende la coscia)"></select>
       <div id="selection" hidden>
         <div id="selName"></div>
@@ -70,6 +70,11 @@
           <button data-mode="rotate" class="on">Ruota</button>
           <button data-mode="translate">Sposta</button>
         </div>
+        <div class="row nudgeHead">Con i tasti (tieni premuto per continuare), passo
+          <select id="stepSize"><option value="piccolo">piccolo</option><option value="medio" selected>medio</option>
+            <option value="grande">grande</option></select>
+        </div>
+        <div class="row" id="nudge"></div>
       </div>
       <div class="row">
         <button id="undo" title="Ctrl+Z" disabled>Annulla</button>
