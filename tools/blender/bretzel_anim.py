@@ -51,6 +51,7 @@ class Pose:
         self.hips = (0.0, 0.0)    # world (dy, dz) offset of the whole body
         self.roll = 0.0           # degrees the whole body rolls onto its side (flop)
         self.length = 1.0         # the middle of the back (Spine) stretched out (> 1) or gathered up (< 1)
+        self.hay = 0.0            # how much of the blades of hay out of the mouth is still out (Eat; 0 = none)
 
     def cum(self, name):
         a = 0.0
@@ -111,7 +112,7 @@ class Pose:
         # the front legs keep their size; every other bone keys scale 1, or a clip would keep the last one's
         for pb in P:
             k = self.length if pb.name == 'Spine' else 1 / self.length if pb.name == 'Chest' else 1.0
-            pb.scale = (1.0, k, 1.0)
+            pb.scale = (self.hay ** 0.5, self.hay, self.hay ** 0.5) if pb.name == 'Hay' else (1.0, k, 1.0)
             pb.keyframe_insert("scale", frame=frame)
         # the whole body: offset in the side plane, and the roll onto its side, both on the root (Hips)
         R = bones['Hips'].matrix_local.to_3x3()
@@ -193,11 +194,23 @@ def body(p, dz=0.0, dy=0.0, pitch=0.0, spine=0.0, chest=0.0, neck=0.0, head=0.0)
 SHOULDER_REACH = REST['Hips']['h'][0] - REST['UpperArm.L']['h'][0]     # the shoulders this far ahead of the root
 HEEL_DOWN = 180 + META['HL']            # how far the hind feet tip back to lie flat on the floor (heel down)
 
+TUCK = 18.0      # how far the rump rolls under when the hips come all the way down to the crouch (deg)
+
 def lower(p, rear, front, pitch=0.0, **kw):
     """The body let down onto bending legs: the hips `rear` and the shoulders `front` metres lower than standing
-    (negative: higher), pitched to match, extra pitch on top; the rest as body()."""
+    (negative: higher), pitched to match, extra pitch on top; the rest as body().
+    The lower the hips come, the more the rump rolls under (TUCK) and the back humps up to keep the shoulders and
+    the head nearly where they were: a crouched rabbit is one round ball. Bending the thighs forward under a level rump
+    instead folds the flank into a crease, a dog's tucked-up belly."""
     tilt = math.degrees(math.asin(max(-1.0, min(1.0, (front - rear) / SHOULDER_REACH))))
     body(p, dz=-rear, pitch=tilt + pitch, **kw)
+    tuck = TUCK * max(0.0, min(1.2, rear / HUNCH_REAR))
+    if tuck <= 0: return
+    sh, head = shoulder(p, 'FL')[1], p.cum('Head')
+    p.x['Hips'] -= tuck
+    for _ in range(6):     # hump the back until the shoulders are back at their height
+        p.x['Spine'] += math.degrees((shoulder(p, 'FL')[1] - sh) / 0.36)
+    p.x['Neck'] -= 0.5 * math.degrees(p.cum('Head') - head)   # half: the head comes down a little with the chest
 
 def crouch_feet(p, k=1.0, front=0.0):
     """Paws on their standing spots, the long hind feet let down flat on the floor (k: how far, 0..1), the front
@@ -208,7 +221,7 @@ def crouch_feet(p, k=1.0, front=0.0):
 # A rabbit at rest is not a cat or a dog standing on its legs: it sits low, the belly almost on the floor, the hind
 # legs folded right up under the haunches (the long feet flat, toes forward under the belly, the heel under the
 # rump), so that they hardly show; only the short front legs stand, a little bent.
-HUNCH_REAR, HUNCH_FRONT, HUNCH_FEET = 0.175, 0.13, -0.05
+HUNCH_REAR, HUNCH_FRONT, HUNCH_FEET = 0.175, 0.14, -0.05
 
 def hunch(p, rear=0.0, front=0.0, pitch=0.0, paws=0.0, **kw):
     """The resting crouch, `rear`/`front` m lower (or higher, negative) than it, the front paws `paws` m further
@@ -367,17 +380,17 @@ def run(p, t, f):
     body(p,
          dz=curve(t, [(0.0, -0.06), (0.12, 0.0), (0.35, 0.22), (0.52, 0.06), (0.66, -0.02), (0.86, 0.04)]),
          pitch=curve(t, [(0.0, -10.0), (0.15, -8.0), (0.35, -2.0), (0.52, 6.0), (0.7, -2.0), (0.9, -10.0)]),
-         spine=curve(t, [(0.0, -11.0), (0.15, -3.0), (0.35, 6.0), (0.52, 2.0), (0.7, -9.0), (0.9, -13.0)]),
+         spine=curve(t, [(0.0, -11.0), (0.15, -4.0), (0.35, 0.0), (0.52, -1.0), (0.7, -9.0), (0.9, -13.0)]),
          chest=curve(t, [(0.0, 2.0), (0.35, -6.0), (0.52, 0.0), (0.8, 3.0)]),
          neck=curve(t, [(0.0, -2.0), (0.35, -8.0), (0.52, -4.0), (0.75, 0.0)]),
          head=curve(t, [(0.0, 2.0), (0.35, 4.0), (0.52, 4.0), (0.75, 2.0)]))
-    p.length = curve(t, [(0.0, 0.86), (0.2, 1.06), (0.38, 1.14), (0.54, 1.06), (0.74, 0.90), (0.9, 0.86)])
+    p.length = curve(t, [(0.0, 0.86), (0.2, 1.0), (0.38, 1.05), (0.54, 1.0), (0.74, 0.90), (0.9, 0.86)])
     plans = []
     for key, land in (('FL', 0.52), ('FR', 0.55)):
         y, z, m, down = foot(t, land, 0.26, S, -0.18, 0.18, 25, -60)
         plans.append((key, y, z, m, down))
     for key in ('HL', 'HR'):
-        y, z, m, down = foot(t, 0.0, 0.22, S, -0.08, 0.18, 55, 10, trail=0.10, trail_until=0.40)
+        y, z, m, down = foot(t, 0.0, 0.18, S, -0.10, 0.18, 55, 10, trail=0.10, trail_until=0.40)
         plans.append((key, y, z, m, down))
     rise = curve(t, [(0.0, -0.06), (0.12, 0.0), (0.35, 0.22), (0.52, 0.06), (0.66, -0.02), (0.86, 0.04)])
     plans = carried(plans, rise, {'FL': 0.18, 'FR': 0.18, 'HL': 0.18, 'HR': 0.18})
@@ -393,6 +406,16 @@ def run(p, t, f):
         swing_leg(p, key, w, ramp(u, [(0.0, -40.0), (0.25, -60.0), (0.55, -95.0), (0.85, -112.0), (1.0, -112.0)]),
                   ramp(u, [(0.0, -90.0), (0.25, -150.0), (0.55, -130.0), (0.85, -125.0), (1.0, -125.0)]),
                   ramp(u, [(0.0, -140.0), (0.25, -95.0), (0.55, -150.0), (0.85, -165.0), (1.0, -165.0)]))
+    # the hind legs likewise: after the push they follow through behind only so far (the thighs are the haunches:
+    # stretched right out behind they drag the skin of the belly out into a sheet), then fold up under the belly
+    # and reach forward to land
+    for key in ('HL', 'HR'):
+        u = (t - 0.18) / 0.82
+        if u <= 0: continue
+        w = smooth(u / 0.12) * (1 - smooth((u - 0.85) / 0.15))
+        swing_leg(p, key, w, ramp(u, [(0.0, -95.0), (0.15, -110.0), (0.35, -120.0), (0.6, -138.0), (0.8, -155.0), (1.0, -160.0)]),
+                  ramp(u, [(0.0, -20.0), (0.15, -25.0), (0.35, -35.0), (0.6, -40.0), (0.8, -45.0), (1.0, -55.0)]),
+                  ramp(u, [(0.0, -80.0), (0.15, -25.0), (0.35, -55.0), (0.6, -150.0), (0.8, -165.0), (1.0, -155.0)]))
     spread(p, curve(t, [(0.0, 10.0), (0.25, 3.0), (0.6, 2.0), (0.85, 12.0)]))
     ears(p, swing=curve(t, [(0.0, 3.0), (0.3, -8.0), (0.52, 8.0), (0.8, 2.0)]))
 
@@ -410,8 +433,21 @@ def swing_leg(p, key, w, *angles):
 
 BINKY_UP = 0.40                    # how high the leap takes the body (m, at the top)
 
-def binky(p, t, f, side=1):
-    """The happy leap: from its crouch it coils and the hind legs fire it up off the floor, the front rearing up.
+BINKY_TRAVEL = 1.6          # how far the leap carries it (m): it binkies on the run, the momentum carries it on
+BINKY_FRAMES = 23
+
+def binky(p, tt, f, side=1):
+    """The happy leap, on the run: the hind legs fire it up off the floor, the front rearing up, and it flies on.
+    The clip goes forward at an even BINKY_TRAVEL per clip (the game moves the pet that much); the body runs ahead of
+    that in the air and falls behind as it lands and brakes (prog), the paws on the floor stay where they are put."""
+    t = 0.16 + 0.84 * tt                 # the timing of the leap as it was from a standstill, without the coil
+    prog = ramp(tt, [(0.0, 0.0), (0.17, 0.15), (0.76, 0.92), (0.83, 0.97), (1.0, 1.0)])
+    _binky_at(p, t, side, BINKY_TRAVEL, -BINKY_TRAVEL * (prog - tt), tt)
+
+def _binky_at(p, t, side, D, dyb, tt):
+    """The leap itself (t: 0.16 crouched, 0.30 off the floor, 0.80 the front paws down, 0.86 the hind ones), the
+    body dyb ahead of the evenly moving clip, the floor going by under it at D per clip (tt).
+    From its crouch the hind legs fire it up off the floor, the front rearing up.
     In the air it is a ball: the back arched, the front paws folded up under the chest, the hind legs gathered; the
     rump twists round and rolls over to one side and the hind feet kick out sideways and back, while the head turns
     the other way; it straightens out, the front paws reach down to land first and it settles back into its crouch.
@@ -431,7 +467,10 @@ def binky(p, t, f, side=1):
     lower(p, rear=rear, front=front, pitch=-6 * ball, spine=6 * bump(t, 0.0, 0.3) - 14 * ball + 4 * bump(t, 0.8, 1.0),
           chest=-4 * ball, neck=-8 * bump(t, 0.2, 0.5) - 4 * ball, head=4 * bump(t, 0.3, 0.7))
     p.length = 1.0 - 0.10 * ball
-    p.hips = (p.hips[0], p.hips[1] + H)
+    p.hips = (p.hips[0] + dyb, p.hips[1] + H)
+    T_FRONT, T_HIND = (0.80 - 0.16) / 0.84, (0.86 - 0.16) / 0.84      # when the paws come down (clip time)
+    front_spot = lambda: -D * (1 - T_FRONT) + D * (tt - T_FRONT)      # where they land, at rest by the end
+    hind_spot = lambda: HUNCH_FEET - D * (1 - T_HIND) + D * (tt - T_HIND)
     # the rump swings round (yaw) and rolls over (its legs go out with it), the back and the chest turn the front
     # straight again, and the head looks the other way. (roll, yaw) about each bone's own length and its down axis
     p.yz['Hips'] = (22 * S_ * tw, 26 * S_ * tw)
@@ -443,7 +482,8 @@ def binky(p, t, f, side=1):
     # from bent wrists), and reaching down to the floor to land first
     fold = smooth((t - 0.20) / 0.10) * (1 - smooth((t - 0.64) / 0.14))
     for key in ('FL', 'FR'):
-        down = (PAW[key][0], PAW[key][1] + H)
+        # on the floor: where they stood at the start, then where they are going to land
+        down = (PAW[key][0] + (D * tt if t < 0.5 else front_spot()), PAW[key][1] + H)
         sh = shoulder(p, key)
         up = (sh[0] - 0.075, sh[1] - 0.235)
         reach(p, key, (lerp(down[0], up[0], fold), lerp(down[1], up[1], fold)), dmeta=55 * fold)
@@ -454,9 +494,10 @@ def binky(p, t, f, side=1):
     for key in ('HL', 'HR'):
         if t < 0.30:
             push = smooth((t - 0.16) / 0.14)
-            plant(p, key, dy=HUNCH_FEET * (1 - push), dmeta=-HEEL_DOWN * (1 - push) + 50 * push)
+            plant(p, key, dy=HUNCH_FEET + D * tt, dmeta=-HEEL_DOWN * (1 - push) + 50 * push)
             continue
-        plant(p, key, dy=ramp(t, [(0.30, 0.0), (0.80, 0.0), (0.86, HUNCH_FEET), (1.0, HUNCH_FEET)]),
+        # carried along under the body, then reaching for the spot on the floor where they land
+        plant(p, key, dy=lerp(dyb, hind_spot(), smooth((t - 0.72) / 0.14)),
               dz=H + ramp(t, [(0.30, 0.0), (0.70, 0.05), (0.80, 0.02), (0.86, 0.0), (1.0, 0.0)]),
               dmeta=ramp(t, [(0.30, 50.0), (0.70, 0.0), (0.80, -60.0), (0.86, -HEEL_DOWN), (1.0, -HEEL_DOWN)]))
         if air > 0:
@@ -472,14 +513,15 @@ def binky(p, t, f, side=1):
     # the ears flop about with the jolts, only a little: their upper half is part of the head
     ears(p, swing=6 * math.sin(TAU * t * 1.5) - 4 * bump(t, 0.3, 0.8), out=3 * bump(t, 0.3, 0.8))
 
-LOAF_REAR, LOAF_FRONT = 0.165, 0.17      # how far the body comes down to lie on the floor
+LOAF_REAR, LOAF_FRONT = 0.18, 0.22       # how far the body comes down to lie on the floor, the chest on it
 
 def tuck_front(p, ahead=0.06):
     """Front legs folded down under the chest (a loafing rabbit): elbows back, forearms along the floor, the paws
-    flat with only the toes showing, `ahead` m in front of the shoulders. Pose the body first."""
+    flat with only the toes showing, `ahead` m in front of the shoulders. Pose the body first. (Nearer than about
+    6 cm the upper arm swings back so far that the armpit creases.)"""
     for key in ('FL', 'FR'):
         sh = shoulder(p, key)
-        reach(p, key, (sh[0] - ahead, 0.012), dmeta=-15)
+        reach(p, key, (sh[0] - ahead, 0.012), dmeta=-30)
 
 def loaf(p, t, f):
     """The loaf: the whole body let down onto the floor, hind feet flat beside it, front paws folded away under the
@@ -519,38 +561,57 @@ def groom(p, t, f):
     up = bump(u, 0.05, 0.95)
     wipe = smooth((u - 0.45) / 0.35)                      # 0 at the cheek, 1 down at the nose
     lick = bump(u, 0.22, 0.45)
-    lower(p, rear=HUNCH_REAR, front=HUNCH_FRONT - 0.03 * up, spine=4 - 2 * up, neck=16 + 12 * up + 6 * wipe, head=8 + 4 * lick)
-    p.yz['Neck'] = (0.0, 10 * sgn * up)
-    p.yz['Head'] = (0.0, 6 * sgn * up)
+    lower(p, rear=HUNCH_REAR, front=HUNCH_FRONT - 0.03 * up, spine=4 - 2 * up, neck=6 + 8 * up + 4 * wipe, head=6 + 4 * lick)
+    p.yz['Neck'] = (0.0, 6 * sgn * up)
+    p.yz['Head'] = (0.0, 4 * sgn * up)
     for k in ('HL', 'HR'): plant(p, k, dy=HUNCH_FEET, dmeta=-HEEL_DOWN)
     plant(p, other)
     mz = muzzle(p)
     # from the floor up to the cheek, a little lick, then down the face to the nose, and back to the floor
-    cheek = (mz[0] + 0.10, mz[1] + 0.09 - 0.02 * lick)
-    nosept = (mz[0] + 0.04, mz[1] - 0.03)
+    cheek = (mz[0] + 0.07, mz[1] + 0.04 - 0.02 * lick)      # (any higher, the upper arm swings so far up that the
+    nosept = (mz[0] + 0.03, mz[1] - 0.03)                   # skin over the shoulder tears)
     tgt = (lerp(cheek[0], nosept[0], wipe), lerp(cheek[1], nosept[1], wipe))
     rest = PAW[key]                                        # its spot on the floor
     lift = smooth(u / 0.25) * (1 - smooth((u - 0.82) / 0.18))
     reach(p, key, (lerp(rest[0], tgt[0], lift), lerp(rest[1], tgt[1], lift)), dmeta=-80 * lift)
+    # out to the side as it comes up: the cheek is wider than the shoulders, and straight up the paw would go into it
+    arm_ = 'UpperArm.L' if key == 'FL' else 'UpperArm.R'
+    p.yz[arm_] = (0.0, -sgn * 14 * lift)
     ears(p, swing=3 * up - 2)
     p.x['Nose'] = 7 * lick * max(0.0, math.sin(TAU * u * 8))
 
 def eat(p, t, f):
-    """Hunched at the bowl, belly low, head down into it, chewing."""
-    chew = math.sin(TAU * t * 6)
-    hunch(p, front=0.02, spine=4, neck=26 + 2 * chew, head=14)
-    p.x['Nose'] = 4 * max(0.0, chew)
-    ears(p, swing=2 * chew)
+    """Hunched at the bowl, belly low. Its head dips into the hay, nibbling, and comes up a little with a few blades
+    across its mouth; it chews them in, a bite at a time, the nose going, until they are gone; then down for more.
+    A mouthful every three seconds, a little over two chews a second."""
+    dip = 1 - smooth((t - 0.10) / 0.12) + smooth((t - 0.88) / 0.12)          # head down in the bowl (and loops)
+    chewing = smooth((t - 0.18) / 0.06) * (1 - smooth((t - 0.86) / 0.06))
+    chew = math.sin(TAU * t * 7) * chewing
+    nibble = math.sin(TAU * t * 12) * dip
+    hunch(p, front=0.02 + 0.02 * dip, spine=4, neck=12 + 16 * dip + 1.5 * chew, head=8 + 6 * dip + 1.0 * chew + 2 * nibble)
+    # the blades: picked up in the bowl, then pulled in with each bite, in six pulls
+    k = 6 * min(1.0, max(0.0, (t - 0.22) / 0.62))
+    eaten = (math.floor(k) + smooth((k - math.floor(k)) / 0.5)) / 6
+    p.hay = smooth((t - 0.12) / 0.08) * (1 - eaten)
+    p.x['Nose'] = 5 * max(0.0, chew) + 3 * max(0.0, nibble)
+    ears(p, swing=1.5 * chew)
 
 def flop_pose(p, k, br=0.0):
-    """Lying on its side (k = how far over, 0..1), stretched out long: hind legs out straight behind, front paws
-    forward, the back lengthened, the head laid down."""
-    p.roll = 85 * smooth(k)      # onto its right side, the back towards +X (the underside of the mesh is dark and rough)
-    body(p, dz=-0.05 * smooth(k), pitch=0, spine=-6 * k + br, neck=6 * k, head=2 * k)
-    p.length = 1 + 0.12 * smooth(k)
-    # hind legs straight out behind, the feet (soles back) beyond the rump; front paws reaching forward
-    for key in ('HL', 'HR'): plant(p, key, dy=0.40 * k, dz=0.07 * k, dmeta=150 * k)
-    for key in ('FL', 'FR'): plant(p, key, dy=-0.10 * k, dz=0.04 * k, dmeta=-40 * k)
+    """Lying on its side (k = how far over, 0..1), gone limp: all four legs laid out on the floor, the front ones
+    reaching out past the chin and the hind ones past the tail, the near and the far one of each pair crossed over
+    each other; the body curled a little round, not a log; the head laid down."""
+    s = smooth(k)
+    p.roll = 85 * s              # onto its right side, the back towards +X (the underside of the mesh is dark and rough)
+    # from its crouch: the body down at the floor, rolled over
+    lower(p, rear=lerp(HUNCH_REAR, 0.05, s), front=lerp(HUNCH_FRONT, 0.05, s), spine=-6 * k + br, neck=10 * k,
+          head=6 * k)
+    p.length = 1 + 0.06 * s
+    plant(p, 'HL', dy=lerp(HUNCH_FEET, 0.47, s), dz=0.10 * s, dmeta=lerp(-HEEL_DOWN, 150.0, s))
+    plant(p, 'HR', dy=lerp(HUNCH_FEET, 0.39, s), dz=0.03 * s, dmeta=lerp(-HEEL_DOWN, 135.0, s))
+    plant(p, 'FL', dy=-0.26 * s, dz=0.08 * s, dmeta=-60 * s)
+    plant(p, 'FR', dy=-0.18 * s, dz=0.02 * s, dmeta=-35 * s)
+    c = 10 * s
+    p.yz['Spine'] = (0.0, c); p.yz['Chest'] = (0.0, 0.6 * c); p.yz['Neck'] = (0.0, 0.8 * c); p.yz['Hips'] = (0.0, -0.6 * c)
     ears(p, swing=-5 * k)
 
 def flop(p, t, f):
@@ -602,9 +663,9 @@ def petted(p, t, f):
 
 CLIPS = [  # name, frames, function, bake options
     ("Idle", 90, idle, {}), ("Hop", HOP_FRAMES, hop, {}), ("Run", RUN_FRAMES, run, {}),
-    ("Binky", 27, binky, dict(loop=False)),
-    ("Binky_R", 27, lambda p, t, f: binky(p, t, f, side=-1), dict(loop=False)), ("Loaf", 90, loaf, {}), ("Sleep", 120, sleep, {}), ("Sit", 60, sit, {}),
-    ("Groom", 60, groom, {}), ("Eat", 30, eat, {}), ("Flop", 30, flop, dict(loop=False, ground=True)),
+    ("Binky", BINKY_FRAMES, binky, dict(loop=False)),
+    ("Binky_R", BINKY_FRAMES, lambda p, t, f: binky(p, t, f, side=-1), dict(loop=False)), ("Loaf", 90, loaf, {}), ("Sleep", 120, sleep, {}), ("Sit", 60, sit, {}),
+    ("Groom", 60, groom, {}), ("Eat", 90, eat, {}), ("Flop", 30, flop, dict(loop=False, ground=True)),
     ("FlopSleep", 120, flop_sleep, dict(ground=True)), ("Thump", 24, thump, dict(loop=False)), ("Held", 40, held, {}),
     ("Fall", 20, fall, {}), ("Land", 12, land, dict(loop=False)), ("Petted", 60, petted, {}),
 ]

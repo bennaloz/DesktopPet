@@ -106,6 +106,21 @@ public class BunnyBrainTests
     }
 
     [Fact]
+    public void A_binky_is_a_leap_on_the_run_that_carries_it_on()
+    {
+        var sim = new Sim(3);
+        sim.Needs.Playfulness = 0.9;
+        Assert.True(sim.RunUntil(() => sim.Brain.State == PetState.Zoomies, 20));
+        Assert.True(sim.RunUntil(() => sim.Brain.State == PetState.Binky, 15), "a binky during the zoomies");
+        Assert.True(sim.Body.Vel.X != 0, "it was running when it leapt");
+        double x0 = sim.Body.Pos.X;
+        int dir = sim.Brain.Facing;
+        sim.RunUntil(() => sim.Brain.State != PetState.Binky, 2);
+        double moved = (sim.Body.Pos.X - x0) * dir;
+        Assert.InRange(moved, BunnyBrain.BinkyTravel * 0.8, BunnyBrain.BinkyTravel * 1.1);
+    }
+
+    [Fact]
     public void Relaxed_and_tired_it_flops_over_and_sleeps_on_its_side()
     {
         var sim = new Sim(4);

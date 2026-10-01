@@ -1,0 +1,22 @@
+{
+  "pet": "bretzel",
+  "clip": "Groom",
+  "time": 1.615,
+  "frame": 49,
+  "frames": 60,
+  "phase": 0.808,
+  "duration": 2,
+  "view": "desktop",
+  "facing": 1,
+  "note": "gli sparisce la zampa dentro la testa",
+  "summary": [],
+  "legs": {},
+  "bones": {},
+  "actions": [
+    "groom"
+  ],
+  "fingerprint": "c238c9d8",
+  "skin": "c9ff49e0",
+  "units": "frame: da 1 a frames, a 30 fps, come nella pagina; before_deg/after_deg: rotazione locale dell'osso (Euler XYZ, gradi); *_m: metri del GLB negli assi del corpo (avanti = verso il muso, su, sinistra = fianco sinistro dell'animale); points_*: direzione in cui punta l'osso negli stessi assi",
+  "risposta": "La zampa ora sale di lato alla guancia, invece che dritta dentro la testa, e si ferma più in basso (sotto l'occhio fino al naso). Ho anche staccato dalla spalla la pelle della guancia e della punta dell'orecchio, che si strappava quando la zampa saliva."
+}

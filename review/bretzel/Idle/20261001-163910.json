@@ -1,0 +1,22 @@
+{
+  "pet": "bretzel",
+  "clip": "Idle",
+  "time": 0.1408,
+  "frame": 5,
+  "frames": 90,
+  "phase": 0.047,
+  "duration": 3,
+  "view": "desktop",
+  "facing": 1,
+  "note": "perfetto, peccato lo faccia solo sulla narice destra",
+  "summary": [],
+  "legs": {},
+  "bones": {},
+  "actions": [
+    "idle"
+  ],
+  "fingerprint": "2cc0e40f",
+  "skin": "c9ff49e0",
+  "units": "frame: da 1 a frames, a 30 fps, come nella pagina; before_deg/after_deg: rotazione locale dell'osso (Euler XYZ, gradi); *_m: metri del GLB negli assi del corpo (avanti = verso il muso, su, sinistra = fianco sinistro dell'animale); points_*: direzione in cui punta l'osso negli stessi assi",
+  "risposta": "Il peso del naso era centrato su una narice sola (la testa del modello è un po' girata): l'ho spostato al centro e allargato, ora si muovono tutte e due."
+}

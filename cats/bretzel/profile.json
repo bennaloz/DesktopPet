@@ -18,7 +18,7 @@
     "idle": { "anims": ["Idle"], "loop": true },
     "hop": { "anims": ["Hop"], "loop": true, "speed": 1.0, "ref_speed_px": 81 },
     "run": { "anims": ["Run"], "loop": true, "speed": 1.0, "ref_speed_px": 437 },
-    "binky": { "anims": ["Binky"], "anims_right": ["Binky_R"], "loop": false, "blend": 0.1 },
+    "binky": { "anims": ["Binky"], "anims_right": ["Binky_R"], "loop": false, "blend": 0.1, "ref_speed_px": 245 },
     "jump": { "anims": ["Fall"], "loop": true },
     "fall": { "anims": ["Fall"], "loop": true },
     "land": { "anims": ["Land"], "loop": false, "blend": 0.1 },

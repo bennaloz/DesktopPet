@@ -1,0 +1,22 @@
+{
+  "pet": "bretzel",
+  "clip": "Eat",
+  "time": 0.5811,
+  "frame": 18,
+  "frames": 30,
+  "phase": 0.581,
+  "duration": 1,
+  "view": "desktop",
+  "facing": 1,
+  "note": "forse un po' troppo veloce, si potrebbe simulare che mangia il fieno e quindi che compare un filo di fieno e sparisce un po' per volta",
+  "summary": [],
+  "legs": {},
+  "bones": {},
+  "actions": [
+    "eat"
+  ],
+  "fingerprint": "64b388a1",
+  "skin": "c9ff49e0",
+  "units": "frame: da 1 a frames, a 30 fps, come nella pagina; before_deg/after_deg: rotazione locale dell'osso (Euler XYZ, gradi); *_m: metri del GLB negli assi del corpo (avanti = verso il muso, su, sinistra = fianco sinistro dell'animale); points_*: direzione in cui punta l'osso negli stessi assi",
+  "risposta": "Rifatta più lenta: abbassa la testa nella ciotola, sgranocchia, e torna su con tre fili di fieno che gli pendono dalla bocca; li tira dentro un morso alla volta (sei morsi) mentre il naso si muove, poi riscende. Un boccone ogni 3 secondi. Il filo l'ho allungato come chiedevi, e ho sistemato la pelle del collo che si strappava vicino alla punta delle orecchie quando abbassa la testa."
+}

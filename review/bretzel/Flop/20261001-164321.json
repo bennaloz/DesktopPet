@@ -1,0 +1,22 @@
+{
+  "pet": "bretzel",
+  "clip": "Flop",
+  "time": 0.7335,
+  "frame": 23,
+  "frames": 29,
+  "phase": 0.759,
+  "duration": 0.9667,
+  "view": "desktop",
+  "facing": -1,
+  "note": "da steso non è un palo, le zampe dovrebber stare tutte stese al suolo incrociate",
+  "summary": [],
+  "legs": {},
+  "bones": {},
+  "actions": [
+    "flop"
+  ],
+  "fingerprint": "a1783a27",
+  "skin": "c9ff49e0",
+  "units": "frame: da 1 a frames, a 30 fps, come nella pagina; before_deg/after_deg: rotazione locale dell'osso (Euler XYZ, gradi); *_m: metri del GLB negli assi del corpo (avanti = verso il muso, su, sinistra = fianco sinistro dell'animale); points_*: direzione in cui punta l'osso negli stessi assi",
+  "risposta": "Ora si butta su un fianco partendo accucciato, e da steso non è più un palo: le zampe davanti sono distese a terra oltre il mento, quelle dietro oltre la coda, sfalsate e incrociate fra loro, e il corpo è un po' incurvato. Vale anche per il sonno sul fianco."
+}

@@ -1,0 +1,22 @@
+{
+  "pet": "bretzel",
+  "clip": "Binky_R",
+  "time": 0.0786,
+  "frame": 3,
+  "frames": 26,
+  "phase": 0.091,
+  "duration": 0.8667,
+  "view": "desktop",
+  "facing": 1,
+  "note": "stesse note di blinky",
+  "summary": [],
+  "legs": {},
+  "bones": {},
+  "actions": [
+    "binky"
+  ],
+  "fingerprint": "def39391",
+  "skin": "c9ff49e0",
+  "units": "frame: da 1 a frames, a 30 fps, come nella pagina; before_deg/after_deg: rotazione locale dell'osso (Euler XYZ, gradi); *_m: metri del GLB negli assi del corpo (avanti = verso il muso, su, sinistra = fianco sinistro dell'animale); points_*: direzione in cui punta l'osso negli stessi assi",
+  "risposta": "Come Binky: in corsa, con lo slancio in avanti, e atterra a palla."
+}

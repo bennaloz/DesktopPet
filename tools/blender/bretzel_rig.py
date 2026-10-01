@@ -221,6 +221,53 @@ for v in me.vertices:
             if n in w: moved+=w[n]*f; w[n]*=1-f
         if moved: w[f'UpperArm.{s_}']=w.get(f'UpperArm.{s_}',0.0)+moved
     regroup(v,w)
+# the cheeks and the tips of the ears hang down by the shoulders (the right ones further forward: the head is
+# turned), and the bone heat gave them to the upper arms: above and in front of the shoulder joint the skin is the
+# head's and the neck's, or raising a paw to the face drags them with it
+for v in me.vertices:
+    x,y,z=v.co
+    if in_ear(x,y,z): continue
+    k=sstep(z,0.33,0.39)*(1-sstep(y,-0.27,-0.23))       # (the ear tips hang down to the shoulder joints)
+    if k<=0: continue
+    w={mesh.vertex_groups[g.group].name:g.weight for g in v.groups if g.weight>0}
+    moved=0.0
+    for s_ in 'LR':
+        n=f'UpperArm.{s_}'
+        if n in w: moved+=w[n]*k; w[n]*=1-k
+    if not moved: continue
+    h=sstep(-y,0.28,0.32)*sstep(z,0.40,0.45)        # (low down, by the shoulder, it is the neck's)
+    w['Head']=w.get('Head',0.0)+moved*h; w['Neck']=w.get('Neck',0.0)+moved*(1-h)
+    regroup(v,w)
+# the tips of the lop ears rest on the shoulders, and the mesh has them grown together there: the very tip goes partly
+# with the chest and the shoulder skin it touches partly with the neck (and not with the arm), so when the head moves
+# the two slide over each other instead of tearing apart
+ear_ix=[v.index for v in me.vertices if EARV[v.index]]
+kde=KDTree(len(ear_ix))
+for i,k in enumerate(ear_ix): kde.insert(me.vertices[k].co,i)
+kde.balance()
+def wdict(v): return {mesh.vertex_groups[g.group].name:g.weight for g in v.groups if g.weight>0}
+for k in ear_ix:
+    v=me.vertices[k]; c=0.5*(1-sstep(v.co.z,0.355,0.40))
+    if c<=0: continue
+    w={n:x_*(1-c) for n,x_ in wdict(v).items()}; w['Chest']=w.get('Chest',0.0)+c
+    regroup(v,w)
+ear_w={k:wdict(me.vertices[k]) for k in ear_ix}
+for v in me.vertices:
+    x,y,z=v.co
+    if EARV[v.index] or not 0.30<z<0.42: continue
+    _,i,d=kde.find(v.co)
+    if d>0.035: continue
+    c=1-sstep(d,0.0,0.035); w=wdict(v)
+    # not the arm's, nor (down here) the head's; and halfway to the ear's own weights where they touch
+    for n in [n for n in w if n.split('.')[0] in ('UpperArm','Forearm')]:
+        moved=w[n]*c; w[n]-=moved
+        w['Chest']=w.get('Chest',0.0)+0.6*moved; w['Neck']=w.get('Neck',0.0)+0.4*moved
+    if 'Head' in w:
+        moved=w['Head']*c*(1-sstep(z,0.36,0.42)); w['Head']-=moved; w['Neck']=w.get('Neck',0.0)+moved
+    ew=ear_w[ear_ix[i]]; h=0.5*c
+    w={n:w.get(n,0.0)*(1-h)+ew.get(n,0.0)*h for n in set(w)|set(ew)}
+    regroup(v,w)
+soften(radius=0.03, passes=2, only=[not EARV[v.index] and v.co.y<-0.2 and 0.30<v.co.z<0.45 for v in me.vertices])
 # the haunch: the thigh is inside it and the skin over it is loose. Only the skin round the leg and behind it goes
 # with the thigh; over the top of the haunch and in front of the thigh bone it stays with the rump: turning about
 # the hip, bringing the thigh forward would lift the front of the haunch up over the flank into a lip
@@ -244,10 +291,11 @@ for v in me.vertices:
     regroup(v,w)
 soften(radius=0.04, passes=2, only=[v.co.y>-0.04 and not in_ear(*v.co) for v in me.vertices])
 # the nose: only the nostrils over the mouth twitch (the bone heat spread it over the whole muzzle and chin)
-NOSE=V3((0.035,-0.478,0.505))
+NOSE=V3((0.056,-0.478,0.50))     # between the nostrils (the head is turned a little): both slits, wide and low
 for v in me.vertices:
     w={mesh.vertex_groups[g.group].name:g.weight for g in v.groups if g.weight>0}
-    k=(1-sstep((V3(v.co)-NOSE).length,0.015,0.045))*sstep(v.co.z,0.486,0.496)
+    d=V3(v.co)-NOSE; d.x/=1.7
+    k=(1-sstep(d.length,0.015,0.04))*sstep(v.co.z,0.486,0.494)
     if k<=0 and 'Nose' not in w: continue
     rest=w.pop('Nose',0.0)
     if k>0:
@@ -290,6 +338,39 @@ for b in arm.data.bones:
         L=arm.data.bones[b.name[:-2]+'.L']
         print(f"rest {b.name:11s} y {b.head_local.y:+.3f} z {b.head_local.z:+.3f} -> y {b.tail_local.y:+.3f} z {b.tail_local.z:+.3f}"
               f"   (L y {L.head_local.y:+.3f} z {L.head_local.z:+.3f} -> y {L.tail_local.y:+.3f} z {L.tail_local.z:+.3f})")
+# a few blades of hay hanging out of the mouth, forward and down, on a bone of their own: the Eat clip shows them
+# and draws them into the mouth as it chews (the bone shrinks along its length), every other clip keeps them at
+# nothing. Thick and long enough to read at desktop size (the rabbit is about 110 px long, a pixel is 7 mm).
+MOUTH=V3((0.05,-0.462,0.474)); HAY_DIR=V3((0.0,-0.55,-0.83)).normalized()
+bpy.ops.object.select_all(action='DESELECT'); bpy.context.view_layer.objects.active=arm; arm.select_set(True)
+bpy.ops.object.mode_set(mode='EDIT')
+eb=ad.edit_bones.new('Hay'); eb.head=MOUTH; eb.tail=MOUTH+HAY_DIR*0.03
+eb.align_roll(V3((1,0,0)).cross(HAY_DIR)); eb.parent=ad.edit_bones['Head']; eb.use_connect=False
+bpy.ops.object.mode_set(mode='OBJECT')
+cu=bpy.data.curves.new("HayCurve",'CURVE'); cu.dimensions='3D'; cu.bevel_depth=0.0045; cu.bevel_resolution=1
+fwd=V3((0,-1,0))
+for dx,length,bend in ((0.0,0.20,0.03),(0.014,0.17,0.05),(-0.012,0.15,0.015)):
+    sp=cu.splines.new('POLY'); n=8; sp.points.add(n-1)
+    for i in range(n):
+        u=i/(n-1)
+        q=MOUTH+HAY_DIR*(length*u)+fwd*(bend*u*u)+V3((dx*u,0,0))
+        sp.points[i].co=(q.x,q.y,q.z,1)
+hay=bpy.data.objects.new("Hay",cu); bpy.context.scene.collection.objects.link(hay)
+bpy.ops.object.select_all(action='DESELECT'); bpy.context.view_layer.objects.active=hay; hay.select_set(True)
+bpy.ops.object.convert(target='MESH')
+hay=bpy.context.view_layer.objects.active; hay.name="Prop_Hay"      # (Prop_: the game leaves it out of the size)
+hm=hay.data
+if not hm.uv_layers: hm.uv_layers.new(name="UVMap")
+for d in hm.uv_layers[0].data: d.uv=(0.5,0.5)
+img=bpy.data.images.new("Hay",4,4); img.pixels=[c for _ in range(16) for c in (0.78,0.74,0.40,1.0)]
+img.pack()
+mat=bpy.data.materials.new("Hay"); mat.use_nodes=True
+bs=mat.node_tree.nodes["Principled BSDF"]; tex=mat.node_tree.nodes.new("ShaderNodeTexImage"); tex.image=img
+mat.node_tree.links.new(tex.outputs["Color"],bs.inputs["Base Color"]); bs.inputs["Roughness"].default_value=0.8
+hm.materials.append(mat)
+vg=hay.vertex_groups.new(name='Hay'); vg.add(list(range(len(hm.vertices))),1.0,'REPLACE')
+hay.parent=arm; ham=hay.modifiers.new("Armature",'ARMATURE'); ham.object=arm
+print("hay verts",len(hm.vertices))
 for img in bpy.data.images:
     if img.size[0]>2048: img.scale(2048,2048)
 bpy.ops.wm.save_as_mainfile(filepath=work_file("rig.blend"))

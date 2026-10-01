@@ -1,0 +1,22 @@
+{
+  "pet": "bretzel",
+  "clip": "Binky",
+  "time": 0.8519,
+  "frame": 1,
+  "frames": 26,
+  "phase": 0.983,
+  "duration": 0.8667,
+  "view": "desktop",
+  "facing": -1,
+  "note": "movimento direi perfetto ma lo deve fare in corsa quindi in movimento come slancio, e quando è atterrato la pancia sembra quella di un cane, un coniglio non è fatto così",
+  "summary": [],
+  "legs": {},
+  "bones": {},
+  "actions": [
+    "binky"
+  ],
+  "fingerprint": "bd52ea33",
+  "skin": "c9ff49e0",
+  "units": "frame: da 1 a frames, a 30 fps, come nella pagina; before_deg/after_deg: rotazione locale dell'osso (Euler XYZ, gradi); *_m: metri del GLB negli assi del corpo (avanti = verso il muso, su, sinistra = fianco sinistro dell'animale); points_*: direzione in cui punta l'osso negli stessi assi",
+  "risposta": "Ora il binky lo fa in corsa: durante le corse pazze, quando è lanciato, spicca il salto e lo slancio lo porta avanti di circa 180 px; atterrando frena e torna accucciato. Non parte più da fermo, con la carica sul posto. La pancia dopo l'atterraggio: vedi Land, ora è raccolto a palla."
+}

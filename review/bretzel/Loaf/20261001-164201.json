@@ -1,0 +1,22 @@
+{
+  "pet": "bretzel",
+  "clip": "Loaf",
+  "time": 0.6751,
+  "frame": 21,
+  "frames": 90,
+  "phase": 0.225,
+  "duration": 3,
+  "view": "desktop",
+  "facing": 1,
+  "note": "loaf e sit sono uguali, e c'è sempre il problema pancia",
+  "summary": [],
+  "legs": {},
+  "bones": {},
+  "actions": [
+    "loaf"
+  ],
+  "fingerprint": "3535a0ba",
+  "skin": "c9ff49e0",
+  "units": "frame: da 1 a frames, a 30 fps, come nella pagina; before_deg/after_deg: rotazione locale dell'osso (Euler XYZ, gradi); *_m: metri del GLB negli assi del corpo (avanti = verso il muso, su, sinistra = fianco sinistro dell'animale); points_*: direzione in cui punta l'osso negli stessi assi",
+  "risposta": "Ora sono diversi: Sit è accucciato con il davanti alto sulle zampe dritte, Loaf è tutto a terra, petto compreso, con le zampe davanti ripiegate sotto e solo le punte che sporgono. La pancia è a palla come nelle altre pose (vedi Land)."
+}

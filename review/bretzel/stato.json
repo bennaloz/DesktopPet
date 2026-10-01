@@ -1,9 +1,23 @@
 {
   "Binky": {
-    "impronta": "6d2d6236",
+    "impronta": "bd52ea33",
     "nota": "",
-    "pelle": "46fb680e",
-    "quando": "2026-10-01T10:00",
+    "pelle": "c9ff49e0",
+    "quando": "2026-10-01T16:41",
+    "stato": "da_rifare"
+  },
+  "Binky_R": {
+    "impronta": "def39391",
+    "nota": "",
+    "pelle": "c9ff49e0",
+    "quando": "2026-10-01T16:41",
+    "stato": "da_rifare"
+  },
+  "Eat": {
+    "impronta": "64b388a1",
+    "nota": "",
+    "pelle": "c9ff49e0",
+    "quando": "2026-10-01T16:42",
     "stato": "da_rifare"
   },
   "Fall": {
@@ -14,17 +28,17 @@
     "stato": "da_rifare"
   },
   "Flop": {
-    "impronta": "0bc4127e",
+    "impronta": "a1783a27",
     "nota": "",
-    "pelle": "pesi-29-09",
-    "quando": "2026-09-30T15:27",
+    "pelle": "c9ff49e0",
+    "quando": "2026-10-01T16:43",
     "stato": "da_rifare"
   },
   "Groom": {
-    "impronta": "8bb543a8",
+    "impronta": "c238c9d8",
     "nota": "",
-    "pelle": "pesi-29-09",
-    "quando": "2026-09-30T15:26",
+    "pelle": "c9ff49e0",
+    "quando": "2026-10-01T16:42",
     "stato": "da_rifare"
   },
   "Hop": {
@@ -35,38 +49,38 @@
     "stato": "da_rifare"
   },
   "Idle": {
-    "impronta": "eb1e2862",
+    "impronta": "2cc0e40f",
     "nota": "",
-    "pelle": "46fb680e",
-    "quando": "2026-10-01T09:57",
+    "pelle": "c9ff49e0",
+    "quando": "2026-10-01T16:39",
     "stato": "da_rifare"
   },
   "Land": {
-    "impronta": "a8cd5ea0",
+    "impronta": "39900a73",
     "nota": "",
-    "pelle": "pesi-29-09",
-    "quando": "2026-09-30T15:26",
+    "pelle": "c9ff49e0",
+    "quando": "2026-10-01T16:41",
     "stato": "da_rifare"
   },
   "Loaf": {
-    "impronta": "c43c3500",
+    "impronta": "3535a0ba",
     "nota": "",
-    "pelle": "pesi-29-09",
-    "quando": "2026-09-30T15:26",
+    "pelle": "c9ff49e0",
+    "quando": "2026-10-01T16:42",
     "stato": "da_rifare"
   },
   "Run": {
-    "impronta": "823a9eb4",
+    "impronta": "75659c97",
     "nota": "",
-    "pelle": "46fb680e",
-    "quando": "2026-10-01T10:00",
+    "pelle": "c9ff49e0",
+    "quando": "2026-10-01T16:39",
     "stato": "da_rifare"
   },
   "Sit": {
-    "impronta": "09b57b85",
+    "impronta": "6a69b4f4",
     "nota": "",
-    "pelle": "pesi-29-09",
-    "quando": "2026-09-30T15:26",
+    "pelle": "c9ff49e0",
+    "quando": "2026-10-01T16:42",
     "stato": "da_rifare"
   },
   "Sleep": {

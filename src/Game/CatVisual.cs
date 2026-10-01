@@ -311,6 +311,8 @@ void fragment() {
         var toPivot = _pivot.GlobalTransform.AffineInverse();
         foreach (var mi in FindAll<MeshInstance3D>(_model))
         {
+            // props the animal holds (the rabbit's hay) are not part of its size: at rest they are out at full size
+            if (mi.Name.ToString().StartsWith("Prop_")) continue;
             var box = (toPivot * mi.GlobalTransform) * mi.GetAabb();
             total = total?.Merge(box) ?? box;
         }

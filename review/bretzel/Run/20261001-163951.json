@@ -1,0 +1,22 @@
+{
+  "pet": "bretzel",
+  "clip": "Run",
+  "time": 0.115,
+  "frame": 4,
+  "frames": 12,
+  "phase": 0.288,
+  "duration": 0.4,
+  "view": "desktop",
+  "facing": 1,
+  "note": "troppa pelle sulla pancia",
+  "summary": [],
+  "legs": {},
+  "bones": {},
+  "actions": [
+    "run"
+  ],
+  "fingerprint": "75659c97",
+  "skin": "c9ff49e0",
+  "units": "frame: da 1 a frames, a 30 fps, come nella pagina; before_deg/after_deg: rotazione locale dell'osso (Euler XYZ, gradi); *_m: metri del GLB negli assi del corpo (avanti = verso il muso, su, sinistra = fianco sinistro dell'animale); points_*: direzione in cui punta l'osso negli stessi assi",
+  "risposta": "Dopo la spinta le zampe dietro restavano allungate dietro e tiravano la pelle della pancia come un lenzuolo. Ora in volo si raccolgono subito sotto la pancia e la coscia resta molto meno distesa; anche la schiena si allunga meno."
+}

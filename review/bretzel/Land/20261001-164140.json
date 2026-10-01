@@ -1,0 +1,22 @@
+{
+  "pet": "bretzel",
+  "clip": "Land",
+  "time": 0.22,
+  "frame": 8,
+  "frames": 11,
+  "phase": 0.6,
+  "duration": 0.3667,
+  "view": "desktop",
+  "facing": 1,
+  "note": "sempre problema pancia",
+  "summary": [],
+  "legs": {},
+  "bones": {},
+  "actions": [
+    "land"
+  ],
+  "fingerprint": "39900a73",
+  "skin": "c9ff49e0",
+  "units": "frame: da 1 a frames, a 30 fps, come nella pagina; before_deg/after_deg: rotazione locale dell'osso (Euler XYZ, gradi); *_m: metri del GLB negli assi del corpo (avanti = verso il muso, su, sinistra = fianco sinistro dell'animale); points_*: direzione in cui punta l'osso negli stessi assi",
+  "risposta": "La pancia da cane veniva dalla posa accucciata: le cosce piegate sotto un bacino dritto facevano il fianco scavato. Ora quando si abbassa il bacino rientra sotto e la schiena si incurva a palla tenendo la testa dov'era. Vale per tutte le pose accucciate (Idle, Sit, Land, Eat, Groom, Petted)."
+}

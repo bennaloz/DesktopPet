@@ -10,8 +10,8 @@ run_selftest.log
 run_perf.log
 run_*.log
 # textures Godot extracts from the cat GLBs on import (already inside the .glb)
-cats/*/*_Color*.jpg
-cats/*/*_Color*.jpg.import
+cats/*/*.jpg
+cats/*/*.jpg.import
 
 # Pipeline Blender: intermedi e anteprime, rigenerati da tools/blender
 assets/zaira/work/

@@ -4,7 +4,7 @@ namespace ZairaPet.Core;
 
 /// <summary>
 /// The rabbit (Bretzel): hops about the floor and never leaves it (dropped on a window, it hops down); loafs and
-/// washes its face; zoomies are dashes with binkies, leaps with a twist, in between; relaxed and tired it flops
+/// washes its face; zoomies are dashes broken by binkies, leaps with a twist on the run; relaxed and tired it flops
 /// onto its side to sleep; food it cannot get it thumps about with a hind foot. No meowing, no hunting.
 /// </summary>
 public sealed class BunnyBrain : PetBrain
@@ -15,10 +15,16 @@ public sealed class BunnyBrain : PetBrain
     public const double RunSpeed = 440;
     public const double DashAccel = 1600, DashBrake = 2000, DashCreep = 30;
     /// <summary>Length of the one-shot clips (tools/blender/bretzel_anim.py).</summary>
-    public const double BinkyTime = 26 / 30.0, FlopTime = 1.0, ThumpTime = 0.8;
-    /// <summary>Chance of a binky each time a dash reaches its end.</summary>
+    public const double BinkyTime = 22 / 30.0, FlopTime = 1.0, ThumpTime = 0.8;
+    /// <summary>
+    /// A binky is a leap on the run: the clip carries the body 1.6 m (BINKY_TRAVEL), about 180 px at 110 px a
+    /// body length, so the pet goes on at this speed while it plays.
+    /// </summary>
+    public const double BinkySpeed = 245, BinkyTravel = BinkySpeed * BinkyTime;
+    /// <summary>Chance that a dash has a binky in it.</summary>
     public const double BinkyChance = 0.45;
 
+    bool _binkyDash;                   // this dash breaks into a binky once it is going
     double _sitUpFor;                  // a rest starts sitting up, looking about, for this long
     double _groomAt = -1, _groomFor;   // when (state time) it washes its face during a rest, and for how long
     bool _flopped;                     // asleep on its side
@@ -76,7 +82,7 @@ public sealed class BunnyBrain : PetBrain
     protected override void DecideIdle(CatBody body, Needs needs, SurfaceMap map, IWorld world)
     {
         double r = _rng.NextDouble();
-        if (Happy > 0 && r < 0.12) { Enter(PetState.Binky, BinkyTime); return; }   // happy: a binky for joy
+        if (Happy > 0 && r < 0.12 && RoomToBinky(body)) { Enter(PetState.Binky, BinkyTime); return; }   // happy: a binky for joy
         if (Happy > 0) r *= 0.7;
         if (r < 0.3)
         {
@@ -132,7 +138,7 @@ public sealed class BunnyBrain : PetBrain
         {
             case PetState.Binky:
                 Action = "binky";
-                if (_stateTime < _stateDuration) return 0;
+                if (_stateTime < _stateDuration) return Facing * BinkySpeed;   // carried on by the leap
                 needs.Play(0.05);
                 if (Goal == Goal.Zoom && _zoomLeft > 0) Enter(PetState.Zoomies, _zoomLeft);
                 else { Goal = Goal.None; Enter(PetState.Idle, 1 + _rng.NextDouble()); }
@@ -166,17 +172,35 @@ public sealed class BunnyBrain : PetBrain
     protected override double TravelSpeed(Needs needs, IWorld world) =>
         State == PetState.ChaseTreat || Goal == Goal.Bowl && needs.Hunger > 0.8 ? RunSpeed : HopSpeed;
 
-    /// <summary>Dashes back and forth along the floor; at the end of a dash, often a binky.</summary>
+    /// <summary>
+    /// Room on its support for a binky's leap ahead; if there is none, turned round when there is room behind.
+    /// </summary>
+    bool RoomToBinky(CatBody body)
+    {
+        var s = body.Support;
+        if (s == null) return false;
+        double Ahead(int dir) => dir > 0 ? s.X1 - body.Pos.X : body.Pos.X - s.X0;
+        if (Ahead(Facing) >= BinkyTravel + 20) return true;
+        if (Ahead(-Facing) < BinkyTravel + 20) return false;
+        Facing = -Facing;
+        return true;
+    }
+
+    /// <summary>Dashes back and forth along the floor; often a dash breaks into a binky once it is going.</summary>
     protected override double DoZoomies(double dt, CatBody body, SurfaceMap map)
     {
         var s = body.Support!;
         bool arrived = !double.IsNaN(_zoomTarget) && Math.Abs(body.Pos.X - _zoomTarget) < 8;
-        if (arrived && _rng.NextDouble() < BinkyChance)
+        // at full tilt, with the rest of the dash still ahead of it: the leap, carried on by the run
+        double ahead = double.IsNaN(_zoomTarget) ? 0 : Math.Abs(_zoomTarget - body.Pos.X);
+        if (_binkyDash && _zoomSpeed > RunSpeed * 0.6 && ahead >= BinkyTravel + 20
+            && Math.Sign(_zoomTarget - body.Pos.X) == Facing)
         {
+            _binkyDash = false;
             _zoomLeft = Math.Max(0, _stateDuration - _stateTime);
             Goal = Goal.Zoom;
             Enter(PetState.Binky, BinkyTime);
-            return 0;
+            return Facing * BinkySpeed;
         }
         if (double.IsNaN(_zoomTarget) || arrived || !s.SpansX(_zoomTarget))
         {
@@ -184,6 +208,7 @@ public sealed class BunnyBrain : PetBrain
             double len = 150 + _rng.NextDouble() * 350;
             double dir = _rng.NextDouble() < 0.5 ? -1 : 1;
             _zoomTarget = MathX.SafeClamp(body.Pos.X + dir * len, s.X0 + 30, s.X1 - 30);
+            _binkyDash = _rng.NextDouble() < BinkyChance;
         }
         double v = RunTowardsZoomTarget(dt, body, RunSpeed, DashAccel, DashBrake, DashCreep);
         Action = _zoomSpeed > HopSpeed * 1.5 ? "run" : "hop";
