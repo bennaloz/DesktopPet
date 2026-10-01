@@ -3,7 +3,8 @@ import os,sys; sys.path.insert(0,os.path.dirname(os.path.abspath(__file__))); fr
 
 Same idea as the Zaira library (anim.py): every bone's local X is world +X, so a rotation about X bends it in the
 side (YZ) plane; legs are posed with a planar two-bone IK plus a foot at a given angle, so paws stay planted.
-A rabbit's rest pose here is already standing on all fours, hunched, the long hind feet flat on the floor.
+The rest pose of this mesh is standing up on all fours, legs straight under it, the belly well clear of the
+floor: every resting pose lets the body down onto bending legs (lower()).
 
 Gaits: a rabbit does not walk; it hops. Slow hop: the front paws reach forward one just after the other, then the
 hind legs push together and swing forward under the body to land just behind them. Running, the hind feet land
@@ -188,6 +189,33 @@ def body(p, dz=0.0, dy=0.0, pitch=0.0, spine=0.0, chest=0.0, neck=0.0, head=0.0)
     p.x['Neck'] = neck
     p.x['Head'] = head
 
+SHOULDER_REACH = REST['Hips']['h'][0] - REST['UpperArm.L']['h'][0]     # the shoulders this far ahead of the root
+HEEL_DOWN = 180 + META['HL']            # how far the hind feet tip back to lie flat on the floor (heel down)
+
+def lower(p, rear, front, pitch=0.0, **kw):
+    """The body let down onto bending legs: the hips `rear` and the shoulders `front` metres lower than standing
+    (negative: higher), pitched to match, extra pitch on top; the rest as body()."""
+    tilt = math.degrees(math.asin(max(-1.0, min(1.0, (front - rear) / SHOULDER_REACH))))
+    body(p, dz=-rear, pitch=tilt + pitch, **kw)
+
+def crouch_feet(p, k=1.0, front=0.0):
+    """Paws on their standing spots, the long hind feet let down flat on the floor (k: how far, 0..1), the front
+    paws `front` m further back."""
+    for key in ('HL', 'HR'): plant(p, key, dmeta=-HEEL_DOWN * k)
+    for key in ('FL', 'FR'): plant(p, key, dy=front)
+
+# A rabbit at rest is not a cat or a dog standing on its legs: it sits low, the belly almost on the floor, the hind
+# legs folded right up under the haunches (the long feet flat, toes forward under the belly, the heel under the
+# rump), so that they hardly show; only the short front legs stand, a little bent.
+HUNCH_REAR, HUNCH_FRONT, HUNCH_FEET = 0.175, 0.13, -0.05
+
+def hunch(p, rear=0.0, front=0.0, pitch=0.0, paws=0.0, **kw):
+    """The resting crouch, `rear`/`front` m lower (or higher, negative) than it, the front paws `paws` m further
+    back; the rest as body()."""
+    lower(p, rear=HUNCH_REAR + rear, front=HUNCH_FRONT + front, pitch=pitch, **kw)
+    for key in ('HL', 'HR'): plant(p, key, dy=HUNCH_FEET, dmeta=-HEEL_DOWN)
+    for key in ('FL', 'FR'): plant(p, key, dy=paws)
+
 EARS = [f'Ear{i}.{s}' for s in 'LR' for i in range(1, 5)]
 
 def ears(p, swing=0.0, out=0.0, t=0.0, lag=0.35):
@@ -230,13 +258,12 @@ def bake(name, frames, fn, loop=True, ground=False):
 
 # ---------------------------------------------------------------- clips
 def idle(p, t, f):
+    """At ease, hunched: belly low, hind legs folded away under the haunches, the back rounded, breathing; the nose
+    twitching in bursts."""
     br = math.sin(TAU * t * 2)
-    body(p, dz=0.004 * br, spine=1.0 * br, neck=2 * math.sin(TAU * t), head=-1.5 * math.sin(TAU * t))
-    settle_front(p)
-    stand(p)
+    hunch(p, rear=0.003 * br, spine=5 + 1.0 * br, neck=3 + 2 * math.sin(TAU * t), head=2 - 1.5 * math.sin(TAU * t))
     ears(p, swing=3 * math.sin(TAU * t - 0.6))
-    # the nose twitches in bursts, fast, then rests a moment
-    nose(p, t, rate=12, amp=9 * (0.35 + 0.65 * smooth(math.sin(TAU * t * 2) * 2)))   # 4 a second
+    nose(p, t, rate=12, amp=9 * (0.35 + 0.65 * smooth(math.sin(TAU * t * 2) * 2)))   # 4 a second, in bursts
 
 def curve(t, keys):
     """A looping curve through (phase, value) keys, eased between them."""
@@ -291,7 +318,7 @@ def hop(p, t, f):
     # the body's progress over the hop (0..1): a little while the front paws reach, most of it in the hind hop
     prog = ramp(t, [(0.0, 0.0), (0.32, 0.18), (0.42, 0.26), (0.72, 0.94), (1.0, 1.0)])
     lift = bump(t, 0.40, 0.80)
-    body(p, dy=-S * (prog - t), dz=0.05 * lift,
+    body(p, dy=-S * (prog - t), dz=-0.09 + 0.07 * lift,     # low between hops, as a rabbit sits
          pitch=curve(t, [(0.0, 1.0), (0.3, 3.0), (0.55, 9.0), (0.75, 4.0), (0.9, 0.0)]),
          spine=curve(t, [(0.0, 0.0), (0.3, -4.0), (0.62, 8.0), (0.8, 10.0), (1.0, 0.0)]),
          neck=curve(t, [(0.0, 0.0), (0.3, -5.0), (0.6, -4.0), (0.85, 2.0)]),
@@ -305,6 +332,8 @@ def hop(p, t, f):
     for key in ('HL', 'HR'):
         y, z, m, down = foot(t, 0.74, 0.62, S, -0.06, 0.07, 45, 15)
         plans.append((key, y, z, m, down))
+    # the long hind feet lie flat while they are down, the heel only coming up to push
+    plans = [(k, y, z, m - (0.7 * HEEL_DOWN if k in ('HL', 'HR') else 0.0), d) for k, y, z, m, d in plans]
     lower_to_reach(p, [q[:4] for q in plans if q[4]])
     for q in plans: plant(p, q[0], dy=q[1], dz=q[2], dmeta=q[3])
     spread(p, 6 * lift)
@@ -317,22 +346,23 @@ def run(p, t, f):
     paws were, the back curled up (gathered). They drive the body out (0-0.25): the back straightens and
     lengthens, launching it into a long stretched-out flight, front legs reaching ahead, hind legs trailing.
     The front paws land one just after the other (0.45, 0.52), the nose dips, and the back curls up again as the
-    hind legs swing forward past the front paws, which lift before the hind feet come down."""
+    hind legs swing forward past the front paws, which lift before the hind feet come down. (The body pitches
+    about the rump: a few degrees already bring the shoulders down a hand's breadth.)"""
     S = RUN_S
     body(p,
-         dz=curve(t, [(0.0, -0.02), (0.12, 0.0), (0.33, 0.19), (0.47, 0.04), (0.62, 0.0), (0.85, 0.06)]),
-         pitch=curve(t, [(0.0, 12.0), (0.18, -4.0), (0.33, 0.0), (0.5, 12.0), (0.68, 14.0), (0.9, 13.0)]),
-         spine=curve(t, [(0.0, 10.0), (0.2, 0.0), (0.35, -10.0), (0.5, -4.0), (0.8, 12.0)]),
+         dz=curve(t, [(0.0, -0.04), (0.12, -0.01), (0.33, 0.15), (0.47, 0.04), (0.62, -0.01), (0.85, -0.01)]),
+         pitch=curve(t, [(0.0, 6.0), (0.18, -6.0), (0.33, -2.0), (0.5, 3.0), (0.68, 5.0), (0.9, 6.0)]),
+         spine=curve(t, [(0.0, 14.0), (0.2, 0.0), (0.35, -8.0), (0.5, -3.0), (0.8, 14.0)]),
          chest=curve(t, [(0.0, 2.0), (0.35, -6.0), (0.5, 0.0), (0.8, 2.0)]),
-         neck=curve(t, [(0.0, -6.0), (0.33, -8.0), (0.5, -10.0), (0.75, -8.0)]),
-         head=curve(t, [(0.0, 2.0), (0.33, 4.0), (0.5, 6.0), (0.75, 2.0)]))
-    p.length = curve(t, [(0.0, 0.88), (0.2, 1.18), (0.36, 1.35), (0.52, 1.18), (0.72, 0.92), (0.9, 0.86)])
+         neck=curve(t, [(0.0, -2.0), (0.33, -6.0), (0.5, -4.0), (0.75, -2.0)]),
+         head=curve(t, [(0.0, 2.0), (0.33, 4.0), (0.5, 4.0), (0.75, 2.0)]))
+    p.length = curve(t, [(0.0, 0.9), (0.2, 1.12), (0.36, 1.22), (0.52, 1.12), (0.72, 0.94), (0.9, 0.88)])
     plans = []
     for key, land in (('FL', 0.45), ('FR', 0.52)):
-        y, z, m, down = foot(t, land, 0.24, S, -0.22, 0.14, 25, -40)
+        y, z, m, down = foot(t, land, 0.24, S, -0.16, 0.20, 25, -60)
         plans.append((key, y, z, m, down))
     for key in ('HL', 'HR'):
-        y, z, m, down = foot(t, 0.0, 0.26, S, -0.14, 0.12, 45, 10, trail=0.08, trail_until=0.35)
+        y, z, m, down = foot(t, 0.0, 0.26, S, -0.16, 0.18, 55, 10, trail=0.15, trail_until=0.40)
         plans.append((key, y, z, m, down))
     lower_to_reach(p, [q[:4] for q in plans if q[4]])
     for q in plans: plant(p, q[0], dy=q[1], dz=q[2], dmeta=q[3])
@@ -374,17 +404,21 @@ def binky(p, t, f):
         p.yz[f'Thigh.{s_}'] = (0.0, -(10 + 4 * sgn) * kick)
     ears(p, swing=12 * math.sin(TAU * t * 1.5) - 6 * air, out=6 * air)
 
-def tuck_front(p, back=0.12):
-    """Front paws folded in under the chest (the way a loafing rabbit hides them): the forearms lie back along
-    the floor, the paws flat just in front of the knees."""
-    for key in ('FL', 'FR'): plant(p, key, dy=back, dz=0.006, dmeta=25)
+LOAF_REAR, LOAF_FRONT = 0.165, 0.17      # how far the body comes down to lie on the floor
+
+def tuck_front(p, ahead=0.06):
+    """Front legs folded down under the chest (a loafing rabbit): elbows back, forearms along the floor, the paws
+    flat with only the toes showing, `ahead` m in front of the shoulders. Pose the body first."""
+    for key in ('FL', 'FR'):
+        sh = shoulder(p, key)
+        reach(p, key, (sh[0] - ahead, 0.012), dmeta=-15)
 
 def loaf(p, t, f):
-    """The loaf: the round body settled on the floor (the model already sits on its belly), the chest down onto the
-    folded front paws, head drawn in, ears lying back, breathing."""
+    """The loaf: the whole body let down onto the floor, hind feet flat beside it, front paws folded away under the
+    chest, head drawn in, ears lying back, breathing."""
     br = math.sin(TAU * t * 2)
-    body(p, dz=-0.004 + 0.003 * br, pitch=10, spine=3 + 0.8 * br, neck=1, head=2)
-    for key in ('HL', 'HR'): plant(p, key)
+    lower(p, rear=LOAF_REAR - 0.003 * br, front=LOAF_FRONT, spine=4 + 0.8 * br, neck=8, head=4)
+    for key in ('HL', 'HR'): plant(p, key, dy=HUNCH_FEET, dmeta=-HEEL_DOWN)
     tuck_front(p)
     ears(p, swing=-6)
     nose(p, t, rate=9, amp=4)      # 3 a second, calm
@@ -393,35 +427,34 @@ def sleep(p, t, f):
     """Asleep: loafed and gone limp, leaning a little, the head sunk until the chin rests on the floor, ears
     back, slow deep breaths and the nose still."""
     br = math.sin(TAU * t * 2)
-    p.roll = 7
-    body(p, dz=-0.006 + 0.005 * br, pitch=11, spine=5 + 1.4 * br, neck=20, head=14)
-    for key in ('HL', 'HR'): plant(p, key)
-    tuck_front(p, back=0.11)
+    p.roll = 6
+    lower(p, rear=LOAF_REAR + 0.005 - 0.005 * br, front=LOAF_FRONT + 0.01, spine=5 + 1.4 * br, neck=22, head=16)
+    for key in ('HL', 'HR'): plant(p, key, dy=HUNCH_FEET, dmeta=-HEEL_DOWN)
+    tuck_front(p, ahead=0.05)
     ears(p, swing=-9)
 
 def sit(p, t, f):
-    """Alert: up on all four legs, front raised a little, head up, still; only the nose and the ears are busy."""
+    """Alert: still hunched behind, the front up on straight legs, head up; only the nose and the ears are busy."""
     br = math.sin(TAU * t * 2)
-    body(p, dz=0.015, pitch=-5 + 0.3 * br, spine=-3, neck=-10, head=-4)
+    hunch(p, front=-0.07, pitch=0.3 * br, spine=-3, neck=-10, head=-4)
     settle_front(p)
-    stand(p)
+    for key in ('FL', 'FR'): plant(p, key)
     ears(p, swing=-4 + 1.5 * math.sin(TAU * t), out=2)
     nose(p, t, rate=10, amp=9)     # 5 a second
 
 def groom(p, t, f):
-    """Washing the face, crouched (sitting up would show the belly, which the model has only rough and dark): the
-    head bows and turns towards one front paw, the paw comes up to the cheek, is licked, and wipes down over the
-    eye to the nose; then the other paw. Two wipes, one per paw."""
+    """Washing the face, crouched: the head bows and turns towards one front paw, the paw comes up to the cheek, is
+    licked, and wipes down over the eye to the nose; then the other paw. Two wipes, one per paw."""
     half = 0 if t < 0.5 else 1
     u = (t * 2) % 1.0
     key, other, sgn = (('FL', 'FR', 1), ('FR', 'FL', -1))[half]
     up = bump(u, 0.05, 0.95)
     wipe = smooth((u - 0.45) / 0.35)                      # 0 at the cheek, 1 down at the nose
     lick = bump(u, 0.22, 0.45)
-    body(p, dz=0.012 * up, pitch=-6 * up, spine=-2 * up, neck=16 + 12 * up + 6 * wipe, head=8 + 4 * lick)
+    lower(p, rear=HUNCH_REAR, front=HUNCH_FRONT - 0.03 * up, spine=4 - 2 * up, neck=16 + 12 * up + 6 * wipe, head=8 + 4 * lick)
     p.yz['Neck'] = (0.0, 10 * sgn * up)
     p.yz['Head'] = (0.0, 6 * sgn * up)
-    for k in ('HL', 'HR'): plant(p, k)
+    for k in ('HL', 'HR'): plant(p, k, dy=HUNCH_FEET, dmeta=-HEEL_DOWN)
     plant(p, other)
     mz = muzzle(p)
     # from the floor up to the cheek, a little lick, then down the face to the nose, and back to the floor
@@ -435,9 +468,9 @@ def groom(p, t, f):
     p.x['Nose'] = 7 * lick * max(0.0, math.sin(TAU * u * 8))
 
 def eat(p, t, f):
+    """Hunched at the bowl, belly low, head down into it, chewing."""
     chew = math.sin(TAU * t * 6)
-    body(p, dz=-0.01, pitch=6, spine=4, neck=28 + 2 * chew, head=14)
-    stand(p)
+    hunch(p, front=0.02, spine=4, neck=26 + 2 * chew, head=14)
     p.x['Nose'] = 4 * max(0.0, chew)
     ears(p, swing=2 * chew)
 
@@ -485,35 +518,32 @@ def fall(p, t, f):
     ears(p, swing=14, out=9 + 2 * s)
 
 def land(p, t, f):
-    a = bump(t, 0.0, 1.0)
-    body(p, dz=-0.05 * a, pitch=5 * a, spine=5 * a, neck=6 * a)
-    stand(p)
-    ears(p, swing=-8 * a)
+    """Touching down: the legs give, folding up under it, and it settles into its crouch."""
+    a = smooth(t / 0.4)
+    lower(p, rear=lerp(0.0, HUNCH_REAR + 0.01, a), front=lerp(0.0, HUNCH_FRONT + 0.03 * bump(t, 0.2, 0.8), a),
+          spine=5 * bump(t, 0.0, 1.0), neck=6 * bump(t, 0.0, 1.0))
+    for key in ('HL', 'HR'): plant(p, key, dy=HUNCH_FEET * a, dmeta=-HEEL_DOWN * a)
+    for key in ('FL', 'FR'): plant(p, key)
+    ears(p, swing=-8 * bump(t, 0.0, 1.0))
 
 def petted(p, t, f):
-    """Stroked: it flattens a little into the floor, head down, ears back, breathing slow."""
+    """Stroked: it sinks down flat into the floor, head lowered, ears back, breathing slow."""
     br = math.sin(TAU * t)
-    body(p, dz=-0.05 + 0.004 * br, pitch=4, spine=2 + br, neck=16, head=10)
-    for key in ('HL', 'HR'): plant(p, key)
-    for key in ('FL', 'FR'): plant(p, key, dy=0.03)
+    hunch(p, rear=0.015 - 0.004 * br, front=0.04, spine=3 + br, neck=12, head=8, paws=0.03)
     ears(p, swing=-6)
 
+CLIPS = [  # name, frames, function, bake options
+    ("Idle", 90, idle, {}), ("Hop", HOP_FRAMES, hop, {}), ("Run", RUN_FRAMES, run, {}),
+    ("Binky", 26, binky, dict(loop=False)), ("Loaf", 90, loaf, {}), ("Sleep", 120, sleep, {}), ("Sit", 60, sit, {}),
+    ("Groom", 60, groom, {}), ("Eat", 30, eat, {}), ("Flop", 30, flop, dict(loop=False, ground=True)),
+    ("FlopSleep", 120, flop_sleep, dict(ground=True)), ("Thump", 24, thump, dict(loop=False)), ("Held", 40, held, {}),
+    ("Fall", 20, fall, {}), ("Land", 12, land, dict(loop=False)), ("Petted", 60, petted, {}),
+]
+
 if __name__ == "__main__":
-    bake("Idle", 90, idle)
-    bake("Hop", HOP_FRAMES, hop)
-    bake("Run", RUN_FRAMES, run)
-    bake("Binky", 26, binky, loop=False)
-    bake("Loaf", 90, loaf)
-    bake("Sleep", 120, sleep)
-    bake("Sit", 60, sit)
-    bake("Groom", 60, groom)
-    bake("Eat", 30, eat)
-    bake("Flop", 30, flop, loop=False, ground=True)
-    bake("FlopSleep", 120, flop_sleep, ground=True)
-    bake("Thump", 24, thump, loop=False)
-    bake("Held", 40, held)
-    bake("Fall", 20, fall)
-    bake("Land", 12, land, loop=False)
-    bake("Petted", 60, petted)
-    arm.animation_data.action = bpy.data.actions["Idle"]
-    bpy.ops.wm.save_as_mainfile(filepath=work_file("anim.blend"))
+    # CLIPS=Hop,Run OUT=<file.blend>: only those, saved elsewhere (for trying a change without the whole set)
+    only = [c for c in os.environ.get("CLIPS", "").split(",") if c]
+    for name, frames, fn, kw in CLIPS:
+        if not only or name in only: bake(name, frames, fn, **kw)
+    arm.animation_data.action = bpy.data.actions["Idle" if not only else only[0]]
+    bpy.ops.wm.save_as_mainfile(filepath=os.environ.get("OUT") or work_file("anim.blend"))
