@@ -377,12 +377,22 @@ def run(p, t, f):
     plans = carried(plans, rise, {'FL': 0.18, 'FR': 0.18, 'HL': 0.18, 'HR': 0.18})
     lower_to_reach(p, [q[:4] for q in plans if q[4]])
     for q in plans: plant(p, q[0], dy=q[1], dz=q[2], dmeta=q[3])
+    # the front legs in the air are swung by angle, not put at a spot on the floor that the bobbing body comes down
+    # onto: off the floor they fold up under the chest (the upper arm stays as it is, the forearm comes forward, the
+    # paw hangs from the wrist), then they reach out ahead to land. Swinging the upper arm back folds the armpit.
+    for key, land in (('FL', 0.52), ('FR', 0.55)):
+        u = ((t - land) % 1.0 - 0.26) / 0.74
+        if u <= 0: continue
+        w = smooth(u / 0.2) * (1 - smooth((u - 0.8) / 0.2))
+        swing_leg(p, key, w, ramp(u, [(0.0, -40.0), (0.25, -60.0), (0.55, -95.0), (0.85, -112.0), (1.0, -112.0)]),
+                  ramp(u, [(0.0, -90.0), (0.25, -150.0), (0.55, -130.0), (0.85, -125.0), (1.0, -125.0)]),
+                  ramp(u, [(0.0, -140.0), (0.25, -95.0), (0.55, -150.0), (0.85, -165.0), (1.0, -165.0)]))
     spread(p, curve(t, [(0.0, 10.0), (0.25, 3.0), (0.6, 2.0), (0.85, 12.0)]))
     ears(p, swing=curve(t, [(0.0, 3.0), (0.3, -8.0), (0.52, 8.0), (0.8, 2.0)]))
 
 def swing_leg(p, key, w, *angles):
-    """A leg in the air posed by the world angles of its bones (deg, side plane, from the top down; the toes
-    in line with the foot), blended by w over the pose it already has."""
+    """A leg in the air posed by the world angles of its bones (deg, side plane, from the top down; a hind
+    leg's toes in line with the foot), blended by w over the pose it already has."""
     names = [n for n in LEGS[key][:4] if n]
     old = {n: p.x.get(n, 0.0) for n in names}
     phi = p.cum(REST[names[0]]['parent'])
