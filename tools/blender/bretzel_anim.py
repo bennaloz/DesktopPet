@@ -181,7 +181,8 @@ def stand(p):
     for k in LEGS: plant(p, k)
 
 def body(p, dz=0.0, dy=0.0, pitch=0.0, spine=0.0, chest=0.0, neck=0.0, head=0.0):
-    """The trunk: hips offset, pitch (+ = nose down), back bends (+ = arches the back up), neck and head (+ = down)."""
+    """The trunk: hips offset, pitch (+ = nose down), back bends (+ = the front comes up and the back hollows,
+    - = the back humps up into a ball and the front goes down), neck and head (+ = down)."""
     p.hips = (dy, dz)
     p.x['Hips'] = pitch
     p.x['Spine'] = -spine
@@ -258,8 +259,8 @@ def bake(name, frames, fn, loop=True, ground=False):
 
 # ---------------------------------------------------------------- clips
 def idle(p, t, f):
-    """At ease, hunched: belly low, hind legs folded away under the haunches, the back rounded, breathing; the nose
-    twitching in bursts."""
+    """At ease, hunched: belly low, hind legs folded away under the haunches, the front held up a little,
+    breathing; the nose twitching in bursts."""
     br = math.sin(TAU * t * 2)
     hunch(p, rear=0.003 * br, spine=5 + 1.0 * br, neck=3 + 2 * math.sin(TAU * t), head=2 - 1.5 * math.sin(TAU * t))
     ears(p, swing=3 * math.sin(TAU * t - 0.6))
@@ -327,8 +328,8 @@ def hop(p, t, f):
     front = ramp(t, [(0.0, HUNCH_FRONT), (0.28, HUNCH_FRONT + 0.01), (0.38, 0.02), (0.56, 0.0), (0.68, HUNCH_FRONT * 0.85),
                      (0.85, HUNCH_FRONT), (1.0, HUNCH_FRONT)])
     lower(p, rear=rear, front=front, dy=-S * (prog - t),
-          pitch=-6 * bump(t, 0.28, 0.48) + 6 * bump(t, 0.54, 0.74),
-          spine=4 - 7 * bump(t, 0.36, 0.62) + 5 * bump(t, 0.66, 0.92),
+          pitch=-6 * bump(t, 0.28, 0.48) + 6 * bump(t, 0.54, 0.70) - 5 * bump(t, 0.66, 0.96),
+          spine=4 + 4 * bump(t, 0.36, 0.62) - 10 * bump(t, 0.64, 0.96),
           neck=curve(t, [(0.0, 3.0), (0.4, -5.0), (0.62, -3.0), (0.85, 3.0)]),
           head=curve(t, [(0.0, 2.0), (0.4, 3.0), (0.62, 2.0), (0.85, 2.0)]))
     p.hips = (p.hips[0], p.hips[1] + 0.08 * up)
@@ -359,18 +360,18 @@ def run(p, t, f):
     S = RUN_S
     body(p,
          dz=curve(t, [(0.0, -0.06), (0.12, 0.0), (0.35, 0.22), (0.52, 0.06), (0.66, -0.02), (0.86, 0.04)]),
-         pitch=curve(t, [(0.0, 8.0), (0.15, -10.0), (0.35, -2.0), (0.52, 8.0), (0.7, 10.0), (0.9, 6.0)]),
-         spine=curve(t, [(0.0, 16.0), (0.2, 0.0), (0.38, -12.0), (0.52, -4.0), (0.8, 18.0)]),
+         pitch=curve(t, [(0.0, -10.0), (0.15, -8.0), (0.35, -2.0), (0.52, 6.0), (0.7, -2.0), (0.9, -10.0)]),
+         spine=curve(t, [(0.0, -11.0), (0.15, -3.0), (0.35, 6.0), (0.52, 2.0), (0.7, -9.0), (0.9, -13.0)]),
          chest=curve(t, [(0.0, 2.0), (0.35, -6.0), (0.52, 0.0), (0.8, 3.0)]),
          neck=curve(t, [(0.0, -2.0), (0.35, -8.0), (0.52, -4.0), (0.75, 0.0)]),
          head=curve(t, [(0.0, 2.0), (0.35, 4.0), (0.52, 4.0), (0.75, 2.0)]))
-    p.length = curve(t, [(0.0, 0.86), (0.2, 1.12), (0.38, 1.25), (0.54, 1.12), (0.74, 0.92), (0.9, 0.86)])
+    p.length = curve(t, [(0.0, 0.86), (0.2, 1.06), (0.38, 1.14), (0.54, 1.06), (0.74, 0.90), (0.9, 0.86)])
     plans = []
     for key, land in (('FL', 0.52), ('FR', 0.55)):
         y, z, m, down = foot(t, land, 0.26, S, -0.18, 0.18, 25, -60)
         plans.append((key, y, z, m, down))
     for key in ('HL', 'HR'):
-        y, z, m, down = foot(t, 0.0, 0.22, S, -0.22, 0.18, 55, 10, trail=0.15, trail_until=0.40)
+        y, z, m, down = foot(t, 0.0, 0.22, S, -0.08, 0.18, 55, 10, trail=0.10, trail_until=0.40)
         plans.append((key, y, z, m, down))
     rise = curve(t, [(0.0, -0.06), (0.12, 0.0), (0.35, 0.22), (0.52, 0.06), (0.66, -0.02), (0.86, 0.04)])
     plans = carried(plans, rise, {'FL': 0.18, 'FR': 0.18, 'HL': 0.18, 'HR': 0.18})
@@ -379,53 +380,79 @@ def run(p, t, f):
     spread(p, curve(t, [(0.0, 10.0), (0.25, 3.0), (0.6, 2.0), (0.85, 12.0)]))
     ears(p, swing=curve(t, [(0.0, 3.0), (0.3, -8.0), (0.52, 8.0), (0.8, 2.0)]))
 
+def swing_leg(p, key, w, *angles):
+    """A leg in the air posed by the world angles of its bones (deg, side plane, from the top down; the toes
+    in line with the foot), blended by w over the pose it already has."""
+    names = [n for n in LEGS[key][:4] if n]
+    old = {n: p.x.get(n, 0.0) for n in names}
+    phi = p.cum(REST[names[0]]['parent'])
+    for n, a in zip(names, list(angles) + [None]):
+        rel = 0.0 if a is None else math.degrees(D(a) - REST[n]['a'] - phi)
+        phi += D(rel)
+        d = (rel - old[n] + 180.0) % 360.0 - 180.0
+        p.x[n] = old[n] + d * w
+
 BINKY_UP = 0.40                    # how high the leap takes the body (m, at the top)
 
 def binky(p, t, f, side=1):
-    """The happy leap: from its crouch it coils and the hind legs fire it up off the floor. In the air the rump
-    twists round and rolls over to one side, the hind legs gather and then kick out sideways and back, flung out
-    with the rump, while the head turns the other way; it straightens out, the front paws come down first and it
-    settles back into its crouch. side: where the rump and the kick go (+1 towards +X, the model's left): each
-    facing gets the clip that kicks towards the viewer."""
+    """The happy leap: from its crouch it coils and the hind legs fire it up off the floor, the front rearing up.
+    In the air it is a ball: the back arched, the front paws folded up under the chest, the hind legs gathered; the
+    rump twists round and rolls over to one side and the hind feet kick out sideways and back, while the head turns
+    the other way; it straightens out, the front paws reach down to land first and it settles back into its crouch.
+    The kick comes from the knees down (the thighs turning about their own length), not from the hips: the thighs
+    are the haunches, and swinging them out would drag the skin of the flanks out with them.
+    side: where the rump and the kick go (+1 towards +X, the model's left): each facing gets the clip that kicks
+    towards the viewer."""
     S_ = side
     H = BINKY_UP * math.sin(math.pi * min(1.0, max(0.0, (t - 0.28) / 0.52)))
-    rear = ramp(t, [(0.0, HUNCH_REAR), (0.12, HUNCH_REAR + 0.02), (0.20, HUNCH_REAR + 0.02), (0.31, 0.0),
-                    (0.80, 0.0), (0.90, HUNCH_REAR - 0.03), (1.0, HUNCH_REAR)])
-    front = ramp(t, [(0.0, HUNCH_FRONT), (0.12, HUNCH_FRONT + 0.02), (0.18, HUNCH_FRONT), (0.28, -0.05),
-                     (0.62, -0.02), (0.78, 0.04), (0.86, HUNCH_FRONT + 0.03), (1.0, HUNCH_FRONT)])
-    tw = bump(t, 0.36, 0.76)                                    # the twist, there and back
-    out = ramp(t, [(0.0, 0.0), (0.42, 0.0), (0.52, 1.0), (0.64, 1.0), (0.76, 0.0)])   # legs flung out sideways
-    lower(p, rear=rear, front=front, spine=6 * bump(t, 0.0, 0.3) - 6 * bump(t, 0.3, 0.6) + 4 * bump(t, 0.8, 1.0),
-          neck=-8 * bump(t, 0.25, 0.75), head=4 * bump(t, 0.3, 0.7))
+    rear = ramp(t, [(0.0, HUNCH_REAR), (0.12, HUNCH_REAR + 0.02), (0.18, HUNCH_REAR + 0.02), (0.30, 0.02),
+                    (0.40, 0.05), (0.72, 0.05), (0.80, 0.03), (0.90, HUNCH_REAR - 0.03), (1.0, HUNCH_REAR)])
+    front = ramp(t, [(0.0, HUNCH_FRONT), (0.12, HUNCH_FRONT + 0.02), (0.16, HUNCH_FRONT), (0.28, -0.03),
+                     (0.40, 0.05), (0.66, 0.06), (0.78, 0.02), (0.86, HUNCH_FRONT + 0.03), (1.0, HUNCH_FRONT)])
+    ball = smooth((t - 0.28) / 0.12) * (1 - smooth((t - 0.68) / 0.12))     # rolled up in the air
+    tw = bump(t, 0.38, 0.76)                                    # the twist, there and back
+    out = ramp(t, [(0.0, 0.0), (0.44, 0.0), (0.52, 1.0), (0.62, 1.0), (0.74, 0.0)])   # the kick out sideways
+    lower(p, rear=rear, front=front, pitch=-6 * ball, spine=6 * bump(t, 0.0, 0.3) - 14 * ball + 4 * bump(t, 0.8, 1.0),
+          chest=-4 * ball, neck=-8 * bump(t, 0.2, 0.5) - 4 * ball, head=4 * bump(t, 0.3, 0.7))
+    p.length = 1.0 - 0.10 * ball
     p.hips = (p.hips[0], p.hips[1] + H)
     # the rump swings round (yaw) and rolls over (its legs go out with it), the back and the chest turn the front
     # straight again, and the head looks the other way. (roll, yaw) about each bone's own length and its down axis
-    p.yz['Hips'] = (16 * S_ * tw, 28 * S_ * tw)
-    p.yz['Spine'] = (-6 * S_ * tw, -16 * S_ * tw)
-    p.yz['Chest'] = (-8 * S_ * tw, -12 * S_ * tw)
+    p.yz['Hips'] = (22 * S_ * tw, 26 * S_ * tw)
+    p.yz['Spine'] = (-9 * S_ * tw, -14 * S_ * tw)
+    p.yz['Chest'] = (-10 * S_ * tw, -12 * S_ * tw)
     p.yz['Neck'] = (0.0, 16 * S_ * tw)
     p.yz['Head'] = (0.0, 10 * S_ * tw)
-    # front legs: on the floor until the front lifts, reaching forward and down in the air, down first to land
-    reach_ = smooth((t - 0.22) / 0.12) * (1 - smooth((t - 0.68) / 0.12))
+    # front legs: on the floor as the front rears up, then folded up under the chest (elbows back, the paws hanging
+    # from bent wrists), and reaching down to the floor to land first
+    fold = smooth((t - 0.20) / 0.10) * (1 - smooth((t - 0.64) / 0.14))
     for key in ('FL', 'FR'):
-        plant(p, key, dy=-0.07 * reach_, dz=(H - 0.03) * reach_, dmeta=-35 * reach_)
-    # hind legs: pushing off (the heels come up as they straighten), then, carried by the body: trailing back,
-    # gathered up under it, kicked out back and sideways, and under it again to land flat in the crouch
+        down = (PAW[key][0], PAW[key][1] + H)
+        sh = shoulder(p, key)
+        up = (sh[0] - 0.075, sh[1] - 0.235)
+        reach(p, key, (lerp(down[0], up[0], fold), lerp(down[1], up[1], fold)), dmeta=55 * fold)
+    # hind legs: pushing off (the heels come up as they straighten); in the air they are swung by angle, not put at
+    # a spot: the thighs stay close to where they are (they are the haunches), the legs fold up under the belly and
+    # then kick out from the knee, the long feet flung back; then they reach down under it to land flat in the crouch
+    air = smooth((t - 0.30) / 0.08) * (1 - smooth((t - 0.70) / 0.10))
     for key in ('HL', 'HR'):
         if t < 0.30:
             push = smooth((t - 0.16) / 0.14)
             plant(p, key, dy=HUNCH_FEET * (1 - push), dmeta=-HEEL_DOWN * (1 - push) + 50 * push)
-        else:
-            dy = ramp(t, [(0.30, 0.0), (0.38, 0.10), (0.46, 0.02), (0.54, 0.20), (0.66, 0.16), (0.78, 0.0),
-                          (0.86, HUNCH_FEET), (1.0, HUNCH_FEET)])
-            dz = ramp(t, [(0.30, 0.0), (0.38, -0.04), (0.46, 0.09), (0.54, 0.07), (0.66, 0.05), (0.78, 0.02),
-                          (0.86, 0.0), (1.0, 0.0)])
-            dm = ramp(t, [(0.30, 50.0), (0.38, 50.0), (0.46, 0.0), (0.54, 85.0), (0.66, 70.0), (0.78, 0.0),
-                          (0.86, -HEEL_DOWN), (1.0, -HEEL_DOWN)])
-            plant(p, key, dy=dy, dz=H + dz, dmeta=dm)
-    # out sideways at the hip, the outer leg further than the one swinging in under the belly
+            continue
+        plant(p, key, dy=ramp(t, [(0.30, 0.0), (0.80, 0.0), (0.86, HUNCH_FEET), (1.0, HUNCH_FEET)]),
+              dz=H + ramp(t, [(0.30, 0.0), (0.70, 0.05), (0.80, 0.02), (0.86, 0.0), (1.0, 0.0)]),
+              dmeta=ramp(t, [(0.30, 50.0), (0.70, 0.0), (0.80, -60.0), (0.86, -HEEL_DOWN), (1.0, -HEEL_DOWN)]))
+        if air > 0:
+            swing_leg(p, key, air,
+                      ramp(t, [(0.30, -120.0), (0.38, -118.0), (0.46, -155.0), (0.53, -128.0), (0.64, -130.0), (0.74, -150.0)]),
+                      ramp(t, [(0.30, -30.0), (0.38, -20.0), (0.46, -30.0), (0.53, -15.0), (0.64, -22.0), (0.74, -40.0)]),
+                      ramp(t, [(0.30, -60.0), (0.38, -40.0), (0.46, -175.0), (0.53, -45.0), (0.64, -55.0), (0.74, -165.0)]))
+    # the kick sideways: each thigh turns about its own length, so the bent leg below the knee swings out while the
+    # haunch stays where it is; only a little out at the hip, the outer leg further than the one under the belly
     for s_, sg in (('L', 1), ('R', -1)):
-        p.yz[f'Thigh.{s_}'] = (0.0, -S_ * (55 if sg == S_ else 30) * out)
+        outer = sg == S_
+        p.yz[f'Thigh.{s_}'] = (S_ * (38 if outer else 26) * out, -S_ * (10 if outer else 4) * out)
     # the ears flop about with the jolts, only a little: their upper half is part of the head
     ears(p, swing=6 * math.sin(TAU * t * 1.5) - 4 * bump(t, 0.3, 0.8), out=3 * bump(t, 0.3, 0.8))
 

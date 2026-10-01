@@ -221,6 +221,28 @@ for v in me.vertices:
             if n in w: moved+=w[n]*f; w[n]*=1-f
         if moved: w[f'UpperArm.{s_}']=w.get(f'UpperArm.{s_}',0.0)+moved
     regroup(v,w)
+# the haunch: the thigh is inside it and the skin over it is loose. Only the skin round the leg and behind it goes
+# with the thigh; over the top of the haunch and in front of the thigh bone it stays with the rump: turning about
+# the hip, bringing the thigh forward would lift the front of the haunch up over the flank into a lip
+def ahead_of_thigh(x,y,z):
+    """How far (m) a point lies in front of and above the line of its side's thigh bone, in the side plane."""
+    h,t=B['Thigh.L' if x>0 else 'Thigh.R'][:2]
+    dy,dz=t[1]-h[1],t[2]-h[2]; n=math.hypot(dy,dz)
+    return ((y-h[1])*dz-(z-h[2])*dy)/n
+for v in me.vertices:
+    x,y,z=v.co
+    if y<0.0 or in_ear(x,y,z): continue
+    k=max(sstep(z,0.33,0.45),sstep(ahead_of_thigh(x,y,z),0.0,0.13))
+    if k<=0: continue
+    w={mesh.vertex_groups[g.group].name:g.weight for g in v.groups if g.weight>0}
+    moved=0.0
+    for s_ in 'LR':
+        n=f'Thigh.{s_}'
+        if n in w: moved+=w[n]*k; w[n]*=1-k
+    if not moved: continue
+    w['Hips']=w.get('Hips',0.0)+moved
+    regroup(v,w)
+soften(radius=0.04, passes=2, only=[v.co.y>-0.04 and not in_ear(*v.co) for v in me.vertices])
 # the nose: only the nostrils over the mouth twitch (the bone heat spread it over the whole muzzle and chin)
 NOSE=V3((0.035,-0.478,0.505))
 for v in me.vertices:
@@ -234,7 +256,7 @@ for v in me.vertices:
         w['Nose']=k
     elif rest: w['Head']=w.get('Head',0.0)+rest
     regroup(v,w)
-print("elbows and nose regrouped")
+print("elbows, haunches and nose regrouped")
 # fill unweighted verts from the nearest weighted neighbour
 ok=[v for v in me.vertices if sum(g.weight for g in v.groups)>1e-6]
 kd=KDTree(len(ok))
