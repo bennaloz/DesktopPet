@@ -123,6 +123,9 @@ class Review:
                 out.append({
                     "clip": clip_dir.name, "base": f.stem, "time": data.get("time"), "note": data.get("note", ""),
                     "summary": data.get("summary", []), "risposta": data.get("risposta", ""),
+                    # the corrected pose, to show it again: each bone's own rotation, and where the movable ones went
+                    "pose": {n: {k: b[k] for k in ("after_deg", "pos_after_m") if k in b}
+                             for n, b in (data.get("bones") or {}).items()},
                     "prima": (clip_dir / f"{f.stem}-prima.png").is_file(),
                     "dopo": (clip_dir / f"{f.stem}-dopo.png").is_file(),
                 })

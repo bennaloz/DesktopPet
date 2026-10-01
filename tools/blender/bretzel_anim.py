@@ -527,6 +527,17 @@ def _binky_at(p, t, side, D, dyb, tt):
 
 LOAF_REAR, LOAF_FRONT = 0.18, 0.22       # how far the body comes down to lie on the floor, the chest on it
 
+def aim(p, bone, elev):
+    """Point a bone (in the side plane) `elev` degrees above the forward horizontal (180: straight back), whatever
+    its parents do: the pose taken from the reviewer's correction is a set of world directions."""
+    p.x[bone] = math.degrees(math.radians(180 - elev) - REST[bone]['a'] - p.cum(REST[bone]['parent']))
+
+# The loaf, as the reviewer posed it (review/bretzel/Loaf/20261001-175750): a ball sunk into the floor, the pelvis
+# rolled right under, the back humped, the chest bowed down to the floor, the paws gone under the body. A little
+# lower than that correction (seen side on, as on the desktop, the paws still showed under it), the bow spread along
+# the back (all of it at the chest folds the skin over the shoulder) and the head held higher (asked for in its note)
+LOAF = dict(hips_z=0.071, hips=45.0, spine=8.0, chest=-30.0, neck=50.0, head=-6.0, tail=150.0)
+
 def tuck_front(p, ahead=0.06):
     """Front legs folded down under the chest (a loafing rabbit): elbows back, forearms along the floor, the paws
     flat with only the toes showing, `ahead` m in front of the shoulders. Pose the body first. (Nearer than about
@@ -535,24 +546,34 @@ def tuck_front(p, ahead=0.06):
         sh = shoulder(p, key)
         reach(p, key, (sh[0] - ahead, 0.012), dmeta=-30)
 
-def loaf(p, t, f):
-    """The loaf: the whole body let down onto the floor, hind feet flat beside it, front paws folded away under the
-    chest, head drawn in, ears lying back, breathing."""
-    br = math.sin(TAU * t * 2)
-    lower(p, rear=LOAF_REAR - 0.003 * br, front=LOAF_FRONT, spine=4 + 0.8 * br, neck=8, head=4)
-    for key in ('HL', 'HR'): plant(p, key, dy=HUNCH_FEET, dmeta=-HEEL_DOWN)
-    tuck_front(p)
+def loaf_pose(p, br=0.0, sink=0.0, head=0.0):
+    """The loaf's body (LOAF), breathing (br -1..1), sunk `sink` m lower and the head `head` degrees lower."""
+    L = LOAF
+    p.hips = (0.0, L['hips_z'] - sink + 0.003 * br - REST['Hips']['h'][1])
+    aim(p, 'Hips', L['hips'])
+    aim(p, 'Spine', L['spine'] + 1.0 * br)
+    aim(p, 'Chest', L['chest'])
+    aim(p, 'Neck', L['neck'] - head * 0.6)
+    aim(p, 'Head', L['head'] - head)
+    aim(p, 'Tail', L['tail'])
+    for key in ('HL', 'HR'): plant(p, key, dy=HUNCH_FEET + 0.08, dmeta=-HEEL_DOWN)   # back under the haunches
+    tuck_front(p, ahead=-0.02)                                                         # in under the chest
     ears(p, swing=-6)
+
+def loaf(p, t, f):
+    """The loaf: a round ball sunk down onto the floor, the rump rolled under, the back humped, the chest down on
+    the floor with the front paws folded away beneath it, the hind feet hidden under the haunches; the head held up,
+    ears lying back, breathing."""
+    br = math.sin(TAU * t * 2)
+    loaf_pose(p, br)
     nose(p, t, rate=9, amp=4)      # 3 a second, calm
 
 def sleep(p, t, f):
-    """Asleep: loafed and gone limp, leaning a little, the head sunk until the chin rests on the floor, ears
-    back, slow deep breaths and the nose still."""
+    """Asleep: loafed and gone limp, leaning a little, the head sunk down towards the floor, ears back, slow deep
+    breaths and the nose still."""
     br = math.sin(TAU * t * 2)
     p.roll = 6
-    lower(p, rear=LOAF_REAR + 0.005 - 0.005 * br, front=LOAF_FRONT + 0.01, spine=5 + 1.4 * br, neck=22, head=16)
-    for key in ('HL', 'HR'): plant(p, key, dy=HUNCH_FEET, dmeta=-HEEL_DOWN)
-    tuck_front(p, ahead=0.05)
+    loaf_pose(p, 1.4 * br, sink=0.005, head=22)
     ears(p, swing=-9)
 
 def sit(p, t, f):

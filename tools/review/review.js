@@ -857,9 +857,34 @@ function renderFeedback() {
     for (const s of f.summary) { const x = document.createElement("li"); x.textContent = s; li.querySelector(".sum").append(x); }
     const reply = li.querySelector(".reply");
     if (f.risposta) reply.textContent = `Claude: ${f.risposta}`; else reply.remove();
-    li.onclick = () => { if (confirmDiscard()) { resetEdits(); setPlaying(false); moveTime(f.time ?? 0); } };
+    li.onclick = () => {
+      if (!confirmDiscard()) return;
+      resetEdits(); setPlaying(false); moveTime(f.time ?? 0);
+      if (Object.keys(f.pose ?? {}).length) showPose(f.pose);
+    };
     ul.append(li);
   }
+}
+
+/** A saved correction shown again over the clip's frame (the clip's own pose is the ghost). */
+function showPose(pose) {
+  const left = leftOf();
+  for (const [name, p] of Object.entries(pose)) {
+    const b = boneOf(name);
+    if (!b) continue;
+    if (p.after_deg) b.quaternion.setFromEuler(new THREE.Euler(...p.after_deg.map((d) => d * DEG), "XYZ"));
+    if (p.pos_after_m) {
+      const m = p.pos_after_m;
+      const at = S.fwd.clone().multiplyScalar(m.avanti).add(new THREE.Vector3(0, m.su, 0)).add(left.clone().multiplyScalar(m.sinistra));
+      S.model.updateMatrixWorld(true);
+      b.position.copy(b.parent.worldToLocal(S.model.localToWorld(at)));
+    }
+    b.updateMatrixWorld(true);
+  }
+  S.edited = true;
+  holder.updateMatrixWorld(true);
+  updateMarkers();
+  renderEdits();
 }
 
 function renderSelection() {

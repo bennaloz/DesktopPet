@@ -1,0 +1,381 @@
+{
+  "pet": "bretzel",
+  "clip": "Loaf",
+  "time": 0,
+  "frame": 1,
+  "frames": 90,
+  "phase": 0,
+  "duration": 3,
+  "view": "desktop",
+  "facing": 1,
+  "note": "Non so se mi spiego, ma la posizione dovrebbe essere simile a questa ma con la testa più alta, e le zampe nascoste",
+  "summary": [
+    "zampa post. sx: ritocco minimo",
+    "zampa post. dx: 8,4 cm più indietro, 1,1 cm più in basso",
+    "zampa ant. sx: 6,5 cm più indietro, 1,5 cm più in alto",
+    "zampa ant. dx: 13 cm più indietro, 3,2 cm più in alto",
+    "bacino: 3,1 cm più avanti, 7,9 cm più in basso, 12° più in su",
+    "pancia: 5,0 cm più avanti, 6,5 cm più in basso, 12° più in su",
+    "petto: 36° più in giù",
+    "testa: 8,4° più in su",
+    "orecchio sx 3: 7,0° più in giù, 21° girata a destra, 5,6° di rollio a destra",
+    "coda: 46° più in su, 1,6° girata a sinistra, 13° di rollio a sinistra"
+  ],
+  "legs": {
+    "hindL": {
+      "bones": [
+        "Thigh.L",
+        "Shin.L",
+        "Foot.L",
+        "Toe.L"
+      ],
+      "paw": "Toe.L",
+      "before_m": {
+        "avanti": -0.09,
+        "su": 0.023,
+        "sinistra": 0.132
+      },
+      "after_m": {
+        "avanti": -0.09,
+        "su": 0.023,
+        "sinistra": 0.132
+      }
+    },
+    "hindR": {
+      "bones": [
+        "Thigh.R",
+        "Shin.R",
+        "Foot.R",
+        "Toe.R"
+      ],
+      "paw": "Toe.R",
+      "before_m": {
+        "avanti": -0.089,
+        "su": 0.023,
+        "sinistra": -0.102
+      },
+      "after_m": {
+        "avanti": -0.174,
+        "su": 0.012,
+        "sinistra": -0.102
+      }
+    },
+    "foreL": {
+      "bones": [
+        "UpperArm.L",
+        "Forearm.L",
+        "Hand.L"
+      ],
+      "paw": "Hand.L",
+      "before_m": {
+        "avanti": 0.13,
+        "su": 0.007,
+        "sinistra": 0.083
+      },
+      "after_m": {
+        "avanti": 0.065,
+        "su": 0.022,
+        "sinistra": 0.083
+      }
+    },
+    "foreR": {
+      "bones": [
+        "UpperArm.R",
+        "Forearm.R",
+        "Hand.R"
+      ],
+      "paw": "Hand.R",
+      "before_m": {
+        "avanti": 0.134,
+        "su": 0.007,
+        "sinistra": -0.088
+      },
+      "after_m": {
+        "avanti": 0.001,
+        "su": 0.039,
+        "sinistra": -0.088
+      }
+    }
+  },
+  "bones": {
+    "Hips": {
+      "before_deg": [
+        55.46,
+        0,
+        0
+      ],
+      "after_deg": [
+        43.46,
+        0,
+        0
+      ],
+      "pos_before_m": {
+        "avanti": -0.36,
+        "su": 0.19,
+        "sinistra": 0
+      },
+      "pos_after_m": {
+        "avanti": -0.329,
+        "su": 0.111,
+        "sinistra": 0
+      },
+      "points_before": {
+        "avanti": 0.824,
+        "su": 0.567,
+        "sinistra": 0
+      },
+      "points_after": {
+        "avanti": 0.688,
+        "su": 0.726,
+        "sinistra": 0
+      }
+    },
+    "Belly": {
+      "before_deg": [
+        4.29,
+        0,
+        0
+      ],
+      "after_deg": [
+        4.29,
+        0,
+        0
+      ],
+      "pos_before_m": {
+        "avanti": -0.231,
+        "su": 0.101,
+        "sinistra": 0
+      },
+      "pos_after_m": {
+        "avanti": -0.181,
+        "su": 0.036,
+        "sinistra": 0
+      },
+      "points_before": {
+        "avanti": 0.981,
+        "su": -0.194,
+        "sinistra": 0
+      },
+      "points_after": {
+        "avanti": 1,
+        "su": 0.014,
+        "sinistra": 0
+      }
+    },
+    "Chest": {
+      "before_deg": [
+        2.09,
+        0,
+        0
+      ],
+      "after_deg": [
+        50.09,
+        0,
+        0
+      ],
+      "points_before": {
+        "avanti": 0.988,
+        "su": -0.156,
+        "sinistra": 0
+      },
+      "points_after": {
+        "avanti": 0.707,
+        "su": -0.707,
+        "sinistra": 0
+      }
+    },
+    "Head": {
+      "before_deg": [
+        77.14,
+        0,
+        0
+      ],
+      "after_deg": [
+        32.72,
+        0,
+        0
+      ],
+      "points_before": {
+        "avanti": 0.845,
+        "su": -0.535,
+        "sinistra": 0
+      },
+      "points_after": {
+        "avanti": 0.914,
+        "su": -0.405,
+        "sinistra": 0
+      }
+    },
+    "Ear3.L": {
+      "before_deg": [
+        -0.4,
+        0.04,
+        4.55
+      ],
+      "after_deg": [
+        -0.3,
+        -4.38,
+        4.54
+      ],
+      "points_before": {
+        "avanti": -0.272,
+        "su": -0.952,
+        "sinistra": 0.14
+      },
+      "points_after": {
+        "avanti": -0.125,
+        "su": -0.982,
+        "sinistra": 0.14
+      }
+    },
+    "UpperArm.L": {
+      "before_deg": [
+        160.1,
+        -2.22,
+        -2.95
+      ],
+      "after_deg": [
+        112.32,
+        -2.22,
+        -2.95
+      ]
+    },
+    "Forearm.L": {
+      "before_deg": [
+        -126.34,
+        -5.42,
+        -1.63
+      ],
+      "after_deg": [
+        -152.14,
+        -5.07,
+        -3.24
+      ]
+    },
+    "UpperArm.R": {
+      "before_deg": [
+        158.71,
+        1.89,
+        3.17
+      ],
+      "after_deg": [
+        165.21,
+        1.89,
+        3.17
+      ]
+    },
+    "Forearm.R": {
+      "before_deg": [
+        -126.91,
+        4.74,
+        2.07
+      ],
+      "after_deg": [
+        -152.73,
+        4.2,
+        3.63
+      ]
+    },
+    "Tail": {
+      "before_deg": [
+        -175.96,
+        0,
+        -15.36
+      ],
+      "after_deg": [
+        -115.96,
+        0,
+        -15.36
+      ],
+      "points_before": {
+        "avanti": -0.831,
+        "su": -0.489,
+        "sinistra": 0.265
+      },
+      "points_after": {
+        "avanti": -0.92,
+        "su": 0.29,
+        "sinistra": 0.265
+      }
+    },
+    "Thigh.L": {
+      "before_deg": [
+        50.26,
+        0.78,
+        -3.27
+      ],
+      "after_deg": [
+        62.45,
+        0.78,
+        -3.27
+      ]
+    },
+    "Shin.L": {
+      "before_deg": [
+        125.87,
+        2.73,
+        -1.97
+      ],
+      "after_deg": [
+        150.56,
+        1.91,
+        -3.15
+      ]
+    },
+    "Foot.L": {
+      "before_deg": [
+        -141.39,
+        3.32,
+        -4.55
+      ],
+      "after_deg": [
+        -163.55,
+        3.49,
+        -4.8
+      ]
+    },
+    "Thigh.R": {
+      "before_deg": [
+        50.69,
+        2.14,
+        -2.6
+      ],
+      "after_deg": [
+        87.56,
+        2.14,
+        -2.6
+      ]
+    },
+    "Shin.R": {
+      "before_deg": [
+        125.82,
+        -0.67,
+        -5.7
+      ],
+      "after_deg": [
+        -157.58,
+        -3.04,
+        -9.15
+      ]
+    },
+    "Foot.R": {
+      "before_deg": [
+        -141.7,
+        -9.95,
+        12.27
+      ],
+      "after_deg": [
+        -154.37,
+        -9.33,
+        10.82
+      ]
+    }
+  },
+  "actions": [
+    "loaf"
+  ],
+  "fingerprint": "eaeaa8b4",
+  "skin": "a77f503b",
+  "units": "frame: da 1 a frames, a 30 fps, come nella pagina; before_deg/after_deg: rotazione locale dell'osso (Euler XYZ, gradi); *_m: metri del GLB negli assi del corpo (avanti = verso il muso, su, sinistra = fianco sinistro dell'animale); points_*: direzione in cui punta l'osso negli stessi assi",
+  "risposta": "Rifatta dalla tua posa: ho preso dall'appunto le direzioni di bacino, petto e testa e le ho rimesse nell'animazione. È una palla bassa: il bacino arrotolato sotto, la schiena incurvata, il petto giù fino al pavimento, le zampe davanti infilate sotto il petto e i piedi dietro sotto le cosce. Rispetto alla tua è un po' più bassa (vista di fianco come sul desktop le zampe si vedevano ancora), la curva è distribuita su tutta la schiena (tutta sul petto faceva una piega sulla spalla) e la testa è più alta. Il sonno usa la stessa posa con la testa che si abbassa. Nell'editor, cliccando un appunto ora ricompare anche la posa che avevi corretto."
+}
