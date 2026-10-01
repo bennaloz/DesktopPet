@@ -321,7 +321,7 @@ def hop(p, t, f):
     hind feet swing forward and land just behind them, and it sits a moment in its crouch before the next hop.
     The body goes forward in the leap and waits while it sits (prog), the paws stay put on the floor."""
     S = HOP_S
-    prog = ramp(t, [(0.0, 0.0), (0.30, 0.04), (0.42, 0.24), (0.60, 0.72), (0.80, 0.95), (1.0, 1.0)])
+    prog = ramp(t, [(0.0, 0.0), (0.26, 0.02), (0.40, 0.38), (0.58, 0.78), (0.80, 0.96), (1.0, 1.0)])
     up = bump(t, 0.36, 0.68)
     rear = ramp(t, [(0.0, HUNCH_REAR), (0.28, HUNCH_REAR + 0.01), (0.40, 0.04), (0.62, 0.05), (0.80, HUNCH_REAR * 0.75),
                     (0.92, HUNCH_REAR), (1.0, HUNCH_REAR)])
@@ -340,9 +340,15 @@ def hop(p, t, f):
         y, z, m, down = foot(t, land, 0.72, S, -0.19, 0.10, 10, -45)
         plans.append((key, y, z, m, down))
     for key in ('HL', 'HR'):
-        y, z, m, down = foot(t, 0.80, 0.58, S, HUNCH_FEET - 0.08, 0.08, 50, 15, trail=0.08, trail_until=0.45)
-        plans.append((key, y, z, m - HEEL_DOWN * sitting, down))      # the long feet flat while it sits
-    plans = carried(plans, 0.08 * up, {'FL': 0.10, 'FR': 0.10, 'HL': 0.08, 'HR': 0.08})
+        y, z, m, down = foot(t, 0.80, 0.58, S, HUNCH_FEET - 0.08, 0.04, 50, 15, trail=0.08, trail_until=0.45)
+        if down and t < 0.5:
+            # the long feet flat while it sits, the heels coming up only as it pushes off and the body goes forward
+            # over them: lifted earlier, under the crouched body, they would jam the thighs up into the haunches
+            m = lerp(-HEEL_DOWN, 50.0, smooth((t - 0.28) / 0.10))
+        else:
+            m -= HEEL_DOWN * sitting
+        plans.append((key, y, z, m, down))
+    plans = carried(plans, 0.08 * up, {'FL': 0.10, 'FR': 0.10, 'HL': 0.04, 'HR': 0.04})
     lower_to_reach(p, [q[:4] for q in plans if q[4]])
     for q in plans: plant(p, q[0], dy=q[1], dz=q[2], dmeta=q[3])
     spread(p, 5 * up)
