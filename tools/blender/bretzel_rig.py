@@ -338,6 +338,28 @@ for b in arm.data.bones:
         L=arm.data.bones[b.name[:-2]+'.L']
         print(f"rest {b.name:11s} y {b.head_local.y:+.3f} z {b.head_local.z:+.3f} -> y {b.tail_local.y:+.3f} z {b.tail_local.z:+.3f}"
               f"   (L y {L.head_local.y:+.3f} z {L.head_local.z:+.3f} -> y {L.tail_local.y:+.3f} z {L.tail_local.z:+.3f})")
+# the belly: a bone of its own under the middle of the body, holding the skin of the underside between the legs.
+# Stretched out in a leap, the trunk bones let the belly hang down like a sheet; the clips lift it with this bone,
+# and in the review editor it can be pulled about to show how the belly should sit
+BELLY=((0.0,-0.10,0.22),(0.0,0.16,0.22))
+bpy.ops.object.select_all(action='DESELECT'); bpy.context.view_layer.objects.active=arm; arm.select_set(True)
+bpy.ops.object.mode_set(mode='EDIT')
+eb=ad.edit_bones.new('Belly'); eb.head=BELLY[1]; eb.tail=BELLY[0]          # pointing forward, like the back
+eb.align_roll(V3((1,0,0)).cross(V3(BELLY[0])-V3(BELLY[1]))); eb.parent=ad.edit_bones['Spine']; eb.use_connect=False
+bpy.ops.object.mode_set(mode='OBJECT')
+bg=mesh.vertex_groups.new(name='Belly')
+# the underside between the legs went to the shins and the forearms (the bone heat reaches it from below): there it
+# is the belly's, all of it, fading out towards the legs and up the flanks; the feet underneath are left alone
+for v in me.vertices:
+    x,y,z=v.co
+    if EARV[v.index]: continue
+    k=0.9*(1-sstep(z,0.24,0.34))*sstep(z,0.10,0.15)*sstep(y,-0.16,-0.08)*(1-sstep(y,0.12,0.20))*(1-sstep(abs(x),0.09,0.15))
+    if k<=0: continue
+    w={n:x_*(1-k) for n,x_ in wdict(v).items()}
+    w['Belly']=w.get('Belly',0.0)+k
+    regroup(v,w)
+soften(radius=0.03, passes=2, only=[-0.2<v.co.y<0.25 and v.co.z<0.36 and not EARV[v.index] for v in me.vertices])
+print("belly verts",sum(1 for v in me.vertices for g in v.groups if g.group==bg.index and g.weight>0.01))
 # a few blades of hay hanging out of the mouth, forward and down, on a bone of their own: the Eat clip shows them
 # and draws them into the mouth as it chews (the bone shrinks along its length), every other clip keeps them at
 # nothing. Thick and long enough to read at desktop size (the rabbit is about 110 px long, a pixel is 7 mm).

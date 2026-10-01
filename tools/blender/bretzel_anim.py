@@ -52,6 +52,7 @@ class Pose:
         self.roll = 0.0           # degrees the whole body rolls onto its side (flop)
         self.length = 1.0         # the middle of the back (Spine) stretched out (> 1) or gathered up (< 1)
         self.hay = 0.0            # how much of the blades of hay out of the mouth is still out (Eat; 0 = none)
+        self.belly = 0.0          # the underside drawn up into the body (m): a stretched-out body's belly hangs
 
     def cum(self, name):
         a = 0.0
@@ -114,6 +115,10 @@ class Pose:
             k = self.length if pb.name == 'Spine' else 1 / self.length if pb.name == 'Chest' else 1.0
             pb.scale = (self.hay ** 0.5, self.hay, self.hay ** 0.5) if pb.name == 'Hay' else (1.0, k, 1.0)
             pb.keyframe_insert("scale", frame=frame)
+        # the belly drawn up, in the body's own frame (it rides on the Spine)
+        pb = P['Belly']
+        pb.location = bones['Belly'].matrix_local.to_3x3().inverted() @ Vector((0, 0, self.belly))
+        pb.keyframe_insert("location", frame=frame)
         # the whole body: offset in the side plane, and the roll onto its side, both on the root (Hips)
         R = bones['Hips'].matrix_local.to_3x3()
         pb = P['Hips']
@@ -287,16 +292,19 @@ def curve(t, keys):
         if a <= t < b: return lerp(va, vb, smooth((t - a) / (b - a)))
     return keys[0][1]
 
-def foot(t, land, duty, S, y_land, lift, heel_push, heel_swing, trail=0.0, trail_until=0.45):
+def foot(t, land, duty, S, y_land, lift, heel_push, heel_swing, trail=0.0, trail_until=0.45, flat=0.0):
     """A paw that lands at phase `land`, stays down for `duty` of the cycle sliding back under the body (the body
     goes on at S per cycle), then swings forward in an arc to land again at y_land. trail: a hind paw that has
     just pushed stays stretched out behind (m further back, for the first trail_until of the swing) before it
-    swings forward under the belly. Returns (dy, dz, dmeta, down)."""
+    swings forward under the belly. flat: a hind paw lands on the whole long foot, the heel this many degrees down
+    from the standing pose (HEEL_DOWN: flat on the floor), bears the weight on it and rolls onto the toes only as it
+    pushes off. Returns (dy, dz, dmeta, down)."""
     k = (t - land) % 1.0
     if k < duty:
         u = k / duty
         # pushing off at the end of the stance: the heel comes up and the long foot rolls onto the toes
-        return y_land + S * duty * u, 0.0, heel_push * smooth((u - 0.6) / 0.4), 0.06 < u < 0.94
+        m = -flat * (1 - smooth((u - 0.45) / 0.35)) + heel_push * smooth((u - 0.6) / 0.4)
+        return y_land + S * duty * u, 0.0, m, 0.06 < u < 0.94
     u = (k - duty) / (1 - duty)
     start = y_land + S * duty
     if trail:
@@ -306,10 +314,10 @@ def foot(t, land, duty, S, y_land, lift, heel_push, heel_swing, trail=0.0, trail
         y = lerp(start, y_land, fwd) + back
         z = lift * (0.55 * math.sin(math.pi * min(1.0, u / trail_until)) + math.sin(math.pi * u)) / 1.3
         m = heel_push + (heel_swing - heel_push) * smooth(u / trail_until) if u < trail_until else heel_swing * (1 - smooth((u - trail_until) / (1 - trail_until)))
-        return y, z, m, False
+        return y, z, m - flat * smooth((u - 0.7) / 0.3), False     # the heel comes down to land flat
     y = lerp(start, y_land, smooth(u))
     z = lift * math.sin(math.pi * u) ** 0.8
-    return y, z, heel_push * (1 - smooth(u / 0.3)) + heel_swing * math.sin(math.pi * u), False
+    return y, z, heel_push * (1 - smooth(u / 0.3)) + heel_swing * math.sin(math.pi * u) - flat * smooth((u - 0.7) / 0.3), False
 
 def carried(plans, rise, lifts):
     """Paws in the air go up with the body (rise, m) instead of hanging down to the floor: fully at the top of
@@ -334,37 +342,38 @@ def hop(p, t, f):
     hind feet swing forward and land just behind them, and it sits a moment in its crouch before the next hop.
     The body goes forward in the leap and waits while it sits (prog), the paws stay put on the floor."""
     S = HOP_S
-    prog = ramp(t, [(0.0, 0.0), (0.26, 0.02), (0.40, 0.38), (0.58, 0.78), (0.80, 0.96), (1.0, 1.0)])
+    # before the push the weight goes back onto the hind legs (the body rocks back and the rump sinks), then the
+    # push; on landing the hind legs take the weight again and the rump settles down onto them
+    prog = ramp(t, [(0.0, 0.0), (0.18, 0.0), (0.28, -0.03), (0.40, 0.36), (0.58, 0.78), (0.80, 0.96), (1.0, 1.0)])
     up = bump(t, 0.36, 0.68)
-    rear = ramp(t, [(0.0, HUNCH_REAR), (0.28, HUNCH_REAR + 0.01), (0.40, 0.04), (0.62, 0.05), (0.80, HUNCH_REAR * 0.75),
-                    (0.92, HUNCH_REAR), (1.0, HUNCH_REAR)])
+    rear = ramp(t, [(0.0, HUNCH_REAR), (0.18, HUNCH_REAR), (0.29, HUNCH_REAR + 0.03), (0.40, 0.04), (0.62, 0.05),
+                    (0.80, HUNCH_REAR * 0.75), (0.88, HUNCH_REAR + 0.02), (1.0, HUNCH_REAR)])
     front = ramp(t, [(0.0, HUNCH_FRONT), (0.28, HUNCH_FRONT + 0.01), (0.38, 0.02), (0.56, 0.0), (0.68, HUNCH_FRONT * 0.85),
                      (0.85, HUNCH_FRONT), (1.0, HUNCH_FRONT)])
     lower(p, rear=rear, front=front, dy=-S * (prog - t),
-          pitch=-6 * bump(t, 0.28, 0.48) + 6 * bump(t, 0.54, 0.70) - 5 * bump(t, 0.66, 0.96),
+          pitch=-5 * bump(t, 0.16, 0.34) - 6 * bump(t, 0.28, 0.48) + 6 * bump(t, 0.54, 0.70) - 5 * bump(t, 0.66, 0.96),
           spine=4 + 4 * bump(t, 0.36, 0.62) - 10 * bump(t, 0.64, 0.96),
           neck=curve(t, [(0.0, 3.0), (0.4, -5.0), (0.62, -3.0), (0.85, 3.0)]),
           head=curve(t, [(0.0, 2.0), (0.4, 3.0), (0.62, 2.0), (0.85, 2.0)]))
     p.hips = (p.hips[0], p.hips[1] + 0.08 * up)
     p.length = 1 + 0.10 * bump(t, 0.36, 0.64) - 0.06 * bump(t, 0.66, 0.94)
-    sitting = 1 - ramp(t, [(0.0, 0.0), (0.26, 0.0), (0.36, 1.0), (0.72, 1.0), (0.84, 0.0), (1.0, 0.0)])
     plans = []
     for key, land in (('FL', 0.56), ('FR', 0.59)):
         y, z, m, down = foot(t, land, 0.72, S, -0.19, 0.10, 10, -45)
         plans.append((key, y, z, m, down))
     for key in ('HL', 'HR'):
-        y, z, m, down = foot(t, 0.80, 0.58, S, HUNCH_FEET - 0.08, 0.04, 50, 15, trail=0.08, trail_until=0.45)
-        if down and t < 0.5:
-            # the long feet flat while it sits, the heels coming up only as it pushes off and the body goes forward
-            # over them: lifted earlier, under the crouched body, they would jam the thighs up into the haunches
-            m = lerp(-HEEL_DOWN, 50.0, smooth((t - 0.28) / 0.10))
-        else:
-            m -= HEEL_DOWN * sitting
+        y, z, m, down = foot(t, 0.80, 0.58, S, HUNCH_FEET - 0.08, 0.04, 50, 15, trail=0.08, trail_until=0.45,
+                             flat=HEEL_DOWN)
+        if down:
+            # the long feet land flat and stay flat while it sits, carrying its weight; the heels come up only at
+            # the end of the push, the foot rolling onto the toes as the body goes forward over them
+            m = -HEEL_DOWN if t > 0.5 else lerp(-HEEL_DOWN, 50.0, smooth((t - 0.31) / 0.08))
         plans.append((key, y, z, m, down))
     plans = carried(plans, 0.08 * up, {'FL': 0.10, 'FR': 0.10, 'HL': 0.04, 'HR': 0.04})
     lower_to_reach(p, [q[:4] for q in plans if q[4]])
     for q in plans: plant(p, q[0], dy=q[1], dz=q[2], dmeta=q[3])
     spread(p, 5 * up)
+    p.belly = 0.025 * up            # the belly drawn up in the leap, not hanging
     ears(p, swing=curve(t, [(0.0, 0.0), (0.4, -4.0), (0.62, 5.0), (0.8, 1.0)]))
     nose(p, t, rate=2, amp=3)
 
@@ -377,9 +386,11 @@ def run(p, t, f):
     up again as the hind legs swing forward past them; the front paws push off and for a moment it flies gathered
     up before the hind feet come down."""
     S = RUN_S
+    # the hind feet land flat and take the weight: the rump sinks down onto the folding hind legs (0-0.06) before
+    # they drive it up and out, rolling onto the toes at the very end
     body(p,
-         dz=curve(t, [(0.0, -0.06), (0.12, 0.0), (0.35, 0.22), (0.52, 0.06), (0.66, -0.02), (0.86, 0.04)]),
-         pitch=curve(t, [(0.0, -10.0), (0.15, -8.0), (0.35, -2.0), (0.52, 6.0), (0.7, -2.0), (0.9, -10.0)]),
+         dz=curve(t, [(0.0, -0.08), (0.06, -0.11), (0.15, -0.01), (0.35, 0.22), (0.52, 0.06), (0.66, -0.02), (0.86, 0.04)]),
+         pitch=curve(t, [(0.0, -12.0), (0.06, -15.0), (0.15, -8.0), (0.35, -2.0), (0.52, 6.0), (0.7, -2.0), (0.9, -10.0)]),
          spine=curve(t, [(0.0, -11.0), (0.15, -4.0), (0.35, 0.0), (0.52, -1.0), (0.7, -9.0), (0.9, -13.0)]),
          chest=curve(t, [(0.0, 2.0), (0.35, -6.0), (0.52, 0.0), (0.8, 3.0)]),
          neck=curve(t, [(0.0, -2.0), (0.35, -8.0), (0.52, -4.0), (0.75, 0.0)]),
@@ -390,9 +401,9 @@ def run(p, t, f):
         y, z, m, down = foot(t, land, 0.26, S, -0.18, 0.18, 25, -60)
         plans.append((key, y, z, m, down))
     for key in ('HL', 'HR'):
-        y, z, m, down = foot(t, 0.0, 0.18, S, -0.10, 0.18, 55, 10, trail=0.10, trail_until=0.40)
+        y, z, m, down = foot(t, 0.0, 0.18, S, -0.10, 0.18, 55, 10, trail=0.10, trail_until=0.40, flat=HEEL_DOWN)
         plans.append((key, y, z, m, down))
-    rise = curve(t, [(0.0, -0.06), (0.12, 0.0), (0.35, 0.22), (0.52, 0.06), (0.66, -0.02), (0.86, 0.04)])
+    rise = curve(t, [(0.0, -0.08), (0.06, -0.11), (0.15, -0.01), (0.35, 0.22), (0.52, 0.06), (0.66, -0.02), (0.86, 0.04)])
     plans = carried(plans, rise, {'FL': 0.18, 'FR': 0.18, 'HL': 0.18, 'HR': 0.18})
     lower_to_reach(p, [q[:4] for q in plans if q[4]])
     for q in plans: plant(p, q[0], dy=q[1], dz=q[2], dmeta=q[3])
@@ -417,6 +428,7 @@ def run(p, t, f):
                   ramp(u, [(0.0, -20.0), (0.15, -25.0), (0.35, -35.0), (0.6, -40.0), (0.8, -45.0), (1.0, -55.0)]),
                   ramp(u, [(0.0, -80.0), (0.15, -25.0), (0.35, -55.0), (0.6, -150.0), (0.8, -165.0), (1.0, -155.0)]))
     spread(p, curve(t, [(0.0, 10.0), (0.25, 3.0), (0.6, 2.0), (0.85, 12.0)]))
+    p.belly = 0.035 * smooth((t - 0.10) / 0.10) * (1 - smooth((t - 0.55) / 0.15))   # drawn up in the long leap
     ears(p, swing=curve(t, [(0.0, 3.0), (0.3, -8.0), (0.52, 8.0), (0.8, 2.0)]))
 
 def swing_leg(p, key, w, *angles):

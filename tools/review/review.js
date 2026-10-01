@@ -143,6 +143,7 @@ async function openPet(id) {
   makeGhost();
   S.legs = L.legChains([...S.bones.keys()]);
   makeMarkers();
+  makePicker();
   S.fingerprints = {};
   for (const c of S.clips) S.fingerprints[c.name] = L.clipFingerprint(c.tracks);
   S.skin = L.skinFingerprint(S.meshes.map((m) => ({
@@ -217,6 +218,21 @@ function makeMarkers() {
     pivot.add(m);
     S.markers.set(leg.id, m);
   }
+}
+
+/** The list of parts to pick from, for the ones a click cannot reach (the rump picks the thigh it covers). */
+function makePicker() {
+  const sel = $("pick");
+  sel.replaceChildren(new Option("scegli una parte…", ""));
+  for (const name of ["Hips", "Spine", "Belly", "Chest", "Neck", "Head", "Tail"])
+    if (S.bones.has(name)) sel.append(new Option(L.boneLabel(name), `bone:${name}`));
+  for (const leg of S.legs) sel.append(new Option(leg.label, `leg:${leg.id}`));
+  sel.onchange = () => {
+    const [kind, id] = sel.value.split(":");
+    if (!kind) return select(null);
+    if (S.playing) setPlaying(false);
+    select(kind === "leg" ? { leg: S.legs.find((l) => l.id === id) } : { bone: id });
+  };
 }
 
 function dropModel() {
@@ -447,6 +463,9 @@ function confirmDiscard() {
   return !S.dirty || confirm("Ci sono correzioni non salvate: le butto via?");
 }
 
+/** Bones that can be moved as well as turned: the whole body (Hips), and the belly skin pulled about (Belly). */
+const movable = (name) => name === "Hips" || name === "Belly";
+
 function select(sel) {
   S.selected = sel;
   if (!sel) tc.detach();
@@ -456,15 +475,31 @@ function select(sel) {
     tc.setSpace("world");
   } else {
     tc.attach(boneOf(sel.bone));
-    tc.setMode(sel.bone === "Hips" ? S.hipsMode ?? "rotate" : "rotate");
-    tc.setSpace("local");
+    // the belly is there to be pulled: it starts in Sposta; the body starts in Ruota
+    if (movable(sel.bone) && sel.bone !== S.modeFor) { S.moveMode = sel.bone === "Belly" ? "translate" : "rotate"; S.modeFor = sel.bone; }
+    tc.setMode(movable(sel.bone) ? S.moveMode : "rotate");
+    tc.setSpace(movable(sel.bone) && S.moveMode === "translate" ? "world" : "local");   // (up and down: the floor's)
   }
   renderSelection();
+}
+
+/**
+ * Moving or turning the body: the paws standing on the floor stay where they are and the legs fold or stretch to
+ * keep them there (lowering the rump folds the hind legs under it); paws in the air go with the body.
+ */
+function pinGroundedPaws() {
+  for (const leg of S.legs) {
+    const at = pivot.worldToLocal(effectorOf(leg).getWorldPosition(v1));
+    // (the handle is the last joint: the ball of a hind foot, but a front paw's wrist, a few cm up)
+    if (at.y < 0.08) { S.markers.get(leg.id).position.copy(at); S.pinned.add(leg.id); }
+  }
 }
 
 tc.addEventListener("dragging-changed", (e) => {
   orbit.enabled = !e.value;
   if (e.value) S.undo.push(snapshot());
+  if (e.value && S.selected?.bone && !["Belly", "Neck", "Head", "Nose", "Tail"].includes(S.selected.bone)
+      && !S.selected.bone.startsWith("Ear")) pinGroundedPaws();
   else renderEdits();
 });
 
@@ -479,6 +514,7 @@ tc.addEventListener("objectChange", () => {
 // picking: a click (not a drag) on a paw handle or on the body
 const ray = new THREE.Raycaster();
 let downAt = null;
+S.moveMode = "rotate";
 renderer.domElement.addEventListener("pointerdown", (e) => { downAt = [e.clientX, e.clientY]; });
 renderer.domElement.addEventListener("pointerup", (e) => {
   if (!downAt || Math.hypot(e.clientX - downAt[0], e.clientY - downAt[1]) > 4) return;
@@ -714,7 +750,9 @@ function renderSelection() {
   $("selHint").hidden = !!sel;
   if (!sel) return;
   $("selName").textContent = sel.leg ? `${sel.leg.label} (trascina il pallino)` : L.boneLabel(sel.bone);
-  $("modeRow").hidden = sel.bone !== "Hips";
+  $("modeRow").hidden = !movable(sel.bone);
+  for (const x of document.querySelectorAll("#modeRow button")) x.classList.toggle("on", x.dataset.mode === S.moveMode);
+  $("pick").value = sel.leg ? `leg:${sel.leg.id}` : `bone:${sel.bone}`;
 }
 
 function renderEdits() {
@@ -750,9 +788,10 @@ $("scrub").addEventListener("input", (e) => {
 });
 for (const b of document.querySelectorAll("#views button")) b.onclick = () => setView(b.dataset.view);
 for (const b of document.querySelectorAll("#modeRow button")) b.onclick = () => {
-  S.hipsMode = b.dataset.mode;
+  S.moveMode = b.dataset.mode;
   for (const x of document.querySelectorAll("#modeRow button")) x.classList.toggle("on", x === b);
-  tc.setMode(S.hipsMode);
+  tc.setMode(S.moveMode);
+  tc.setSpace(S.moveMode === "translate" ? "world" : "local");
 };
 $("ghost").onchange = updateMarkers;
 $("trail").onchange = () => { trail.items = []; };
