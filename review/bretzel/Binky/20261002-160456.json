@@ -1,0 +1,170 @@
+{
+  "pet": "bretzel",
+  "clip": "Binky",
+  "time": 0.3573,
+  "frame": 12,
+  "frames": 22,
+  "phase": 0.487,
+  "duration": 0.7333,
+  "view": "desktop",
+  "facing": -1,
+  "note": "forse si rompe un po' la pancia così, però allungare di più le zampe tipo questo esempio no?",
+  "summary": [
+    "zampa post. sx: 14 cm più indietro, 6,3 cm più in basso",
+    "zampa post. dx: 15 cm più indietro, 0,7 cm più in alto",
+    "pancia: ritocco minimo"
+  ],
+  "legs": {
+    "hindL": {
+      "bones": [
+        "Thigh.L",
+        "Shin.L",
+        "Foot.L",
+        "Toe.L"
+      ],
+      "paw": "Toe.L",
+      "before_m": {
+        "avanti": -0.246,
+        "su": 0.76,
+        "sinistra": 0.374
+      },
+      "after_m": {
+        "avanti": -0.39,
+        "su": 0.697,
+        "sinistra": 0.374
+      }
+    },
+    "hindR": {
+      "bones": [
+        "Thigh.R",
+        "Shin.R",
+        "Foot.R",
+        "Toe.R"
+      ],
+      "paw": "Toe.R",
+      "before_m": {
+        "avanti": -0.328,
+        "su": 0.639,
+        "sinistra": 0.194
+      },
+      "after_m": {
+        "avanti": -0.482,
+        "su": 0.646,
+        "sinistra": 0.194
+      }
+    }
+  },
+  "bones": {
+    "Belly": {
+      "before_deg": [
+        4.29,
+        0,
+        0
+      ],
+      "after_deg": [
+        4.29,
+        0,
+        0
+      ],
+      "pos_before_m": {
+        "avanti": -0.089,
+        "su": 0.587,
+        "sinistra": -0.007
+      },
+      "pos_after_m": {
+        "avanti": -0.086,
+        "su": 0.587,
+        "sinistra": 0.001
+      },
+      "points_before": {
+        "avanti": 0.961,
+        "su": -0.222,
+        "sinistra": 0.166
+      },
+      "points_after": {
+        "avanti": 0.961,
+        "su": -0.222,
+        "sinistra": 0.166
+      }
+    },
+    "Thigh.L": {
+      "before_deg": [
+        111.28,
+        41.56,
+        -13.16
+      ],
+      "after_deg": [
+        144.82,
+        66,
+        -6.42
+      ]
+    },
+    "Shin.L": {
+      "before_deg": [
+        105.39,
+        3.25,
+        -0.89
+      ],
+      "after_deg": [
+        97.13,
+        -38.44,
+        46.74
+      ]
+    },
+    "Foot.L": {
+      "before_deg": [
+        -6.6,
+        -5.57,
+        0.86
+      ],
+      "after_deg": [
+        -5.17,
+        -2.79,
+        -2.13
+      ]
+    },
+    "Thigh.R": {
+      "before_deg": [
+        110.96,
+        28.86,
+        -7.64
+      ],
+      "after_deg": [
+        163.19,
+        61.12,
+        -7.39
+      ]
+    },
+    "Shin.R": {
+      "before_deg": [
+        105.21,
+        1.39,
+        -5.57
+      ],
+      "after_deg": [
+        79.67,
+        -41.7,
+        37.24
+      ]
+    },
+    "Foot.R": {
+      "before_deg": [
+        -8.21,
+        15.69,
+        -1.36
+      ],
+      "after_deg": [
+        -4.93,
+        18.35,
+        -4.43
+      ]
+    }
+  },
+  "actions": [
+    "binky"
+  ],
+  "fingerprint": "ed0120b0",
+  "skin": "87886a21",
+  "units": "frame: da 1 a frames, a 30 fps, come nella pagina; before_deg/after_deg: rotazione locale dell'osso (Euler XYZ, gradi); *_m: metri del GLB negli assi del corpo (avanti = verso il muso, su, sinistra = fianco sinistro dell'animale); points_*: direzione in cui punta l'osso negli stessi assi",
+  "risposta": "Fatto come nel tuo esempio: nel calcio le cosce vanno indietro e stinchi e piedi restano tesi in fila dietro, così le zampe arrivano circa 15 cm più indietro di prima. Ho guardato la pancia da sotto e di lato: si stira un po' ma non si rompe."
+}

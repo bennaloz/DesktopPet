@@ -264,13 +264,17 @@ HUNCH_REAR, HUNCH_FRONT, HUNCH_FEET = 0.175, 0.14, -0.05
 # under the belly, as in the crouch, the shin stood up from the heel to a knee 13 cm off the floor and it looked
 # perched on tiptoe.
 REST_REAR, REST_FRONT, REST_FEET = HUNCH_REAR + 0.04, HUNCH_FRONT - 0.03, HUNCH_FEET + 0.10
+# Sitting, the whole long foot lies on the floor, the heel (the hock) down on it too, the toes forward under the belly
+# (review/bretzel/Sit/20261002-160619: posed so; with the foot at its standing angle the hock stayed 9 cm up and it sat
+# on the tips of its feet): the paws 8 cm further forward than REST_FEET, the foot turned heel down by SIT_HEEL.
+SIT_FEET, SIT_HEEL = REST_FEET - 0.08, 36.0
 
 def hunch(p, rear=0.0, front=0.0, pitch=0.0, paws=0.0, **kw):
     """Sitting still (REST_*), `rear`/`front` m lower (or higher, negative) than that, the front paws `paws` m
     further back; the rest as body()."""
     lower(p, rear=REST_REAR + rear, front=REST_FRONT + front, pitch=pitch, **kw)
     settle_front(p)
-    for key in ('HL', 'HR'): plant(p, key, dy=REST_FEET, dmeta=-HEEL_DOWN)
+    for key in ('HL', 'HR'): plant(p, key, dy=SIT_FEET, dmeta=-SIT_HEEL)
     for key in ('FL', 'FR'): plant(p, key, dy=paws)
 
 EARS = [f'Ear{i}.{s}' for s in 'LR' for i in range(1, 5)]
@@ -408,9 +412,11 @@ def hop(p, t, f):
         plans.append((key, y, z, m, down))
     heel = -70.0 - META['HL']          # the hind foot as it leaves the floor: rolled up on its toes, pointing down and back
     for key in ('HL', 'HR'):
-        y, z, m, down = foot(t, H_LAND, 1 - (H_LAND - H_LIFT), S, REST_FEET - S * (1 - H_LAND), 0.05, 0, 0, flat=HEEL_DOWN)
-        if t < H_LIFT or t >= H_LAND:
-            m = lerp(-HEEL_DOWN, heel, smooth((t - (H_LIFT - 0.10)) / 0.10)) if t < H_LIFT else -HEEL_DOWN
+        y, z, m, down = foot(t, H_LAND, 1 - (H_LAND - H_LIFT), S, SIT_FEET - S * (1 - H_LAND), 0.05, 0, 0, flat=HEEL_DOWN)
+        if t < H_LIFT:          # sitting on its heels, up off them onto the flat foot as the rump rises, then the toes
+            m = lerp(-lerp(SIT_HEEL, HEEL_DOWN, smooth((t - 0.12) / 0.20)), heel, smooth((t - (H_LIFT - 0.10)) / 0.10))
+        elif t >= H_LAND:       # landed flat, down onto its heels as the rump comes down
+            m = -lerp(HEEL_DOWN, SIT_HEEL, smooth((t - H_LAND) / 0.14))
         else:
             m = lerp(heel, -HEEL_DOWN, smooth((t - H_LIFT) / (H_LAND - H_LIFT) / 0.8))   # swinging forward, to land flat
         plans.append((key, y, z, m, down))
@@ -557,9 +563,9 @@ def _binky_at(p, t, side, D, dyb, tt):
         up = (sh[0] - 0.075, sh[1] - 0.235)
         reach(p, key, (lerp(down[0], up[0], fold), lerp(down[1], up[1], fold)), dmeta=55 * fold)
     # hind legs: pushing off (the heels come up as they straighten); in the air they are swung by angle, not put at
-    # a spot: the thighs stay close to where they are (they are the haunches), the legs fold up under the belly and
-    # then kick out from the knee, shin and long foot stretched right out in line behind it (bent at the knee, the
-    # kick looked short); then they reach down under it to land flat in the crouch
+    # a spot: the legs fold up under the belly and then kick out, the thighs swung back and the shins and the long
+    # feet stretched right out in line behind them, the paws 15 cm further back than a kick from the knee alone
+    # (review/bretzel/Binky/20261002-160456); then they reach down under it to land flat in the crouch
     air = smooth((t - 0.30) / 0.08) * (1 - smooth((t - 0.70) / 0.10))
     for key in ('HL', 'HR'):
         if t < 0.30:
@@ -572,9 +578,9 @@ def _binky_at(p, t, side, D, dyb, tt):
               dmeta=ramp(t, [(0.30, 50.0), (0.70, 0.0), (0.80, -60.0), (0.86, -HEEL_DOWN), (1.0, -HEEL_DOWN)]))
         if air > 0:
             swing_leg(p, key, air,
-                      ramp(t, [(0.30, -120.0), (0.38, -118.0), (0.46, -155.0), (0.53, -100.0), (0.64, -104.0), (0.74, -150.0)]),
-                      ramp(t, [(0.30, -30.0), (0.38, -20.0), (0.46, -30.0), (0.53, 6.0), (0.64, 0.0), (0.74, -40.0)]),
-                      ramp(t, [(0.30, -60.0), (0.38, -40.0), (0.46, -175.0), (0.53, 0.0), (0.64, -8.0), (0.74, -165.0)]))
+                      ramp(t, [(0.30, -120.0), (0.38, -118.0), (0.46, -155.0), (0.53, -50.0), (0.64, -54.0), (0.74, -150.0)]),
+                      ramp(t, [(0.30, -30.0), (0.38, -20.0), (0.46, -30.0), (0.53, -8.0), (0.64, -14.0), (0.74, -40.0)]),
+                      ramp(t, [(0.30, -60.0), (0.38, -40.0), (0.46, -175.0), (0.53, -10.0), (0.64, -18.0), (0.74, -165.0)]))
     # the kick sideways: each thigh turns about its own length, so the bent leg below the knee swings out while the
     # haunch stays where it is; only a little out at the hip, the outer leg further than the one under the belly
     for s_, sg in (('L', 1), ('R', -1)):
@@ -673,7 +679,7 @@ def groom(p, t, f):
           neck=4 + 34 * down - 10 * stroke * rub, head=4 + 14 * down - 6 * stroke * rub)
     p.yz['Neck'] = (0.0, 10 * sgn * rub)
     p.yz['Head'] = (-8 * sgn * rub, 6 * sgn * rub)
-    for k in ('HL', 'HR'): plant(p, k, dy=REST_FEET, dmeta=-HEEL_DOWN)
+    for k in ('HL', 'HR'): plant(p, k, dy=SIT_FEET, dmeta=-SIT_HEEL)
     plant(p, other)
     sh = shoulder(p, key)
     m = p.point('Head', MOUTH_YZ)
@@ -731,8 +737,8 @@ def flop_pose(p, k, br=0.0, lead=0.0, roll=None):
     lower(p, rear=lerp(REST_REAR, 0.05, s), front=lerp(REST_FRONT, 0.05, s), spine=-6 * k + br, neck=10 * k,
           head=6 * k)
     p.length = 1 + 0.06 * s
-    plant(p, 'HL', dy=lerp(REST_FEET, 0.30, s), dz=-0.10 * s, dmeta=lerp(-HEEL_DOWN, -40.0, s))
-    plant(p, 'HR', dy=lerp(REST_FEET, 0.27, s), dz=-0.06 * s, dmeta=lerp(-HEEL_DOWN, -25.0, s))
+    plant(p, 'HL', dy=lerp(SIT_FEET, 0.30, s), dz=-0.10 * s, dmeta=lerp(-SIT_HEEL, -40.0, s))
+    plant(p, 'HR', dy=lerp(SIT_FEET, 0.27, s), dz=-0.06 * s, dmeta=lerp(-SIT_HEEL, -25.0, s))
     plant(p, 'FL', dy=-0.20 * s, dz=0.03 * s, dmeta=-50 * s)
     plant(p, 'FR', dy=-0.13 * s, dmeta=-30 * s)
     for key, a in FLOP_DROP.items(): p.yz[LEGS[key][0]] = (0.0, a * s)
@@ -764,12 +770,18 @@ def flop_sleep(p, t, f):
 # Lounging: half lying, at ease. The hindquarters are over on their side, the hind legs out along the floor, while
 # the front is still up as a sphinx is, the front legs stretched out ahead, the head up, looking about: the twist is
 # taken along the back. The flop with its front turned back upright, shown from its back like the flop.
-LOUNGE_ROLL = 70.0
+# Then (review/bretzel/LoungeDown/20261002-160723) the body stretched out long, the flank flat down on the floor, the
+# hind legs out behind along it; the head and the neck as they were.
+LOUNGE_ROLL, LOUNGE_LENGTH = 88.0, 1.16
 
 def lounge_pose(p, k, br=0.0):
     """Lounging (k: how far down into it, 0 the crouch, 1 lying), breathing br."""
     s = smooth(k)
     flop_pose(p, k, br=br, roll=LOUNGE_ROLL * s, lead=-s)
+    p.length = 1 + (LOUNGE_LENGTH - 1) * s
+    p.x['Spine'] = p.x.get('Spine', 0.0) + 6 * s
+    plant(p, 'HL', dy=lerp(SIT_FEET, 0.38, s), dz=-0.12 * s, dmeta=lerp(-SIT_HEEL, -40.0, s))
+    plant(p, 'HR', dy=lerp(SIT_FEET, 0.35, s), dz=-0.08 * s, dmeta=lerp(-SIT_HEEL, -25.0, s))
     p.yz['Neck'] = (p.yz['Neck'][0], 0.0)
     p.yz['Head'] = (0.0, 0.0)
     p.x['Neck'] = p.x.get('Neck', 0.0) - 30 * s       # the head held up, not laid down
@@ -794,7 +806,7 @@ def thump(p, t, f):
     jolting up and down with them; ears flick. (Not stood up on straight legs like a dog: it stays crouched.)"""
     hit = bump(t, 0.3, 0.5)
     hunch(p, rear=-0.03 * hit, front=-0.06, pitch=-3 * hit, spine=-3, neck=-12, head=-4)
-    for key in ('HL', 'HR'): plant(p, key, dy=REST_FEET, dz=0.04 * hit, dmeta=-HEEL_DOWN + 25 * hit)
+    for key in ('HL', 'HR'): plant(p, key, dy=SIT_FEET, dz=0.04 * hit, dmeta=-SIT_HEEL + 25 * hit)
     ears(p, swing=8 * bump(t, 0.45, 0.8), out=4 * bump(t, 0.45, 0.8))
 
 def held(p, t, f):
@@ -818,7 +830,7 @@ def land(p, t, f):
     a = smooth(t / 0.4)
     lower(p, rear=lerp(0.0, REST_REAR + 0.01, a), front=lerp(0.0, REST_FRONT + 0.03 * bump(t, 0.2, 0.8), a),
           spine=5 * bump(t, 0.0, 1.0), neck=6 * bump(t, 0.0, 1.0))
-    for key in ('HL', 'HR'): plant(p, key, dy=REST_FEET * a, dmeta=-HEEL_DOWN * a)
+    for key in ('HL', 'HR'): plant(p, key, dy=SIT_FEET * a, dmeta=-SIT_HEEL * a)
     for key in ('FL', 'FR'): plant(p, key)
     ears(p, swing=-8 * bump(t, 0.0, 1.0))
 

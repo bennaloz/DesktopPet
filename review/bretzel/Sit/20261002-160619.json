@@ -1,0 +1,137 @@
+{
+  "pet": "bretzel",
+  "clip": "Sit",
+  "time": 1.7801,
+  "frame": 54,
+  "frames": 60,
+  "phase": 0.89,
+  "duration": 2,
+  "view": "desktop",
+  "facing": 1,
+  "note": "secondo me qui seduto deve stare tutto il piede per terra non solo la punta",
+  "summary": [
+    "zampa post. sx: 9,0 cm più avanti, 0,9 cm più in alto",
+    "zampa post. dx: 6,8 cm più avanti"
+  ],
+  "legs": {
+    "hindL": {
+      "bones": [
+        "Thigh.L",
+        "Shin.L",
+        "Foot.L",
+        "Toe.L"
+      ],
+      "paw": "Toe.L",
+      "before_m": {
+        "avanti": -0.19,
+        "su": 0.022,
+        "sinistra": 0.123
+      },
+      "after_m": {
+        "avanti": -0.099,
+        "su": 0.031,
+        "sinistra": 0.123
+      }
+    },
+    "hindR": {
+      "bones": [
+        "Thigh.R",
+        "Shin.R",
+        "Foot.R",
+        "Toe.R"
+      ],
+      "paw": "Toe.R",
+      "before_m": {
+        "avanti": -0.185,
+        "su": 0.023,
+        "sinistra": -0.097
+      },
+      "after_m": {
+        "avanti": -0.117,
+        "su": 0.023,
+        "sinistra": -0.097
+      }
+    }
+  },
+  "bones": {
+    "Thigh.L": {
+      "before_deg": [
+        105.87,
+        -2.26,
+        -2.49
+      ],
+      "after_deg": [
+        83.47,
+        -2.26,
+        -2.49
+      ]
+    },
+    "Shin.L": {
+      "before_deg": [
+        144.4,
+        1.96,
+        -2.74
+      ],
+      "after_deg": [
+        115.43,
+        3.63,
+        -2.51
+      ]
+    },
+    "Foot.L": {
+      "before_deg": [
+        -162.17,
+        4.72,
+        -3.08
+      ],
+      "after_deg": [
+        -151.14,
+        4.65,
+        -3.54
+      ]
+    },
+    "Thigh.R": {
+      "before_deg": [
+        106.06,
+        -0.92,
+        -3.24
+      ],
+      "after_deg": [
+        88.87,
+        -0.92,
+        -3.24
+      ]
+    },
+    "Shin.R": {
+      "before_deg": [
+        144.18,
+        -2.44,
+        -5.2
+      ],
+      "after_deg": [
+        119.38,
+        -1.21,
+        -4.42
+      ]
+    },
+    "Foot.R": {
+      "before_deg": [
+        -162.26,
+        -13.59,
+        8.03
+      ],
+      "after_deg": [
+        -152.47,
+        -13.68,
+        8.73
+      ]
+    }
+  },
+  "actions": [
+    "sit"
+  ],
+  "fingerprint": "4d269cce",
+  "skin": "87886a21",
+  "units": "frame: da 1 a frames, a 30 fps, come nella pagina; before_deg/after_deg: rotazione locale dell'osso (Euler XYZ, gradi); *_m: metri del GLB negli assi del corpo (avanti = verso il muso, su, sinistra = fianco sinistro dell'animale); points_*: direzione in cui punta l'osso negli stessi assi",
+  "risposta": "Hai ragione: da seduto il tallone restava a 9 cm da terra e appoggiava solo la punta. Come nella tua posa, ora tutto il piede è disteso sul pavimento, col tallone giù e la pianta 8 cm più avanti sotto la pancia. Vale per tutte le pose da seduto (Idle, Sit, Eat, Groom, Thump, Petted), così passando dall'una all'altra il piede non scatta. Nel saltello il tallone si alza quando il sedere sale per la spinta e torna giù quando atterra."
+}

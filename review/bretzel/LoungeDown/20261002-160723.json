@@ -1,0 +1,22 @@
+{
+  "pet": "bretzel",
+  "clip": "LoungeDown",
+  "time": 0.376,
+  "frame": 12,
+  "frames": 35,
+  "phase": 0.322,
+  "duration": 1.1667,
+  "view": "desktop",
+  "facing": -1,
+  "note": "il corpo si allunga, il fianco è aderente al suolo, la posizione della testa e del collo è ok",
+  "summary": [],
+  "legs": {},
+  "bones": {},
+  "actions": [
+    "loungedown"
+  ],
+  "fingerprint": "a69deb76",
+  "skin": "87886a21",
+  "units": "frame: da 1 a frames, a 30 fps, come nella pagina; before_deg/after_deg: rotazione locale dell'osso (Euler XYZ, gradi); *_m: metri del GLB negli assi del corpo (avanti = verso il muso, su, sinistra = fianco sinistro dell'animale); points_*: direzione in cui punta l'osso negli stessi assi",
+  "risposta": "L'ho preso come la posa da ottenere. Ora il corpo è girato del tutto sul fianco, che sta disteso sul pavimento per tutta la lunghezza, ed è più lungo. Le zampe dietro sono distese indietro lungo il pavimento. Testa e collo sono rimasti come prima. Vale sia per la discesa sia per la posa sdraiata (Lounge)."
+}
