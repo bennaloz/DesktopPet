@@ -28,22 +28,59 @@ public abstract partial class Prop : Node3D
 
 public partial class Bowl : Prop
 {
-    MeshInstance3D _food = null!;
+    Node3D _food = null!;
 
     public double Food { get; set; } = 1;
 
     public Bowl() : this(new Vec2(0, 0)) { }
 
-    public Bowl(Vec2 pos)
+    /// <param name="hay">a rabbit's bowl: hay heaped up in it, not kibble</param>
+    public Bowl(Vec2 pos, bool hay = false)
     {
         Body = new CatBody(pos);
-        SizePx = new Vector2(72, 24);
+        SizePx = new Vector2(72, hay ? 44 : 24);
         Add(new CylinderMesh { TopRadius = 36, BottomRadius = 27, Height = 22, RadialSegments = 32 },
             Mat(new Color(0.78f, 0.22f, 0.25f), 0.4f), new Vector3(0, 11, 0));
         Add(new CylinderMesh { TopRadius = 30, BottomRadius = 30, Height = 3, RadialSegments = 32 },
             Mat(new Color(0.95f, 0.93f, 0.9f)), new Vector3(0, 21, 0));
-        _food = Add(new SphereMesh { Radius = 28, Height = 14, RadialSegments = 24, Rings = 8 },
-            Mat(new Color(0.45f, 0.28f, 0.14f), 1f), new Vector3(0, 20, 0));
+        _food = new Node3D { Name = "Food", Position = new Vector3(0, 20, 0) };
+        AddChild(_food);
+        if (hay) AddHay();
+        else _food.AddChild(new MeshInstance3D
+        {
+            Mesh = new SphereMesh { Radius = 28, Height = 14, RadialSegments = 24, Rings = 8 },
+            MaterialOverride = Mat(new Color(0.45f, 0.28f, 0.14f), 1f),
+        });
+    }
+
+    /// <summary>A heap of hay: a low mound of it and stalks sticking up and out every way over the rim, straw coloured
+    /// and some still greenish (at desktop size a stalk is a pixel or two wide).</summary>
+    void AddHay()
+    {
+        var rng = new Random(7);
+        var straw = new[]
+        {
+            Mat(new Color(0.82f, 0.75f, 0.42f), 1f), Mat(new Color(0.70f, 0.71f, 0.38f), 1f), Mat(new Color(0.89f, 0.81f, 0.53f), 1f),
+        };
+        _food.AddChild(new MeshInstance3D
+        {
+            Mesh = new SphereMesh { Radius = 27, Height = 18, RadialSegments = 20, Rings = 6 }, MaterialOverride = straw[0],
+        });
+        for (int i = 0; i < 36; i++)
+        {
+            float a = (float)(rng.NextDouble() * Math.Tau), r = 4 + (float)rng.NextDouble() * 20;
+            float len = 16 + (float)rng.NextDouble() * 18, tilt = Mathf.DegToRad(15 + (float)rng.NextDouble() * 50);
+            var outward = new Vector3(Mathf.Cos(a), 0, Mathf.Sin(a));
+            var side = new Vector3(-outward.Z, 0, outward.X) * (float)(rng.NextDouble() - 0.5);
+            var dir = (outward * Mathf.Sin(tilt) + Vector3.Up * Mathf.Cos(tilt) + side * 0.6f).Normalized();
+            var foot = new Vector3(outward.X * r, 2, outward.Z * r);
+            _food.AddChild(new MeshInstance3D
+            {
+                Mesh = new CylinderMesh { TopRadius = 0.9f, BottomRadius = 1.2f, Height = len, RadialSegments = 4, Rings = 1 },
+                MaterialOverride = straw[rng.Next(straw.Length)],
+                Transform = new Transform3D(new Basis(new Quaternion(Vector3.Up, dir)), foot + dir * (len / 2)),
+            });
+        }
     }
 
     public void UpdateLook() => _food.Visible = Food > 0.02;

@@ -41,7 +41,9 @@ public sealed class CatProfile
 
     public static CatProfile Load(string folder)
     {
-        string json = System.IO.File.ReadAllText(System.IO.Path.Combine(folder, "profile.json"));
+        // (Godot's file access: res:// is inside the package in an exported build)
+        string json = Godot.FileAccess.GetFileAsString($"{folder}/profile.json");
+        if (json == "") throw new System.InvalidOperationException($"profilo mancante: {folder}/profile.json");
         var p = JsonSerializer.Deserialize<CatProfile>(json, new JsonSerializerOptions { ReadCommentHandling = JsonCommentHandling.Skip })
                 ?? throw new System.InvalidOperationException($"profilo vuoto in {folder}");
         p.Folder = folder;

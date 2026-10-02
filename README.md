@@ -54,10 +54,20 @@ Primi 2 minuti di prova, se qualcosa non va: `%APPDATA%\Godotpp_userdata\Zaira 
 ## Gli altri animali (29/09)
 
 Oltre a Zaira ci sono **Bretzel**, il coniglio ariete di Valentina, e **Sally**, la golden retriever della
-sorella. Uno alla volta, scelto all'avvio:
+sorella. Uno alla volta: dal menu dell'icona, **Animale** (il programma riparte con quello scelto e se lo
+ricorda, `pet.txt` nella cartella utente), oppure all'avvio:
 
     run.bat -- --cat=bretzel
     run.bat -- --cat=sally
+
+### Eseguibile da regalare (02/10)
+
+    python tools/build_release.py --pets bretzel,sally,zaira --default bretzel --name DesktopPet
+
+Fa `export/DesktopPet.zip` (la cartella con `DesktopPet.exe` e i file .NET accanto: va scompattata tutta).
+`--pets` sceglie gli animali dentro, `--default` quello del primo avvio. Servono i template di export di
+Godot 4.7.2 mono (in `%APPDATA%\Godot\export_templates\4.7.2.stable.mono`). I GLB degli animali vanno nel
+pacchetto cosi' come sono (importer `keep`): il gioco li carica a runtime con `GltfDocument`.
 
 Ogni animale ha la sua cartella `cats/<nome>/` (modello + `profile.json`, con `species`: `cat`, `rabbit`, `dog`)
 e il suo salvataggio (`save-<nome>.json`; il vecchio `save.json` resta di Zaira). Il cervello e' diviso:

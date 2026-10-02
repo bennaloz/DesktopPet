@@ -39,13 +39,27 @@ public sealed class SelfTest
         _main.UseCursorOverride = true;
         _script = mode switch
         {
-            "windows" => WindowScript(), "mouse" => MouseScript(), "input" => InputScript(), "gaze" => GazeScript(), "loaf" => LoafScript(), "tail" => TailScript(), "hunt" => HuntScript(), _ => TourScript(),
+            "windows" => WindowScript(), "mouse" => MouseScript(), "input" => InputScript(), "gaze" => GazeScript(), "loaf" => LoafScript(), "tail" => TailScript(), "hunt" => HuntScript(),
+            "switch" => SwitchScript(), "switched" => SwitchedScript(), _ => TourScript(),
         };
         // Godot merges consecutive motion events without looking at the device, so a real mouse move could
         // lend its position to an injected one: every injected event goes through on its own, right away.
         if (mode == "input") Input.UseAccumulatedInput = false;
         Log.Info($"selftest: start ({mode})");
     }
+
+    /// <summary>The tray's pet menu: another pet is picked and the program starts again with it; the new one checks
+    /// (mode "switched") and quits. (It leaves pet.txt in the user folder naming that pet.)</summary>
+    List<(double, string, Action)> SwitchScript() => new()
+    {
+        (2.0, "switch", () => _main.SwitchPet(_main.OtherPet(), "--selftest-switched")),
+    };
+
+    List<(double, string, Action)> SwitchedScript() => new()
+    {
+        (1.0, "check", () => Log.Info($"selftest CHECK OK   ripartito con l'animale scelto dal menu' ({_main.PetName})")),
+        (2.0, "quit", () => _main.Quit()),
+    };
 
     /// <summary>
     /// Pairs with tools/test-mouse.ps1, which reads targets.txt and drives the real cursor:

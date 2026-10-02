@@ -80,21 +80,43 @@ public partial class Main : Node3D
         string? mode = args.Contains("--selftest") ? "tour" : args.Contains("--selftest-windows") ? "windows"
                      : args.Contains("--selftest-mouse") ? "mouse" : args.Contains("--selftest-input") ? "input"
                      : args.Contains("--selftest-gaze") ? "gaze" : args.Contains("--selftest-loaf") ? "loaf" : args.Contains("--selftest-tail") ? "tail"
-                     : args.Contains("--selftest-hunt") ? "hunt" : null;
+                     : args.Contains("--selftest-hunt") ? "hunt" : args.Contains("--selftest-switch") ? "switch"
+                     : args.Contains("--selftest-switched") ? "switched" : null;
         if (mode != null) _selfTest = new SelfTest(this, mode);
     }
 
-    string CatFolder()
+    /// <summary>The pets this build has: the folders under cats/ with a profile.json (read through Godot's file access:
+    /// in an exported build they are inside the package, not on disk).</summary>
+    static List<string> AvailablePets() =>
+        DirAccess.GetDirectoriesAt("res://cats")
+                 .Where(d => Godot.FileAccess.FileExists($"res://cats/{d}/profile.json"))
+                 .Select(d => d.ToLowerInvariant()).ToList();
+
+    /// <summary>The pet to show (see <see cref="PetChoice.Pick"/>): an export names its own with the feature tag
+    /// default_pet_&lt;name&gt;.</summary>
+    static string CatFolder()
     {
-        // A cats/zaira folder wins over the placeholder as soon as it exists.
-        string arg = OS.GetCmdlineUserArgs().FirstOrDefault(a => a.StartsWith("--cat="))?.Substring(6) ?? "";
-        foreach (var name in new[] { arg, "zaira", "fox" })
-        {
-            if (name == "") continue;
-            string dir = ProjectSettings.GlobalizePath($"res://cats/{name}");
-            if (System.IO.File.Exists(System.IO.Path.Combine(dir, "profile.json"))) return dir;
-        }
-        throw new InvalidOperationException("nessun profilo gatto in cats/");
+        var pets = AvailablePets();
+        string? arg = OS.GetCmdlineUserArgs().FirstOrDefault(a => a.StartsWith("--cat="))?.Substring(6);
+        string? build = pets.FirstOrDefault(p => OS.HasFeature($"default_pet_{p}"));
+        return $"res://cats/{PetChoice.Pick(pets, arg, PetChoice.Read(OS.GetUserDataDir()), build)}";
+    }
+
+    /// <summary>
+    /// Another pet, picked from the menu: remembered for the next start, and the program starts again with it (the
+    /// pets differ in model, brain, size and props; a fresh start is simpler and safer than swapping all of them).
+    /// </summary>
+    internal void SwitchPet(string pet, params string[] extra)
+    {
+        if (pet == PetId) return;
+        PetChoice.Write(OS.GetUserDataDir(), pet);
+        Log.Info($"cambio animale: {pet}");
+        var args = new List<string>();
+        if (!OS.HasFeature("template")) args.AddRange(new[] { "--path", ProjectSettings.GlobalizePath("res://") });
+        args.AddRange(new[] { "--", $"--cat={pet}" });
+        args.AddRange(extra);
+        OS.CreateInstance(args.ToArray());
+        Quit();
     }
 
     void SetupScene()
@@ -240,7 +262,8 @@ public partial class Main : Node3D
             double.IsNaN(saved) || _map.Platforms.All(p => p.Kind != SurfaceKind.Floor || !p.SpansX(saved))
                 ? floor.X0 + (floor.X1 - floor.X0) * fraction : saved;
 
-        _world.Bowl = new Bowl(new Vec2(X(save.BowlX, 0.72), floor.Y)) { Name = "Bowl", Food = save.BowlFood };
+        _world.Bowl = new Bowl(new Vec2(X(save.BowlX, 0.72), floor.Y), hay: _profile.Species == "rabbit")
+                      { Name = "Bowl", Food = save.BowlFood };
         _world.Perch = new Perch(new Vec2(X(save.PerchX, 0.9), floor.Y)) { Name = "Perch" };
         AddChild(_world.Perch);
         _world.Perch.Visible = HasPerch;
@@ -505,10 +528,25 @@ public partial class Main : Node3D
         _menu = new PopupMenu { Name = "TrayMenu" };
         _menu.AddItem($"Chiama {_profile.Name}", 1);
         _menu.AddItem("Lancia un bocconcino", 2);
-        _menu.AddItem("Riempi la ciotola", 3);
+        _menu.AddItem(_profile.Species == "rabbit" ? "Metti il fieno nella ciotola" : "Riempi la ciotola", 3);
         _menu.AddSeparator();
         _menu.AddCheckItem("Pausa", 4);
         _menu.AddSeparator();
+        var pets = PetChoice.Offered(AvailablePets());
+        if (pets.Count > 1)
+        {
+            // the pets this build has, the one showing ticked; picking another starts the program again with it
+            var petMenu = new PopupMenu { Name = "PetMenu" };
+            for (int i = 0; i < pets.Count; i++)
+            {
+                petMenu.AddRadioCheckItem(CatProfile.Load($"res://cats/{pets[i]}").Name, i);
+                petMenu.SetItemChecked(i, pets[i] == PetId);
+            }
+            petMenu.IdPressed += id => SwitchPet(pets[(int)id]);
+            _menu.AddChild(petMenu);
+            _menu.AddSubmenuNodeItem("Animale", petMenu);
+            _menu.AddSeparator();
+        }
         _menu.AddItem("Esci", 5);
         _menu.IdPressed += id =>
         {
@@ -526,11 +564,10 @@ public partial class Main : Node3D
         };
         AddChild(_menu);
 
-        var icon = Image.LoadFromFile(ProjectSettings.GlobalizePath("res://icon.png"));
         _tray = new StatusIndicator
         {
             Name = "Tray",
-            Icon = ImageTexture.CreateFromImage(icon),
+            Icon = GD.Load<Texture2D>("res://icon.png"),
             Tooltip = _profile.Name,
         };
         AddChild(_tray);
@@ -550,4 +587,7 @@ public partial class Main : Node3D
     internal CatVisual Visual => _visual;
     internal Gaze GazeState => _gaze;
     internal Vec2 HeadScreenPos => HeadPos;
+    internal string PetName => _profile.Name;
+    /// <summary>Self-test: a pet of this build other than the one showing.</summary>
+    internal string OtherPet() => PetChoice.Offered(AvailablePets()).First(p => p != PetId);
 }

@@ -24,3 +24,6 @@ assets/extra/
 
 # Editor di revisione: gli screenshot dei feedback restano in locale
 review/**/*.png
+
+# Preset di export: lo scrive tools/build_release.py a ogni build
+export_presets.cfg

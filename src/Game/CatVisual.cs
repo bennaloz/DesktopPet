@@ -88,7 +88,7 @@ public partial class CatVisual : Node3D
 
         var doc = new GltfDocument();
         var state = new GltfState();
-        string path = System.IO.Path.Combine(profile.Folder, profile.Model);
+        string path = $"{profile.Folder}/{profile.Model}";      // res://: the GLB is shipped as it is (importer "keep")
         var err = doc.AppendFromFile(path, state);
         if (err != Error.Ok) throw new InvalidOperationException($"GLB non caricato ({err}): {path}");
         _model = (Node3D)doc.GenerateScene(state);
