@@ -1,0 +1,22 @@
+{
+  "pet": "bretzel",
+  "clip": "Groom",
+  "time": 1.6602,
+  "frame": 51,
+  "frames": 60,
+  "phase": 0.83,
+  "duration": 2,
+  "view": "desktop",
+  "facing": 1,
+  "note": "con la zampa destra sbaglia la mira quando se la lecca",
+  "summary": [],
+  "legs": {},
+  "bones": {},
+  "actions": [
+    "groom"
+  ],
+  "fingerprint": "b97c420c",
+  "skin": "d94fd445",
+  "units": "frame: da 1 a frames, a 30 fps, come nella pagina; before_deg/after_deg: rotazione locale dell'osso (Euler XYZ, gradi); *_m: metri del GLB negli assi del corpo (avanti = verso il muso, su, sinistra = fianco sinistro dell'animale); points_*: direzione in cui punta l'osso negli stessi assi",
+  "risposta": "Corretto. In questo modello la testa è girata un po' verso sinistra, quindi la bocca sta quasi sopra la zampa sinistra e a 13 cm dalla destra: con la destra leccava l'aria. Ora per la zampa destra è la testa che si gira verso di lei (la zampa resta diritta davanti), e la lingua arriva a 1 cm dalla zampa come con la sinistra. Resta un difetto che sto guardando: quando alza la zampa destra, sotto il petto si apre un lembo di pelle chiaro (con la sinistra no)."
+}

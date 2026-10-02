@@ -375,50 +375,48 @@ def spread(p, deg):
 
 HOP_S, HOP_FRAMES = 0.36, 15      # m per hop, 0.5 s: 0.72 m/s, about 80 px/s on screen
 def hop(p, t, f):
-    """The pet rabbit's hop: not a leap up but a lunge forward. Sitting crouched, the weight goes back onto the hind
-    legs; they drive the body forward, the rump coming up as they straighten and the heels lifting, while the front
-    paws reach out low and land a little ahead (TF), first one, then the other; the body goes on over them, stretched
-    out, and only then do the hind feet leave the floor (LIFT) and hop forward together under the belly, the back
-    curling, to land just behind them (TH); it sits a moment before the next hop, down on its heels as when it sits
-    still (REST_*): only driving does the rump come up, and it comes up high, first, before the front paws are
-    down. (Lifting the whole body with the front up first made it a jump on the spot; front paws first, then the
-    hind feet, each on their own, read less well than this lunge.)"""
+    """The pet rabbit's slow hop. Sitting down on its heels, it leans onto its front paws, which stay where they are;
+    the hind legs push the body forward over them, the rump coming up high and the front legs leaning back under the
+    chest (to P1); only then are the front paws brought forward, one just after the other (F_LIFT-F_LAND); then the
+    hind feet follow, hopping forward together under the belly, the back curling, to land just behind them
+    (H_LIFT-H_LAND), and the rump comes down: it sits a moment before the next hop. The long hind feet stay flat on
+    the floor through the push and roll up about the toes only as they leave it (RABBIT_FOOT). (The front paws reaching
+    forward while the hind legs were still pushing read as a lunge; lifting the body up first, as a jump on the spot.)
+    The chest is not let down as the body goes forward over the front paws: lowered, the shoulder folded over them."""
     S, R, F = HOP_S, REST_REAR, REST_FRONT
-    PUSHED = HUNCH_REAR - 0.19          # how high the rump comes up as the hind legs straighten: 14 cm
-    TF, LIFT, TH = 0.45, 0.47, 0.68
-    # the body: still while it sits (the paws stay put), a little back as the weight goes onto the hind legs, then
-    # driven forward onto the front paws and on over them as the hind feet come up behind
-    prog = ramp(t, [(0.0, 0.0), (0.20, 0.0), (0.26, -0.02), (TF, 0.55), (TH - 0.04, 0.93), (TH + 0.10, 1.0), (1.0, 1.0)])
-    rear = ramp(t, [(0.0, R), (0.20, R), (0.26, R + 0.015), (TF - 0.08, PUSHED + 0.02), (TF, PUSHED), (LIFT + 0.05, PUSHED + 0.01), (TH, R - 0.04),
-                    (TH + 0.10, R + 0.01), (1.0, R)])
-    front = ramp(t, [(0.0, F), (0.26, F + 0.01), (TF - 0.08, F - 0.03), (TF, F), (TF + 0.07, F + 0.025), (TH + 0.05, F + 0.01),
-                     (1.0, F)])
+    P1, F_LIFT, F_LAND, H_LIFT, H_LAND = 0.40, 0.40, 0.52, 0.56, 0.74
+    PUSHED = HUNCH_REAR - 0.19          # how high the rump comes up as the hind legs push: 14 cm
+    # where the body is (fraction of the hop): pushed forward over the front paws, on a little as they step, then
+    # carried on by the hind feet catching up
+    prog = ramp(t, [(0.0, 0.0), (0.12, 0.0), (P1, 0.40), (F_LAND, 0.55), (H_LIFT, 0.60), (H_LAND, 0.96),
+                    (H_LAND + 0.10, 1.0), (1.0, 1.0)])
+    rear = ramp(t, [(0.0, R), (0.12, R), (P1 - 0.04, PUSHED), (H_LIFT, PUSHED + 0.01), (H_LAND, R - 0.01),
+                    (H_LAND + 0.10, R + 0.005), (1.0, R)])
+    front = ramp(t, [(0.0, F), (0.12, F), (P1, F), ((F_LIFT + F_LAND) / 2, F + 0.01), (F_LAND + 0.02, F + 0.04),
+                     (H_LAND, F + 0.02), (H_LAND + 0.10, F), (1.0, F)])
+    drive = smooth((t - 0.12) / (P1 - 0.16)) * (1 - smooth((t - H_LIFT) / (H_LAND - H_LIFT)))   # the rump up
     lower(p, rear=rear, front=front, dy=-S * (prog - t),
-          spine=4 + 5 * bump(t, 0.26, LIFT + 0.04) - 9 * bump(t, LIFT, TH + 0.12),
-          neck=curve(t, [(0.0, 3.0), (TF - 0.05, -3.0), (TF + 0.05, 4.0), (TH + 0.1, 3.0)]),
-          head=curve(t, [(0.0, 2.0), (TF, 4.0), (TH + 0.1, 2.0)]))
-    pelvis(p, curve(t, [(0.0, 0.0), (0.20, 0.0), (0.26, -3.0), (TF, 14.0), (LIFT + 0.05, 11.0), (TH - 0.06, -9.0),
-                        (TH + 0.06, -3.0), (0.9, 0.0)]))
-    p.length = 1 + 0.07 * bump(t, 0.28, LIFT + 0.06) - 0.05 * bump(t, LIFT, TH + 0.1)
+          spine=4 - 6 * drive - 10 * bump(t, H_LIFT - 0.02, H_LAND + 0.10),
+          neck=3 - 14 * drive, head=2 - 4 * drive)
+    pelvis(p, curve(t, [(0.0, 0.0), (0.12, 0.0), (P1 - 0.04, 4.0), (H_LIFT, 3.4), ((H_LIFT + H_LAND) / 2, -8.0),
+                        (H_LAND + 0.06, -3.0), (0.95, 0.0)]))
+    p.length = 1 - 0.04 * bump(t, H_LIFT, H_LAND + 0.1)
     plans = []
-    for key, land, lift in (('FL', TF, 0.25), ('FR', TF + 0.03, 0.27)):
-        y, z, m, down = foot(t, land, 1 - land + lift, S, -S * (1 - land), 0.06, 10, -45)
+    for key, d in (('FL', 0.0), ('FR', 0.025)):
+        land = F_LAND + d
+        y, z, m, down = foot(t, land, 1 - (F_LAND - F_LIFT), S, -S * (1 - land), 0.05, 10, -40)
         plans.append((key, y, z, m, down))
-    heel = -70.0 - META['HL']          # the hind foot as it leaves the floor: heel up, pointing down and back
+    heel = -70.0 - META['HL']          # the hind foot as it leaves the floor: rolled up on its toes, pointing down and back
     for key in ('HL', 'HR'):
-        y, z, m, down = foot(t, TH, 1 - TH + LIFT, S, REST_FEET - S * (1 - TH), 0.05, 0, 0, flat=HEEL_DOWN)
-        if down:
-            # the whole long foot flat on the floor while it sits and while it pushes, the shin leaning on over it;
-            # only at the very end does it roll up about the toes to leave the floor (RABBIT_FOOT)
-            m = lerp(-HEEL_DOWN, heel, smooth((t - (LIFT - 0.10)) / 0.10)) if t < 0.6 else -HEEL_DOWN
+        y, z, m, down = foot(t, H_LAND, 1 - (H_LAND - H_LIFT), S, REST_FEET - S * (1 - H_LAND), 0.05, 0, 0, flat=HEEL_DOWN)
+        if t < H_LIFT or t >= H_LAND:
+            m = lerp(-HEEL_DOWN, heel, smooth((t - (H_LIFT - 0.10)) / 0.10)) if t < H_LIFT else -HEEL_DOWN
         else:
-            m = lerp(heel, -HEEL_DOWN, smooth((t - LIFT) / (TH - LIFT) / 0.8))   # swinging forward, to land flat
+            m = lerp(heel, -HEEL_DOWN, smooth((t - H_LIFT) / (H_LAND - H_LIFT) / 0.8))   # swinging forward, to land flat
         plans.append((key, y, z, m, down))
-    plans = carried(plans, 0.0, {'FL': 0.06, 'FR': 0.06, 'HL': 0.05, 'HR': 0.05})
     lower_to_reach(p, [q[:4] for q in plans if q[4]])
     for q in plans: plant(p, q[0], dy=q[1], dz=q[2], dmeta=q[3])
-    p.belly = 0.02 * bump(t, 0.3, TH)
-    ears(p, swing=curve(t, [(0.0, 0.0), (TF - 0.05, -4.0), (TF + 0.08, 5.0), (0.85, 1.0)]))
+    ears(p, swing=curve(t, [(0.0, 0.0), (P1, -3.0), (F_LAND, 4.0), (H_LAND, -2.0), (0.9, 0.0)]))
     nose(p, t, rate=2, amp=3)
 
 RUN_S, RUN_FRAMES = 1.56, 12      # bounding: 1.56 m per leap at 2.5 leaps a second (3.9 m/s)
@@ -682,7 +680,11 @@ def groom(p, t, f):
     tg = (m[0] - 0.015, min(m[1] - 0.04, sh[1] - 0.07))     # in front of and under the mouth, and low
     rest = PAW[key]
     reach(p, key, (lerp(rest[0], tg[0], lift), lerp(rest[1], tg[1], lift)), dmeta=50 * lift)
-    p.yz[LEGS[key][0]] = (0.0, -sgn * 6 * rub)
+    # in under the mouth to be licked: the head is turned a little to the left in this mesh, so the mouth is nearly
+    # over the left paw and 13 cm from the right one; the head turns round to that one (brought across instead, the
+    # right arm dragged the chest skin with it)
+    p.yz[LEGS[key][0]] = (0.0, -sgn * 6 * rub + sgn * (4 if key == 'FL' else 0) * lick)
+    if key == 'FR': p.yz['Head'] = (p.yz['Head'][0], p.yz['Head'][1] + 32 * lick)
     ears(p, swing=-2 + 3 * rub)
     dab = max(0.0, math.sin(TAU * u * 9)) * lick
     p.x['Head'] = p.x.get('Head', 0.0) + 3 * dab
