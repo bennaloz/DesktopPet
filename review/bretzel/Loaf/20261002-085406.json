@@ -1,0 +1,22 @@
+{
+  "pet": "bretzel",
+  "clip": "Loaf",
+  "time": 0,
+  "frame": 1,
+  "frames": 90,
+  "phase": 0,
+  "duration": 3,
+  "view": "desktop",
+  "facing": 1,
+  "note": "Come posa ci siamo quasi, ma dovremmo coprire anche le zampe davanti ed arretrare un po' la testa",
+  "summary": [],
+  "legs": {},
+  "bones": {},
+  "actions": [
+    "loaf"
+  ],
+  "fingerprint": "53d45d66",
+  "skin": "a77f503b",
+  "units": "frame: da 1 a frames, a 30 fps, come nella pagina; before_deg/after_deg: rotazione locale dell'osso (Euler XYZ, gradi); *_m: metri del GLB negli assi del corpo (avanti = verso il muso, su, sinistra = fianco sinistro dell'animale); points_*: direzione in cui punta l'osso negli stessi assi",
+  "risposta": "Fatto. La testa è arretrata di circa 5 cm alla stessa altezza: il collo è più dritto e il muso si appoggia sul petto, che è anche un po' più basso. Le zampe davanti: quello che spuntava tra il petto e la coscia era il gomito, perché le zampe erano piegate all'indietro dove il corpo non tocca terra. Ora sono più avanti, sotto il petto, accostate tra loro e appena sotto il pavimento: non si vedono da nessuno dei due lati. Anche nel sonno, che usa la stessa posa con la testa giù, le ho nascoste."
+}

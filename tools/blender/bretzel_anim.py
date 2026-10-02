@@ -535,16 +535,20 @@ def aim(p, bone, elev):
 # The loaf, as the reviewer posed it (review/bretzel/Loaf/20261001-175750): a ball sunk into the floor, the pelvis
 # rolled right under, the back humped, the chest bowed down to the floor, the paws gone under the body. A little
 # lower than that correction (seen side on, as on the desktop, the paws still showed under it), the bow spread along
-# the back (all of it at the chest folds the skin over the shoulder) and the head held higher (asked for in its note)
-LOAF = dict(hips_z=0.071, hips=45.0, spine=8.0, chest=-30.0, neck=50.0, head=-6.0, tail=150.0)
+# the back (all of it at the chest folds the skin over the shoulder) and the head held higher (asked for in its note).
+# Then (review/bretzel/Loaf/20261002-085406) the chest a little lower and the head drawn back onto it, the neck more
+# upright: 5 cm nearer the body, at the same height
+LOAF = dict(hips_z=0.071, hips=45.0, spine=5.0, chest=-36.0, neck=66.0, head=-12.0, tail=150.0)
 
-def tuck_front(p, ahead=0.06):
+def tuck_front(p, ahead=0.06, sink=0.0, inward=0.0):
     """Front legs folded down under the chest (a loafing rabbit): elbows back, forearms along the floor, the paws
-    flat with only the toes showing, `ahead` m in front of the shoulders. Pose the body first. (Nearer than about
-    6 cm the upper arm swings back so far that the armpit creases.)"""
-    for key in ('FL', 'FR'):
+    flat with only the toes showing, `ahead` m in front of the shoulders, `sink` m down into the floor (the game
+    does not draw what is below it) and turned `inward` degrees in under the chest. Pose the body first. (Nearer
+    than about 6 cm the upper arm swings back so far that the armpit creases.)"""
+    for key, sgn in (('FL', 1), ('FR', -1)):
         sh = shoulder(p, key)
-        reach(p, key, (sh[0] - ahead, 0.012), dmeta=-30)
+        reach(p, key, (sh[0] - ahead, 0.012 - sink), dmeta=-30)
+        if inward: p.yz[LEGS[key][0]] = (0.0, sgn * inward)
 
 def loaf_pose(p, br=0.0, sink=0.0, head=0.0):
     """The loaf's body (LOAF), breathing (br -1..1), sunk `sink` m lower and the head `head` degrees lower."""
@@ -557,7 +561,9 @@ def loaf_pose(p, br=0.0, sink=0.0, head=0.0):
     aim(p, 'Head', L['head'] - head)
     aim(p, 'Tail', L['tail'])
     for key in ('HL', 'HR'): plant(p, key, dy=HUNCH_FEET + 0.08, dmeta=-HEEL_DOWN)   # back under the haunches
-    tuck_front(p, ahead=-0.02)                                                         # in under the chest
+    # the paws under the chest and down out of sight: tucked further back, the elbows showed between the chest and
+    # the haunches, where the body is off the floor
+    tuck_front(p, ahead=0.06, sink=0.035, inward=25)
     ears(p, swing=-6)
 
 def loaf(p, t, f):
@@ -574,6 +580,7 @@ def sleep(p, t, f):
     br = math.sin(TAU * t * 2)
     p.roll = 6
     loaf_pose(p, 1.4 * br, sink=0.005, head=22)
+    tuck_front(p, ahead=0.06, sink=0.055, inward=25)   # deeper: leaning lifts one side off its paw
     ears(p, swing=-9)
 
 def sit(p, t, f):
