@@ -1,0 +1,22 @@
+{
+  "pet": "bretzel",
+  "clip": "LoungeDown",
+  "time": 1.08,
+  "frame": 33,
+  "frames": 35,
+  "phase": 0.926,
+  "duration": 1.1667,
+  "view": "desktop",
+  "facing": -1,
+  "note": "Sembra che le anche siano sollevate da terra",
+  "summary": [],
+  "legs": {},
+  "bones": {},
+  "actions": [
+    "loungedown"
+  ],
+  "fingerprint": "aa126bc7",
+  "skin": "87886a21",
+  "units": "frame: da 1 a frames, a 30 fps, come nella pagina; before_deg/after_deg: rotazione locale dell'osso (Euler XYZ, gradi); *_m: metri del GLB negli assi del corpo (avanti = verso il muso, su, sinistra = fianco sinistro dell'animale); points_*: direzione in cui punta l'osso negli stessi assi",
+  "risposta": "Sì, le anche restavano 10-13 cm sopra il pavimento. Girate sul fianco ruotavano attorno alla loro altezza e il davanti, dritto, teneva il corpo appoggiato solo lì. Ora il corpo si piega di lato: le anche scendono e petto e schiena compensano. Il fianco posteriore sta a 1-4 cm da terra e il davanti resta dov'era, sia alla fine della discesa sia nella posa sdraiata."
+}

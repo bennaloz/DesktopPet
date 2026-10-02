@@ -789,6 +789,11 @@ def lounge_pose(p, k, br=0.0):
     for key, dy, dz, dm in (('FL', -0.20, 0.03, -50), ('FR', -0.13, 0.0, -30)):
         plant(p, key, dy=dy * s, dz=dz * s, dmeta=dm * s)    # straight out ahead, side by side
         p.yz[LEGS[key][0]] = (0.0, 0.0)
+    # the hips down on the floor too (review/bretzel/LoungeDown/20261002-162228): rolled over about their own height,
+    # they stayed 10 cm up while the upright front held the body on the floor. The body bends in its own sideways
+    # plane, which lying on its side is up and down: the hips turned down, the back and the chest turned back up
+    for b, a in (('Hips', 12.0), ('Spine', -5.0), ('Chest', -8.0)):
+        r, y = p.yz.get(b, (0.0, 0.0)); p.yz[b] = (r, y + a * s)
 
 def lounge_down(p, t, f):
     """Letting itself down into a lounge from its crouch: a moment, then the hindquarters roll over onto their side
