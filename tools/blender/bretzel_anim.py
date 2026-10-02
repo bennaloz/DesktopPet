@@ -344,44 +344,44 @@ def spread(p, deg):
 
 HOP_S, HOP_FRAMES = 0.36, 15      # m per hop, 0.5 s: 0.72 m/s, about 80 px/s on screen
 def hop(p, t, f):
-    """The pet rabbit's hop, a little low leap: sitting crouched, it pushes off with both hind legs, the front
-    lifting first; a moment in the air, front legs reaching; the front paws land together and take the body, the
-    hind feet swing forward and land just behind them, and it sits a moment in its crouch before the next hop.
-    The body goes forward in the leap and waits while it sits (prog), the paws stay put on the floor."""
-    S = HOP_S
-    # before the push the weight goes back onto the hind legs (the body rocks back and the rump sinks), then the
-    # push; on landing the hind legs take the weight again and the rump settles down onto them
-    prog = ramp(t, [(0.0, 0.0), (0.18, 0.0), (0.28, -0.03), (0.40, 0.36), (0.58, 0.78), (0.80, 0.96), (1.0, 1.0)])
-    up = bump(t, 0.36, 0.68)
-    rear = ramp(t, [(0.0, HUNCH_REAR), (0.18, HUNCH_REAR), (0.29, HUNCH_REAR + 0.03), (0.40, 0.04), (0.62, 0.05),
-                    (0.80, HUNCH_REAR * 0.75), (0.88, HUNCH_REAR + 0.02), (1.0, HUNCH_REAR)])
-    front = ramp(t, [(0.0, HUNCH_FRONT), (0.28, HUNCH_FRONT + 0.01), (0.38, 0.02), (0.56, 0.0), (0.68, HUNCH_FRONT * 0.85),
-                     (0.85, HUNCH_FRONT), (1.0, HUNCH_FRONT)])
+    """The pet rabbit's hop: not a leap up but a lunge forward. Sitting crouched, the weight goes back onto the hind
+    legs; they drive the body forward, the rump coming up as they straighten and the heels lifting, while the front
+    paws reach out low and land a little ahead (TF), first one, then the other; the body goes on over them, stretched
+    out, and only then do the hind feet leave the floor (LIFT) and hop forward together under the belly, the back
+    curling, to land just behind them (TH); it sits a moment in its crouch before the next hop. (Lifting the whole
+    body with the front up first made it a jump on the spot.)"""
+    S, R, F = HOP_S, HUNCH_REAR, HUNCH_FRONT
+    TF, LIFT, TH = 0.45, 0.47, 0.68
+    # the body: still while it sits (the paws stay put), a little back as the weight goes onto the hind legs, then
+    # driven forward onto the front paws and on over them as the hind feet come up behind
+    prog = ramp(t, [(0.0, 0.0), (0.20, 0.0), (0.26, -0.02), (TF, 0.55), (TH - 0.04, 0.93), (TH + 0.10, 1.0), (1.0, 1.0)])
+    rear = ramp(t, [(0.0, R), (0.20, R), (0.26, R + 0.015), (TF, R - 0.10), (LIFT + 0.05, R - 0.09), (TH, R - 0.02),
+                    (TH + 0.10, R + 0.01), (1.0, R)])
+    front = ramp(t, [(0.0, F), (0.26, F + 0.01), (TF - 0.08, F - 0.03), (TF, F), (TF + 0.07, F + 0.025), (TH + 0.05, F + 0.01),
+                     (1.0, F)])
     lower(p, rear=rear, front=front, dy=-S * (prog - t),
-          pitch=-5 * bump(t, 0.16, 0.34) - 6 * bump(t, 0.28, 0.48) + 6 * bump(t, 0.54, 0.70) - 5 * bump(t, 0.66, 0.96),
-          spine=4 + 4 * bump(t, 0.36, 0.62) - 10 * bump(t, 0.64, 0.96),
-          neck=curve(t, [(0.0, 3.0), (0.4, -5.0), (0.62, -3.0), (0.85, 3.0)]),
-          head=curve(t, [(0.0, 2.0), (0.4, 3.0), (0.62, 2.0), (0.85, 2.0)]))
-    p.hips = (p.hips[0], p.hips[1] + 0.08 * up)
-    p.length = 1 + 0.10 * bump(t, 0.36, 0.64) - 0.06 * bump(t, 0.66, 0.94)
+          spine=4 + 5 * bump(t, 0.26, LIFT + 0.04) - 9 * bump(t, LIFT, TH + 0.12),
+          neck=curve(t, [(0.0, 3.0), (TF - 0.05, -3.0), (TF + 0.05, 4.0), (TH + 0.1, 3.0)]),
+          head=curve(t, [(0.0, 2.0), (TF, 4.0), (TH + 0.1, 2.0)]))
+    p.length = 1 + 0.07 * bump(t, 0.28, LIFT + 0.06) - 0.05 * bump(t, LIFT, TH + 0.1)
     plans = []
-    for key, land in (('FL', 0.56), ('FR', 0.59)):
-        y, z, m, down = foot(t, land, 0.72, S, -0.19, 0.10, 10, -45)
+    for key, land, lift in (('FL', TF, 0.25), ('FR', TF + 0.03, 0.27)):
+        y, z, m, down = foot(t, land, 1 - land + lift, S, -S * (1 - land), 0.06, 10, -45)
         plans.append((key, y, z, m, down))
+    heel = -70.0 - META['HL']          # the hind foot as it leaves the floor: heel up, pointing down and back
     for key in ('HL', 'HR'):
-        y, z, m, down = foot(t, 0.80, 0.58, S, HUNCH_FEET - 0.08, 0.04, 50, 15, trail=0.08, trail_until=0.45,
-                             flat=HEEL_DOWN)
+        y, z, m, down = foot(t, TH, 1 - TH + LIFT, S, HUNCH_FEET - S * (1 - TH), 0.05, 0, 0, flat=HEEL_DOWN)
         if down:
-            # the long feet land flat and stay flat while it sits, carrying its weight; the heels come up only at
-            # the end of the push, the foot rolling onto the toes as the body goes forward over them
-            m = -HEEL_DOWN if t > 0.5 else lerp(-HEEL_DOWN, 50.0, smooth((t - 0.31) / 0.08))
+            # flat, carrying it, while it sits; the heels come up as it drives forward over them
+            m = lerp(-HEEL_DOWN, heel, smooth((t - 0.30) / (LIFT - 0.30))) if t < 0.6 else -HEEL_DOWN
+        else:
+            m = lerp(heel, -HEEL_DOWN, smooth((t - LIFT) / (TH - LIFT) / 0.8))   # swinging forward, to land flat
         plans.append((key, y, z, m, down))
-    plans = carried(plans, 0.08 * up, {'FL': 0.10, 'FR': 0.10, 'HL': 0.04, 'HR': 0.04})
+    plans = carried(plans, 0.0, {'FL': 0.06, 'FR': 0.06, 'HL': 0.05, 'HR': 0.05})
     lower_to_reach(p, [q[:4] for q in plans if q[4]])
     for q in plans: plant(p, q[0], dy=q[1], dz=q[2], dmeta=q[3])
-    spread(p, 5 * up)
-    p.belly = 0.025 * up            # the belly drawn up in the leap, not hanging
-    ears(p, swing=curve(t, [(0.0, 0.0), (0.4, -4.0), (0.62, 5.0), (0.8, 1.0)]))
+    p.belly = 0.02 * bump(t, 0.3, TH)
+    ears(p, swing=curve(t, [(0.0, 0.0), (TF - 0.05, -4.0), (TF + 0.08, 5.0), (0.85, 1.0)]))
     nose(p, t, rate=2, amp=3)
 
 RUN_S, RUN_FRAMES = 1.56, 12      # bounding: 1.56 m per leap at 2.5 leaps a second (3.9 m/s)
@@ -521,7 +521,8 @@ def _binky_at(p, t, side, D, dyb, tt):
         reach(p, key, (lerp(down[0], up[0], fold), lerp(down[1], up[1], fold)), dmeta=55 * fold)
     # hind legs: pushing off (the heels come up as they straighten); in the air they are swung by angle, not put at
     # a spot: the thighs stay close to where they are (they are the haunches), the legs fold up under the belly and
-    # then kick out from the knee, the long feet flung back; then they reach down under it to land flat in the crouch
+    # then kick out from the knee, shin and long foot stretched right out in line behind it (bent at the knee, the
+    # kick looked short); then they reach down under it to land flat in the crouch
     air = smooth((t - 0.30) / 0.08) * (1 - smooth((t - 0.70) / 0.10))
     for key in ('HL', 'HR'):
         if t < 0.30:
@@ -534,14 +535,14 @@ def _binky_at(p, t, side, D, dyb, tt):
               dmeta=ramp(t, [(0.30, 50.0), (0.70, 0.0), (0.80, -60.0), (0.86, -HEEL_DOWN), (1.0, -HEEL_DOWN)]))
         if air > 0:
             swing_leg(p, key, air,
-                      ramp(t, [(0.30, -120.0), (0.38, -118.0), (0.46, -155.0), (0.53, -128.0), (0.64, -130.0), (0.74, -150.0)]),
-                      ramp(t, [(0.30, -30.0), (0.38, -20.0), (0.46, -30.0), (0.53, -15.0), (0.64, -22.0), (0.74, -40.0)]),
-                      ramp(t, [(0.30, -60.0), (0.38, -40.0), (0.46, -175.0), (0.53, -45.0), (0.64, -55.0), (0.74, -165.0)]))
+                      ramp(t, [(0.30, -120.0), (0.38, -118.0), (0.46, -155.0), (0.53, -112.0), (0.64, -115.0), (0.74, -150.0)]),
+                      ramp(t, [(0.30, -30.0), (0.38, -20.0), (0.46, -30.0), (0.53, 6.0), (0.64, 0.0), (0.74, -40.0)]),
+                      ramp(t, [(0.30, -60.0), (0.38, -40.0), (0.46, -175.0), (0.53, 0.0), (0.64, -8.0), (0.74, -165.0)]))
     # the kick sideways: each thigh turns about its own length, so the bent leg below the knee swings out while the
     # haunch stays where it is; only a little out at the hip, the outer leg further than the one under the belly
     for s_, sg in (('L', 1), ('R', -1)):
         outer = sg == S_
-        p.yz[f'Thigh.{s_}'] = (S_ * (38 if outer else 26) * out, -S_ * (10 if outer else 4) * out)
+        p.yz[f'Thigh.{s_}'] = (S_ * (44 if outer else 30) * out, -S_ * (10 if outer else 4) * out)
     # the ears flop about with the jolts, only a little: their upper half is part of the head
     ears(p, swing=6 * math.sin(TAU * t * 1.5) - 4 * bump(t, 0.3, 0.8), out=3 * bump(t, 0.3, 0.8))
 

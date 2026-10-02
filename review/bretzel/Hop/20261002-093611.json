@@ -1,0 +1,22 @@
+{
+  "pet": "bretzel",
+  "clip": "Hop",
+  "time": 0.2202,
+  "frame": 8,
+  "frames": 15,
+  "phase": 0.44,
+  "duration": 0.5,
+  "view": "desktop",
+  "facing": 1,
+  "note": "Il saltgo non va bene, sembra una mezza via tra salto in alto, è una cosa strana. I conigli si spingono in avanti con le zampe dietro e atterano sul posto con quelle davanti e poi le zampe dietro seguono",
+  "summary": [],
+  "legs": {},
+  "bones": {},
+  "actions": [
+    "hop"
+  ],
+  "fingerprint": "fb3bc3b6",
+  "skin": "a77f503b",
+  "units": "frame: da 1 a frames, a 30 fps, come nella pagina; before_deg/after_deg: rotazione locale dell'osso (Euler XYZ, gradi); *_m: metri del GLB negli assi del corpo (avanti = verso il muso, su, sinistra = fianco sinistro dell'animale); points_*: direzione in cui punta l'osso negli stessi assi",
+  "risposta": "Rifatto da capo: non è più un salto in alto ma uno slancio in avanti. Dall'accucciata il peso va un attimo sulle zampe dietro, che poi si distendono e spingono il corpo avanti (il sedere si alza, i talloni si staccano per ultimi) mentre le zampe davanti partono basse e atterrano poco più avanti, prima una e poi l'altra. Il corpo ci passa sopra disteso e solo allora i piedi dietro si staccano e saltano in avanti insieme sotto la pancia, con la schiena che si incurva, e atterrano dietro le zampe davanti. Prima tutto il corpo si sollevava di 8 cm con il davanti alzato per primo e le zampe dietro a penzoloni."
+}
