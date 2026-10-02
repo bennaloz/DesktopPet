@@ -193,5 +193,27 @@ for v in me.vertices:
         if g.weight>0: mesh.vertex_groups[g.group].add([v.index],g.weight,'REPLACE')
     filled+=1
 print("filled",filled)
+# the lower jaw: the Tripo model has her mouth open, tongue out (the photo was of her panting). A Jaw bone from the
+# hinge behind the corners of the mouth to the chin carries everything below the mouth and in front of its corners,
+# fading out over the cheeks and into the throat; the clips keep it shut (anim.py, JAW_SHUT) and open it to bark,
+# and the game opens it again to pant after she has run (PantModifier)
+JAW=((0.0,-0.355,0.562),(0.0,-0.462,0.538))
+def sstep(x,a,b):
+    t=max(0.0,min(1.0,(x-a)/(b-a))); return t*t*(3-2*t)
+def jaw_weight(x,y,z):
+    if y>-0.33: return 0.0
+    return (1-sstep(z,0.556,0.566))*(1-sstep(y,-0.385,-0.35))*(1-sstep(abs(x),0.045,0.06))*sstep(z,0.49,0.515)
+bpy.ops.object.select_all(action='DESELECT'); bpy.context.view_layer.objects.active=arm; arm.select_set(True)
+bpy.ops.object.mode_set(mode='EDIT')
+eb=ad.edit_bones.new('Jaw'); eb.head=JAW[0]; eb.tail=JAW[1]
+eb.align_roll(V3((1,0,0)).cross(V3(JAW[1])-V3(JAW[0]))); eb.parent=ad.edit_bones['Head']; eb.use_connect=False
+bpy.ops.object.mode_set(mode='OBJECT')
+jg=mesh.vertex_groups.new(name='Jaw'); nj=0
+for v in me.vertices:
+    k=jaw_weight(*v.co)
+    if k<=0: continue
+    for g in v.groups: g.weight*=(1-k)
+    jg.add([v.index],k,'REPLACE'); nj+=1
+print("jaw verts",nj)
 for img in bpy.data.images: img.pack()
 bpy.ops.wm.save_as_mainfile(filepath=work_file("rig.blend"))

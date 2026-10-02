@@ -31,6 +31,12 @@ public partial class CatVisual : Node3D
     GazeModifier? _gaze;
     bool _gazeActive;
     TailModifier? _tail;
+    PantModifier? _pant;
+
+    /// <summary>How winded she is, 0..1 (set by the game every frame): a dog pants with her mouth open.</summary>
+    public float Pant { set { if (_pant != null) _pant.Pant = value; } }
+    /// <summary>Self-test: how far (deg) her jaw is from the open mouth; null without one.</summary>
+    internal float? JawShutDeg => _pant?.ShutDeg;
 
     /// <summary>What the tail shows while she walks or runs (set by the game every frame).</summary>
     public TailMood TailMood { get; set; } = TailMood.Calm;
@@ -121,6 +127,8 @@ public partial class CatVisual : Node3D
         }
         if (skeleton != null) _tail = AddTail(skeleton);
         if (skeleton != null) AddEars(skeleton);
+        if (skeleton != null && skeleton.FindBone(profile.PantBone) is int jaw and >= 0)
+            skeleton.AddChild(_pant = new PantModifier { Name = "Pant", Jaw = jaw });
 
         Recolor();
         UseFloorClipMaterials();

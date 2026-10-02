@@ -40,7 +40,7 @@ public sealed class SelfTest
         _script = mode switch
         {
             "windows" => WindowScript(), "mouse" => MouseScript(), "input" => InputScript(), "gaze" => GazeScript(), "loaf" => LoafScript(), "tail" => TailScript(), "hunt" => HuntScript(),
-            "switch" => SwitchScript(), "switched" => SwitchedScript(), _ => TourScript(),
+            "switch" => SwitchScript(), "switched" => SwitchedScript(), "pant" => PantScript(), _ => TourScript(),
         };
         // Godot merges consecutive motion events without looking at the device, so a real mouse move could
         // lend its position to an injected one: every injected event goes through on its own, right away.
@@ -54,6 +54,25 @@ public sealed class SelfTest
     {
         (2.0, "switch", () => _main.SwitchPet(_main.OtherPet(), "--selftest-switched")),
     };
+
+    /// <summary>A dog pants when winded: sitting rested her mouth is shut (the jaw well away from the model's open
+    /// mouth); out of breath it opens (the jaw back near it, give or take a breath); rested again it shuts.</summary>
+    List<(double, string, Action)> PantScript()
+    {
+        float shut = 0;
+        void Check(bool ok, string what) => Log.Info($"selftest CHECK {(ok ? "OK  " : "FAIL")} {what}");
+        return new()
+        {
+            (0.5, "sit", () => _main.Brain.SitFor(60)),
+            (2.0, "rested", () => { shut = _main.Visual.JawShutDeg ?? 0; Check(shut > 12, $"riposata, bocca chiusa (mascella a {shut:0} gradi dalla bocca aperta)"); }),
+            (2.1, "winded", () => _main.Winded.Level = 1),
+            (4.0, "panting", () => { float d = _main.Visual.JawShutDeg ?? 99; Check(d < 0.4 * shut, $"senza fiato, ansima a bocca aperta (mascella a {d:0} gradi)"); }),
+            (4.1, "screenshot", Shot),
+            (4.2, "rested again", () => _main.Winded.Level = 0),
+            (6.5, "shut again", () => { float d = _main.Visual.JawShutDeg ?? 0; Check(d > 0.9 * shut, $"ripreso fiato, richiude la bocca (mascella a {d:0} gradi)"); }),
+            (7.0, "quit", () => _main.Quit()),
+        };
+    }
 
     List<(double, string, Action)> SwitchedScript() => new()
     {

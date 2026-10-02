@@ -28,6 +28,9 @@ for b in bones:
     REST[b.name] = dict(h=(h.y, h.z), t=(t.y, t.z), a=math.atan2(t.z - h.z, t.y - h.y),
                         L=math.hypot(t.y - h.y, t.z - h.z), parent=b.parent.name if b.parent else None)
 
+# A lower jaw (Sally's: her Tripo model has the mouth open, tongue out): shut unless a clip opens it (deg about X, - shut)
+JAW_SHUT = -20.0
+
 def rot2(a, p):
     c, s = math.cos(a), math.sin(a)
     return (c * p[0] - s * p[1], s * p[0] + c * p[1])
@@ -108,7 +111,7 @@ class Pose:
 
     def apply(self, frame):
         for pb in P:
-            x = (self.x.get(pb.name, 0.0) + 180.0) % 360.0 - 180.0
+            x = (self.x.get(pb.name, JAW_SHUT if pb.name == 'Jaw' else 0.0) + 180.0) % 360.0 - 180.0
             y, z = self.yz.get(pb.name, (0.0, 0.0))
             pb.rotation_euler = (D(x), D(y), D(z))
             pb.keyframe_insert("rotation_euler", frame=frame)
@@ -890,6 +893,19 @@ if os.environ.get("PET") == "sally":
     DOG_FALL = dict(dz=0.0, pitch=16.0, spine=2.0, chest=0.0, neck=-14.0, head=6.0, tail=45.0,
                     legs={'FL': (-0.15, -0.05, -45.0), 'FR': (-0.12, -0.04, -45.0),
                           'HL': (0.13, -0.02, 45.0), 'HR': (0.15, -0.01, 45.0)})
+
+    # The mouth: shut, as a dog's mostly is (the game opens it to pant after she has run); a bark is a woof or two,
+    # the jaw dropping wide and snapping shut with the head jerking up; eating, it chomps.
+    def bump_(t, a, b): return math.sin(math.pi * min(1.0, max(0.0, (t - a) / (b - a))))
+    _cat_meow, _cat_eat = meow, eat
+
+    def meow(p, t, f):
+        _cat_meow(p, t, f)
+        p.x['Jaw'] = JAW_SHUT + (8 - JAW_SHUT) * max(bump_(t, 0.12, 0.38), 0.8 * bump_(t, 0.48, 0.72))
+
+    def eat(p, t, f):
+        _cat_eat(p, t, f)
+        p.x['Jaw'] = JAW_SHUT + 12 * max(0.0, math.sin(TAU * 3 * t))
 
     def fall(p, t, f):
         q = dict(DOG_FALL)

@@ -19,6 +19,7 @@ public partial class Main : Node3D
     readonly Random _rng = new();
     readonly Needs _needs = new();
     readonly GameWorld _world = new();
+    readonly Exertion _exertion = new();
     PetBrain _brain = null!;
     Gaze _gaze = null!;
     CatBody _body = null!;
@@ -81,7 +82,7 @@ public partial class Main : Node3D
                      : args.Contains("--selftest-mouse") ? "mouse" : args.Contains("--selftest-input") ? "input"
                      : args.Contains("--selftest-gaze") ? "gaze" : args.Contains("--selftest-loaf") ? "loaf" : args.Contains("--selftest-tail") ? "tail"
                      : args.Contains("--selftest-hunt") ? "hunt" : args.Contains("--selftest-switch") ? "switch"
-                     : args.Contains("--selftest-switched") ? "switched" : null;
+                     : args.Contains("--selftest-switched") ? "switched" : args.Contains("--selftest-pant") ? "pant" : null;
         if (mode != null) _selfTest = new SelfTest(this, mode);
     }
 
@@ -320,6 +321,8 @@ public partial class Main : Node3D
         bool climbing = _body.Mode == BodyMode.Climbing;
         _visual.FloorClip = _body.Mode == BodyMode.Grounded;
         _visual.TailMood = ForcedTailMood ?? TailMoods.For(_brain.State, _needs, _brain.Happy);
+        _exertion.Update(dt, _body.Mode == BodyMode.Held ? 0 : Math.Abs(_body.Vel.X), _profile.LengthPx);
+        _visual.Pant = (float)_exertion.Pant;
         _visual.Animate(dt, _brain.Facing, climbing ? CatBody.ClimbSpeed : Math.Abs(_body.Vel.X),
                         _body.Mode == BodyMode.Held, climbing,
                         _body.Mode == BodyMode.Airborne ? _body.Vel : null);
@@ -588,6 +591,7 @@ public partial class Main : Node3D
     internal Gaze GazeState => _gaze;
     internal Vec2 HeadScreenPos => HeadPos;
     internal string PetName => _profile.Name;
+    internal Exertion Winded => _exertion;
     /// <summary>Self-test: a pet of this build other than the one showing.</summary>
     internal string OtherPet() => PetChoice.Offered(AvailablePets()).First(p => p != PetId);
 }

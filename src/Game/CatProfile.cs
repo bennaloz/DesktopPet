@@ -33,6 +33,9 @@ public sealed class CatProfile
     [JsonPropertyName("mood_tail_actions")] public List<string> MoodTailActions { get; set; } = new();
     /// <summary>Floppy ear chains (root first), bounced by <see cref="EarModifier"/>; none for pricked-up ears.</summary>
     [JsonPropertyName("ear_bones")] public List<List<string>> EarBones { get; set; } = new();
+    /// <summary>The jaw a dog pants with (<see cref="PantModifier"/>): the clips keep it shut, the game opens it when she is
+    /// winded. Empty: no panting.</summary>
+    [JsonPropertyName("pant_bone")] public string PantBone { get; set; } = "";
     [JsonPropertyName("material_colors")] public Dictionary<string, float[]> MaterialColors { get; set; } = new();
     [JsonPropertyName("actions")] public Dictionary<string, ActionClip> Actions { get; set; } = new();
 
