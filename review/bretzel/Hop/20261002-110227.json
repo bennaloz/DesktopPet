@@ -1,0 +1,22 @@
+{
+  "pet": "bretzel",
+  "clip": "Hop",
+  "time": 0.2605,
+  "frame": 9,
+  "frames": 15,
+  "phase": 0.521,
+  "duration": 0.5,
+  "view": "desktop",
+  "facing": 1,
+  "note": "No sbagliato, facciamolo in due fasi, il coniglio spinge con le zampe dietro e alza il sedere, le zampe davanti restano ferme, poi le zampe davanti fanno un balzello e si portano avanti e quelle dietro seguono",
+  "summary": [],
+  "legs": {},
+  "bones": {},
+  "actions": [
+    "hop"
+  ],
+  "fingerprint": "71572af5",
+  "skin": "d94fd445",
+  "units": "frame: da 1 a frames, a 30 fps, come nella pagina; before_deg/after_deg: rotazione locale dell'osso (Euler XYZ, gradi); *_m: metri del GLB negli assi del corpo (avanti = verso il muso, su, sinistra = fianco sinistro dell'animale); points_*: direzione in cui punta l'osso negli stessi assi",
+  "risposta": "L'avevo fatto in due fasi (sedere su con le zampe davanti ferme, poi balzello delle anteriori, poi le posteriori), ma come dici nell'appunto dopo rendeva peggio: sono tornato al saltello a slancio."
+}

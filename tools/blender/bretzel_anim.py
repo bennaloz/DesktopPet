@@ -375,15 +375,16 @@ def hop(p, t, f):
     paws reach out low and land a little ahead (TF), first one, then the other; the body goes on over them, stretched
     out, and only then do the hind feet leave the floor (LIFT) and hop forward together under the belly, the back
     curling, to land just behind them (TH); it sits a moment before the next hop, down on its heels as when it sits
-    still (REST_*): only driving does the rump come up. (Lifting the whole body with the front up first made it a
-    jump on the spot.)"""
+    still (REST_*): only driving does the rump come up, and it comes up high, first, before the front paws are
+    down. (Lifting the whole body with the front up first made it a jump on the spot; front paws first, then the
+    hind feet, each on their own, read less well than this lunge.)"""
     S, R, F = HOP_S, REST_REAR, REST_FRONT
-    PUSHED = HUNCH_REAR - 0.13          # how high the rump comes up as the hind legs straighten
+    PUSHED = HUNCH_REAR - 0.19          # how high the rump comes up as the hind legs straighten: 14 cm
     TF, LIFT, TH = 0.45, 0.47, 0.68
     # the body: still while it sits (the paws stay put), a little back as the weight goes onto the hind legs, then
     # driven forward onto the front paws and on over them as the hind feet come up behind
     prog = ramp(t, [(0.0, 0.0), (0.20, 0.0), (0.26, -0.02), (TF, 0.55), (TH - 0.04, 0.93), (TH + 0.10, 1.0), (1.0, 1.0)])
-    rear = ramp(t, [(0.0, R), (0.20, R), (0.26, R + 0.015), (TF, PUSHED), (LIFT + 0.05, PUSHED + 0.01), (TH, R - 0.04),
+    rear = ramp(t, [(0.0, R), (0.20, R), (0.26, R + 0.015), (TF - 0.08, PUSHED + 0.02), (TF, PUSHED), (LIFT + 0.05, PUSHED + 0.01), (TH, R - 0.04),
                     (TH + 0.10, R + 0.01), (1.0, R)])
     front = ramp(t, [(0.0, F), (0.26, F + 0.01), (TF - 0.08, F - 0.03), (TF, F), (TF + 0.07, F + 0.025), (TH + 0.05, F + 0.01),
                      (1.0, F)])

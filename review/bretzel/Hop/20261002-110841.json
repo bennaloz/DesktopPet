@@ -1,0 +1,22 @@
+{
+  "pet": "bretzel",
+  "clip": "Hop",
+  "time": 0.207,
+  "frame": 7,
+  "frames": 15,
+  "phase": 0.414,
+  "duration": 0.5,
+  "view": "desktop",
+  "facing": 1,
+  "note": "Il movimento di due versioni fa risultava meglio all'occhio, bastava estendere di alzare di più il sedere quando si spingeva con le zampe dietro forse",
+  "summary": [],
+  "legs": {},
+  "bones": {},
+  "actions": [
+    "hop"
+  ],
+  "fingerprint": "415d004d",
+  "skin": "d94fd445",
+  "units": "frame: da 1 a frames, a 30 fps, come nella pagina; before_deg/after_deg: rotazione locale dell'osso (Euler XYZ, gradi); *_m: metri del GLB negli assi del corpo (avanti = verso il muso, su, sinistra = fianco sinistro dell'animale); points_*: direzione in cui punta l'osso negli stessi assi",
+  "risposta": "Tornato al saltello a slancio, quello che ti piaceva. L'unica differenza è la spinta: il sedere si alza prima, quando le zampe davanti sono ancora a terra, e più in alto (14 cm sopra il riposo, prima 9). Tra un saltello e l'altro resta seduto basso sui talloni, come quando è fermo. Ho tenuto basso il sollevamento dei talloni nella spinta, perché con il piede tutto in punta la pelle della coscia si piegava."
+}
