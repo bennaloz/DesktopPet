@@ -254,6 +254,11 @@ def crouch_feet(p, k=1.0, front=0.0):
 # rump), so that they hardly show; only the short front legs stand, a little bent. The gaits (hop, run, binky)
 # gather up into and spring out of this crouch.
 HUNCH_REAR, HUNCH_FRONT, HUNCH_FEET = 0.175, 0.14, -0.05
+# RABBIT_FOOT: how a rabbit uses its long hind foot (hindlimb kinematics of hopping rabbits, PMC9208372): one rigid
+# lever from the heel to the ball, the toes bending only at the ball. At rest it sits on the whole foot, heel down.
+# Hopping, the foot lands nearly flat (about 20 deg off the floor, 70% of the sole down) and stays so while the
+# shin leans on over it (the ankle closing to about 66 deg at 38% of the stance); then it rolls up about the toes,
+# which stay flat, to leave the floor past upright (foot about 120 deg off the floor, the leg stretched behind).
 # Sitting still it settles further: down on its heels, the hind legs lying folded flat on the floor along the feet
 # (the heel under the rump, the knee down by the toes), the front up on straighter front legs. With the feet forward
 # under the belly, as in the crouch, the shin stood up from the heel to a knee 13 cm off the floor and it looked
@@ -403,8 +408,9 @@ def hop(p, t, f):
     for key in ('HL', 'HR'):
         y, z, m, down = foot(t, TH, 1 - TH + LIFT, S, REST_FEET - S * (1 - TH), 0.05, 0, 0, flat=HEEL_DOWN)
         if down:
-            # flat, carrying it, while it sits; the heels come up as it drives forward over them
-            m = lerp(-HEEL_DOWN, heel, smooth((t - 0.30) / (LIFT - 0.30))) if t < 0.6 else -HEEL_DOWN
+            # the whole long foot flat on the floor while it sits and while it pushes, the shin leaning on over it;
+            # only at the very end does it roll up about the toes to leave the floor (RABBIT_FOOT)
+            m = lerp(-HEEL_DOWN, heel, smooth((t - (LIFT - 0.10)) / 0.10)) if t < 0.6 else -HEEL_DOWN
         else:
             m = lerp(heel, -HEEL_DOWN, smooth((t - LIFT) / (TH - LIFT) / 0.8))   # swinging forward, to land flat
         plans.append((key, y, z, m, down))
@@ -450,7 +456,7 @@ def run(p, t, f):
             u = k / T
             # flat, taking the weight; then the heel comes up as the body goes on over the foot, which turns on the
             # ball until, leaving the floor, it points back in line with the shin
-            plans.append((key, -0.10 + S * T * u, 0.0, lerp(-HEEL_DOWN, push_to, smooth((u - 0.3) / 0.7)), 0.03 < u < 0.97))
+            plans.append((key, -0.10 + S * T * u, 0.0, lerp(-HEEL_DOWN, push_to, smooth((u - 0.4) / 0.6)), 0.03 < u < 0.97))
         else:
             plans.append((key, -0.10 + S * T, 0.02, push_to, False))
     plans = carried(plans, rise, {'FL': 0.18, 'FR': 0.18, 'HL': 0.18, 'HR': 0.18})

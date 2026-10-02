@@ -384,6 +384,32 @@ for v in me.vertices:
     regroup(v,w)
 soften(radius=0.03, passes=2, only=[-0.2<v.co.y<0.25 and v.co.z<0.36 and not EARV[v.index] for v in me.vertices])
 print("belly verts",sum(1 for v in me.vertices for g in v.groups if g.group==bg.index and g.weight>0.01))
+# the hind foot is one long rigid lever, from the heel (the hock) to the ball, and only the toes bend, at the ball: a
+# rabbit sits on the whole foot, lands on most of it and pushes off rolling it up about its toes. The bone heat and
+# the softening above had spread the toes' weight halfway back along the sole and the shin's over the top of the foot,
+# so the foot bent in the middle. Each point goes to the nearer of the foot (heel to toe tip) and the shin, blended
+# over a centimetre either side of the halfway line; on the foot, the toes take it from 1.2 cm behind the ball on
+def seg_dist(p,a,b):
+    d=b-a; u=max(0.0,min(1.0,(p-a).dot(d)/d.length_squared)); return (p-(a+d*u)).length
+for s_ in 'LR':
+    bn={n:arm.data.bones[f'{n}.{s_}'] for n in ('Thigh','Shin','Foot','Toe')}
+    hock,ball,tip=bn['Foot'].head_local,bn['Foot'].tail_local,bn['Toe'].tail_local
+    knee=bn['Shin'].head_local
+    fdir=(tip-hock).normalized()
+    leg={f'{n}.{s_}' for n in bn}
+    for v in me.vertices:
+        p=V3(v.co)
+        if p.z>0.16 or (p.x>0)!=(s_=='L') or EARV[v.index]: continue
+        w=wdict(v)
+        if sum(x_ for n,x_ in w.items() if n in leg)<0.5: continue
+        dF=min(seg_dist(p,hock,ball),seg_dist(p,ball,tip)); dS=seg_dist(p,knee,hock)
+        k=1-sstep(dF-dS,-0.01,0.01)                     # 1: the foot's, 0: the shin's (left as it is)
+        if k<=0: continue
+        kt=sstep((p-ball).dot(fdir),-0.012,0.012)        # the toes, in front of the ball
+        w={n:x_*(1-k) for n,x_ in w.items()}
+        w[f'Foot.{s_}']=w.get(f'Foot.{s_}',0.0)+k*(1-kt); w[f'Toe.{s_}']=w.get(f'Toe.{s_}',0.0)+k*kt
+        regroup(v,w)
+print("hind feet made rigid")
 # the eyes: no lids in the mesh, so each eye has a bone that squashes it shut, the dark eye drawn to a slit and the fur
 # round it pulled in over it (Sleep). The eye centres from the dark of the texture; the head is turned a little, so
 # the right eye sits further forward and nearer the middle. And the lower jaw: chewing (Eat)
