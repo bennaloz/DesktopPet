@@ -1,0 +1,22 @@
+{
+  "pet": "bretzel",
+  "clip": "Hop",
+  "time": 0.48,
+  "frame": 15,
+  "frames": 15,
+  "phase": 0.96,
+  "duration": 0.5,
+  "view": "desktop",
+  "facing": 1,
+  "note": "Il sedere più alto intendevo quando si spinge con le zampe dietro, non sempre!",
+  "summary": [],
+  "legs": {},
+  "bones": {},
+  "actions": [
+    "hop"
+  ],
+  "fingerprint": "10be6c98",
+  "skin": "0e46bbfc",
+  "units": "frame: da 1 a frames, a 30 fps, come nella pagina; before_deg/after_deg: rotazione locale dell'osso (Euler XYZ, gradi); *_m: metri del GLB negli assi del corpo (avanti = verso il muso, su, sinistra = fianco sinistro dell'animale); points_*: direzione in cui punta l'osso negli stessi assi",
+  "risposta": "Capito, scusa. Ora da fermo, tra un saltello e l'altro, sta seduto basso sui talloni come quando è fermo, e il sedere si alza solo nella spinta, mentre le zampe dietro si distendono. Rispetto a prima si alza anche un po' di più (la spinta parte da più in basso)."
+}

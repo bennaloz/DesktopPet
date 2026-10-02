@@ -1,0 +1,22 @@
+{
+  "pet": "bretzel",
+  "clip": "Sleep",
+  "time": 1.2805,
+  "frame": 39,
+  "frames": 120,
+  "phase": 0.32,
+  "duration": 4,
+  "view": "desktop",
+  "facing": 1,
+  "note": "Non sono proprio chiusi gli occhi",
+  "summary": [],
+  "legs": {},
+  "bones": {},
+  "actions": [
+    "sleep"
+  ],
+  "fingerprint": "1fe8fa02",
+  "skin": "0e46bbfc",
+  "units": "frame: da 1 a frames, a 30 fps, come nella pagina; before_deg/after_deg: rotazione locale dell'osso (Euler XYZ, gradi); *_m: metri del GLB negli assi del corpo (avanti = verso il muso, su, sinistra = fianco sinistro dell'animale); points_*: direzione in cui punta l'osso negli stessi assi",
+  "risposta": "Ora sono chiusi davvero. Prima l'occhio veniva solo schiacciato in altezza, ma la pupilla nera restava come una fessura. Ora l'occhio viene schiacciato del tutto, stretto e spinto dentro la testa, e la pelliccia intorno (con una zona più ampia di prima) si richiude sopra: del nero non resta niente, dal lato e di tre quarti."
+}

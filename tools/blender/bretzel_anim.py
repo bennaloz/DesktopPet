@@ -32,6 +32,10 @@ for b in bones:
     REST[b.name] = dict(h=(h.y, h.z), t=(t.y, t.z), a=math.atan2(t.z - h.z, t.y - h.y),
                         L=math.hypot(t.y - h.y, t.z - h.z), parent=b.parent.name if b.parent else None)
 
+_eyes = [bones[n].head_local for n in ('Eye.L', 'Eye.R')]
+_inside = (_eyes[0] + _eyes[1]) / 2 + Vector((0.0, 0.04, -0.02))
+EYE_IN = {n: (_inside - bones[n].head_local).normalized() for n in ('Eye.L', 'Eye.R')}   # into the head
+
 def rot2(a, p):
     c, s = math.cos(a), math.sin(a)
     return (c * p[0] - s * p[1], s * p[0] + c * p[1])
@@ -116,7 +120,13 @@ class Pose:
         for pb in P:
             k = self.length if pb.name == 'Spine' else 1 / self.length if pb.name == 'Chest' else 1.0
             if pb.name == 'Hay': pb.scale = (self.hay ** 0.5, self.hay, self.hay ** 0.5)
-            elif pb.name.startswith('Eye.'): pb.scale = (1.0, 1.0, self.eyes)     # squashed top to bottom: shut
+            elif pb.name.startswith('Eye.'):
+                # shut: squashed flat top to bottom, narrowed and sunk into the head, the fur round it closing over
+                # it (squashed only, the dark of the eye stayed a slit)
+                shut = (1.0 - self.eyes) / (1.0 - EYES_SHUT)
+                pb.scale = (lerp(1.0, 0.25, shut), 1.0, self.eyes)
+                pb.location = bones[pb.name].matrix_local.to_3x3().inverted() @ (EYE_IN[pb.name] * 0.010 * shut)
+                pb.keyframe_insert("location", frame=frame)
             else: pb.scale = (1.0, k, 1.0)
             pb.keyframe_insert("scale", frame=frame)
         # the belly drawn up, in the body's own frame (it rides on the Spine)
@@ -364,14 +374,16 @@ def hop(p, t, f):
     legs; they drive the body forward, the rump coming up as they straighten and the heels lifting, while the front
     paws reach out low and land a little ahead (TF), first one, then the other; the body goes on over them, stretched
     out, and only then do the hind feet leave the floor (LIFT) and hop forward together under the belly, the back
-    curling, to land just behind them (TH); it sits a moment in its crouch before the next hop. (Lifting the whole
-    body with the front up first made it a jump on the spot.)"""
-    S, R, F = HOP_S, HUNCH_REAR, HUNCH_FRONT
+    curling, to land just behind them (TH); it sits a moment before the next hop, down on its heels as when it sits
+    still (REST_*): only driving does the rump come up. (Lifting the whole body with the front up first made it a
+    jump on the spot.)"""
+    S, R, F = HOP_S, REST_REAR, REST_FRONT
+    PUSHED = HUNCH_REAR - 0.13          # how high the rump comes up as the hind legs straighten
     TF, LIFT, TH = 0.45, 0.47, 0.68
     # the body: still while it sits (the paws stay put), a little back as the weight goes onto the hind legs, then
     # driven forward onto the front paws and on over them as the hind feet come up behind
     prog = ramp(t, [(0.0, 0.0), (0.20, 0.0), (0.26, -0.02), (TF, 0.55), (TH - 0.04, 0.93), (TH + 0.10, 1.0), (1.0, 1.0)])
-    rear = ramp(t, [(0.0, R), (0.20, R), (0.26, R + 0.015), (TF, R - 0.13), (LIFT + 0.05, R - 0.12), (TH, R - 0.02),
+    rear = ramp(t, [(0.0, R), (0.20, R), (0.26, R + 0.015), (TF, PUSHED), (LIFT + 0.05, PUSHED + 0.01), (TH, R - 0.04),
                     (TH + 0.10, R + 0.01), (1.0, R)])
     front = ramp(t, [(0.0, F), (0.26, F + 0.01), (TF - 0.08, F - 0.03), (TF, F), (TF + 0.07, F + 0.025), (TH + 0.05, F + 0.01),
                      (1.0, F)])
@@ -388,7 +400,7 @@ def hop(p, t, f):
         plans.append((key, y, z, m, down))
     heel = -70.0 - META['HL']          # the hind foot as it leaves the floor: heel up, pointing down and back
     for key in ('HL', 'HR'):
-        y, z, m, down = foot(t, TH, 1 - TH + LIFT, S, HUNCH_FEET - S * (1 - TH), 0.05, 0, 0, flat=HEEL_DOWN)
+        y, z, m, down = foot(t, TH, 1 - TH + LIFT, S, REST_FEET - S * (1 - TH), 0.05, 0, 0, flat=HEEL_DOWN)
         if down:
             # flat, carrying it, while it sits; the heels come up as it drives forward over them
             m = lerp(-HEEL_DOWN, heel, smooth((t - 0.30) / (LIFT - 0.30))) if t < 0.6 else -HEEL_DOWN
@@ -591,7 +603,7 @@ def tuck_front(p, ahead=0.06, sink=0.0, inward=0.0):
         reach(p, key, (sh[0] - ahead, 0.012 - sink), dmeta=-30)
         if inward: p.yz[LEGS[key][0]] = (0.0, sgn * inward)
 
-EYES_SHUT = 0.12     # the eyes squashed to a slit: shut (asleep)
+EYES_SHUT = 0.02     # the eyes squashed flat: shut (asleep)
 
 def loaf_pose(p, br=0.0, sink=0.0, head=0.0):
     """The loaf's body (LOAF), breathing (br -1..1), sunk `sink` m lower and the head `head` degrees lower."""
@@ -636,33 +648,39 @@ def sit(p, t, f):
     ears(p, swing=-4 + 1.5 * math.sin(TAU * t), out=2)
     nose(p, t, rate=10, amp=9)     # 5 a second
 
+MOUTH_YZ = (-0.462, 0.474)       # the mouth in the head (rest, side plane): where the hay hangs from
+
 def groom(p, t, f):
-    """Washing the face, crouched: the head bows and turns towards one front paw, the paw comes up to the cheek, is
-    licked, and wipes down over the eye to the nose; then the other paw. Two wipes, one per paw."""
+    """Washing the face, sitting on its heels, one paw then the other. The paw comes up off the floor only a little,
+    held in front of the chest below the mouth, and the head comes down to it: bowed right down, it licks it with
+    quick little dabs; then, the paw still where it is, it turns its head into it and rubs its face over it, twice,
+    from the eye down to the mouth, before the paw goes down again. (The paw lifted up to the face dragged the
+    whole front of the chest up with it, and went into the muzzle.)"""
     half = 0 if t < 0.5 else 1
     u = (t * 2) % 1.0
     key, other, sgn = (('FL', 'FR', 1), ('FR', 'FL', -1))[half]
-    up = bump(u, 0.05, 0.95)
-    wipe = smooth((u - 0.45) / 0.35)                      # 0 at the cheek, 1 down at the nose
-    lick = bump(u, 0.22, 0.45)
-    lower(p, rear=REST_REAR, front=REST_FRONT - 0.03 * up, spine=4 - 2 * up, neck=6 + 8 * up + 4 * wipe, head=6 + 4 * lick)
-    p.yz['Neck'] = (0.0, 6 * sgn * up)
-    p.yz['Head'] = (0.0, 4 * sgn * up)
+    lift = smooth(u / 0.14) * (1 - smooth((u - 0.86) / 0.14))          # the paw up off the floor
+    lick = smooth((u - 0.10) / 0.10) * (1 - smooth((u - 0.42) / 0.08))  # the head down at it, licking
+    rub = smooth((u - 0.46) / 0.08) * (1 - smooth((u - 0.84) / 0.08))   # the face rubbed over it, twice
+    stroke = 0.5 - 0.5 * math.cos(TAU * 2 * max(0.0, min(1.0, (u - 0.50) / 0.32)))   # 0: the paw by the eye, 1: the mouth
+    down = max(lick, rub)
+    lower(p, rear=REST_REAR, front=REST_FRONT + 0.01 * down, spine=-2 * down,
+          neck=4 + 34 * down - 10 * stroke * rub, head=4 + 14 * down - 6 * stroke * rub)
+    p.yz['Neck'] = (0.0, 10 * sgn * rub)
+    p.yz['Head'] = (-8 * sgn * rub, 6 * sgn * rub)
     for k in ('HL', 'HR'): plant(p, k, dy=REST_FEET, dmeta=-HEEL_DOWN)
     plant(p, other)
-    mz = muzzle(p)
-    # from the floor up to the cheek, a little lick, then down the face to the nose, and back to the floor
-    cheek = (mz[0] + 0.07, mz[1] + 0.04 - 0.02 * lick)      # (any higher, the upper arm swings so far up that the
-    nosept = (mz[0] + 0.03, mz[1] - 0.03)                   # skin over the shoulder tears)
-    tgt = (lerp(cheek[0], nosept[0], wipe), lerp(cheek[1], nosept[1], wipe))
-    rest = PAW[key]                                        # its spot on the floor
-    lift = smooth(u / 0.25) * (1 - smooth((u - 0.82) / 0.18))
-    reach(p, key, (lerp(rest[0], tgt[0], lift), lerp(rest[1], tgt[1], lift)), dmeta=-80 * lift)
-    # out to the side as it comes up: the cheek is wider than the shoulders, and straight up the paw would go into it
-    arm_ = 'UpperArm.L' if key == 'FL' else 'UpperArm.R'
-    p.yz[arm_] = (0.0, -sgn * 14 * lift)
-    ears(p, swing=3 * up - 2)
-    p.x['Nose'] = 7 * lick * max(0.0, math.sin(TAU * u * 8))
+    sh = shoulder(p, key)
+    m = p.point('Head', MOUTH_YZ)
+    tg = (m[0] - 0.015, min(m[1] - 0.04, sh[1] - 0.07))     # in front of and under the mouth, and low
+    rest = PAW[key]
+    reach(p, key, (lerp(rest[0], tg[0], lift), lerp(rest[1], tg[1], lift)), dmeta=50 * lift)
+    p.yz[LEGS[key][0]] = (0.0, -sgn * 6 * rub)
+    ears(p, swing=-2 + 3 * rub)
+    dab = max(0.0, math.sin(TAU * u * 9)) * lick
+    p.x['Head'] = p.x.get('Head', 0.0) + 3 * dab
+    p.x['Nose'] = 7 * dab
+    p.x['Jaw'] = 5 * dab
 
 def eat(p, t, f):
     """Hunched at the bowl, belly low. Its head dips into the hay, nibbling, and comes up a little with a few blades

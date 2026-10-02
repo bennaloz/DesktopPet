@@ -1,0 +1,22 @@
+{
+  "pet": "bretzel",
+  "clip": "Groom",
+  "time": 0.7601,
+  "frame": 24,
+  "frames": 60,
+  "phase": 0.38,
+  "duration": 2,
+  "view": "desktop",
+  "facing": 1,
+  "note": "praticametne stesso problema di prima, questo non l'hai sistemato",
+  "summary": [],
+  "legs": {},
+  "bones": {},
+  "actions": [
+    "groom"
+  ],
+  "fingerprint": "8bd16b3a",
+  "skin": "0e46bbfc",
+  "units": "frame: da 1 a frames, a 30 fps, come nella pagina; before_deg/after_deg: rotazione locale dell'osso (Euler XYZ, gradi); *_m: metri del GLB negli assi del corpo (avanti = verso il muso, su, sinistra = fianco sinistro dell'animale); points_*: direzione in cui punta l'osso negli stessi assi",
+  "risposta": "Hai ragione, l'avevo solo attenuato. Ho cambiato il modo: invece di portare la zampa al muso, la zampa si alza appena da terra e resta davanti al petto sotto la bocca, ed è la testa che scende fino a lei: se la lecca a piccoli colpi, poi gira il muso e ci si strofina sopra due volte, dall'occhio alla bocca, e la zampa torna giù. Così la zampa non sale mai oltre la spalla, non si tira dietro il petto e non entra nel muso. Una zampa e poi l'altra."
+}

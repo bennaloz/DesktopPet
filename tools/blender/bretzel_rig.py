@@ -403,7 +403,7 @@ for v in me.vertices:
     x,y,z=v.co
     for s_,c in EYES.items():
         d=(V3(v.co)-c).length
-        k=1-sstep(d,0.013,0.032)
+        k=1-sstep(d,0.018,0.036)     # the whole dark of the eye inside the full weight, or its rim stays
         if k<=0: continue
         w={n:x_*(1-k) for n,x_ in wdict(v).items()}; w[f'Eye.{s_}']=w.get(f'Eye.{s_}',0.0)+k
         regroup(v,w)
