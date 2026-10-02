@@ -16,21 +16,25 @@ def sstep(x, a, b):
 
 def midline(y): return FRONT_X + (BACK_X - FRONT_X) * sstep(y, *BEND)
 
-def load(path, crumbs=300, polys=16000):
-    bpy.ops.wm.read_factory_settings(use_empty=True)
+def import_tripo(path):
+    """A Tripo GLB's mesh into the scene as it is, without Tripo's armature and the stray icosphere."""
+    before = set(bpy.data.objects)
     bpy.ops.import_scene.gltf(filepath=path)
-    mesh = [o for o in bpy.data.objects if o.type == 'MESH' and len(o.data.vertices) > 1000][0]
+    added = [o for o in bpy.data.objects if o not in before]
+    mesh = [o for o in added if o.type == 'MESH' and len(o.data.vertices) > 1000][0]
     mw = mesh.matrix_world.copy(); mesh.parent = None; mesh.matrix_world = mw
     for m in list(mesh.modifiers): mesh.modifiers.remove(m)
     mesh.vertex_groups.clear()
-    for o in list(bpy.data.objects):
-        if o != mesh: bpy.data.objects.remove(o)       # Tripo's armature and a stray 2 m icosphere
+    for o in added:
+        if o != mesh: bpy.data.objects.remove(o)
     for a in list(bpy.data.actions): bpy.data.actions.remove(a)
     mesh.data.transform(mesh.matrix_world); mesh.matrix_world.identity()
+    return mesh
+
+def drop_crumbs(mesh, crumbs=300):
+    """Loose crumbs (whiskers floating by the muzzle): islands of a few hundred vertices; the mesh is split along its
+    UV seams, so islands are taken by position (welded copy), not by the raw edges."""
     me = mesh.data
-    for v in me.vertices: v.co.x -= midline(v.co.y)
-    # loose crumbs (whiskers floating by the muzzle): islands of a few hundred vertices; the mesh is split along its
-    # UV seams, so islands are taken by position (welded copy), not by the raw edges
     bm = bmesh.new(); bm.from_mesh(me)
     tmp = bm.copy(); bmesh.ops.remove_doubles(tmp, verts=tmp.verts, dist=1e-5)
     tmp.verts.ensure_lookup_table()
@@ -53,8 +57,26 @@ def load(path, crumbs=300, polys=16000):
     bmesh.ops.delete(bm, geom=drop, context='VERTS')
     print("islands", sorted(sizes, reverse=True)[:8], "dropped verts", len(drop))
     bm.to_mesh(me); bm.free(); tmp.free()
+
+def weld(mesh):
+    """One vertex per point: Tripo splits the mesh along its UV seams (the UVs stay on the face corners). Decimated
+    split, the two sides of every seam were thinned apart and the skin had hairline cracks along all of them."""
+    bm = bmesh.new(); bm.from_mesh(mesh.data)
+    bmesh.ops.remove_doubles(bm, verts=bm.verts, dist=1e-6)
+    bm.to_mesh(mesh.data); bm.free()
+
+def decimate(mesh, polys):
+    bpy.ops.object.select_all(action='DESELECT')
     bpy.context.view_layer.objects.active = mesh; mesh.select_set(True)
-    dec = mesh.modifiers.new("dec", 'DECIMATE'); dec.ratio = polys / len(me.polygons)
+    dec = mesh.modifiers.new("dec", 'DECIMATE'); dec.ratio = polys / len(mesh.data.polygons)
     bpy.ops.object.modifier_apply(modifier="dec")
-    print("polys", len(me.polygons))
+    print("polys", len(mesh.data.polygons))
+
+def load(path, crumbs=300, polys=16000):
+    bpy.ops.wm.read_factory_settings(use_empty=True)
+    mesh = import_tripo(path)
+    for v in mesh.data.vertices: v.co.x -= midline(v.co.y)
+    drop_crumbs(mesh, crumbs)
+    weld(mesh)
+    decimate(mesh, polys)
     return mesh

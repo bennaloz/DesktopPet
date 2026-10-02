@@ -4,13 +4,37 @@ Blender, head towards -Y, Z up, feet on z=0; every bone's local X is world +X (r
 side plane), as in the Zaira rig, so the same planar kinematics drive it. The mesh comes straightened by
 bretzel_source; its legs are not in step (left paws ahead of the right ones), so each leg's bones follow it, from
 hip and shoulder joints shared by both sides and with the same bone lengths left and right. Once skinned, the right
-legs are posed onto the left ones' places and that pose becomes the rest: both sides start alike."""
+legs are posed onto the left ones' places and that pose becomes the rest: both sides start alike. The lop ears are
+grafted from a second Tripo model of him (bretzel_ears): in this one they were fused to the cheeks."""
 import bpy, mathutils, math
 from mathutils import Vector as V3
 from mathutils.kdtree import KDTree
 from bretzel_source import load
+from bretzel_ears import transplant
 mesh=load(source_file("tripo.glb"))
 mesh.name="Bretzel"
+transplant(mesh, source_file("tripo_ears.glb"))
+EARSIDE=[a.value for a in mesh.data.attributes['ear'].data]      # the grafted ears' vertices: 1 left, 2 right
+EARV=[s_>0 for s_ in EARSIDE]
+def ear_chain(k):
+    """An ear's bones: from inside the crown, where the flap is grafted on, down the middle of the flap to its tip."""
+    me_=mesh.data; ids={v.index for v in me_.vertices if EARSIDE[v.index]==k}
+    nbr={}
+    for e_ in me_.edges:
+        a_,b_=e_.vertices; nbr.setdefault(a_,[]).append(b_); nbr.setdefault(b_,[]).append(a_)
+    rim=[me_.vertices[i].co for i in ids if any(o not in ids for o in nbr.get(i,()))]
+    root=sum(rim,V3())/len(rim)
+    pts=[me_.vertices[i].co for i in ids]
+    far=max((p_-root).length for p_ in pts)
+    tip=sum((p_ for p_ in pts if (p_-root).length>0.95*far),V3())/len([p_ for p_ in pts if (p_-root).length>0.95*far])
+    ax=(tip-root).normalized(); n_=(tip-root).length
+    joints=[]
+    for f_ in (0.25,0.5,0.75):
+        sl=[p_ for p_ in pts if abs((p_-root).dot(ax)-f_*n_)<0.012]
+        joints.append(sum(sl,V3())/len(sl))
+    inner=root+(V3((0.03,-0.36,0.56))-root).normalized()*0.015       # (a little into the skull)
+    return [tuple(c) for c in [inner]+joints+[tip]]
+EAR_CHAIN={'L':ear_chain(1),'R':ear_chain(2)}
 bpy.context.view_layer.objects.active=mesh; mesh.select_set(True)
 
 def joint(a, c, l1, l2, forward):
@@ -43,11 +67,9 @@ B={ # name: (head, tail, parent, connected)
  'Tail':((0.03,0.40,0.29),(0.05,0.47,0.27),'Hips',False),
 }
 for s,sg in (('L',1),('R',-1)):
-    e=[(0.118,-0.28,0.66),(0.142,-0.275,0.58),(0.16,-0.27,0.50),(0.17,-0.265,0.43),(0.175,-0.26,0.365)]
-    dy=0.0 if s=='L' else -0.06                   # the head is turned a little: the right ear hangs further forward
+    e=EAR_CHAIN[s]
     for i in range(4):
-        h,t=(e[i][0],e[i][1]+dy,e[i][2]),(e[i+1][0],e[i+1][1]+dy,e[i+1][2])
-        B[f'Ear{i+1}.{s}']=((sg*h[0],h[1],h[2]),(sg*t[0],t[1],t[2]),'Head' if i==0 else f'Ear{i}.{s}',i>0)
+        B[f'Ear{i+1}.{s}']=(e[i],e[i+1],'Head' if i==0 else f'Ear{i}.{s}',i>0)
     m=HIND[s]; x=m['x']
     hock=m['hock']; ball=along(hock,m['ball'],FOOT); knee=joint(HIP,hock,THIGH,SHIN,True)
     B[f'Thigh.{s}']=(p3(x[0],HIP),p3(x[1],knee),'Hips',False)
@@ -102,41 +124,11 @@ L=groups(lambda n: n.endswith('.L')); R=groups(lambda n: n.endswith('.R'))
 EAR=groups(lambda n: n.startswith('Ear'))
 LEG=groups(lambda n: n.split('.')[0] in ('Thigh','Shin','Foot','Toe','UpperArm','Forearm','Hand'))
 TAIL={gi['Tail']}
-EAR_Y={'L':-0.265,'R':-0.33}     # the head is turned a little: the right ear hangs 6 cm further forward
-def ear_outline(y,z,side):
-    """The lop ear seen from the side: a flap from the crown down to the jaw, narrower at the tip."""
-    if not 0.35<z<0.70: return False
-    t=max(0.0,min(1.0,(z-0.35)/0.11)); half=0.035+0.035*t*t*(3-2*t)
-    return abs(y-EAR_Y[side])<half
-# the ear hangs over the cheek and the neck, a flap with air between. A ray from outside in along x through a spot
-# of its outline meets the flap's outer side (facing out), its inner side (facing in, towards the cheek), then the
-# cheek (facing out again): the ear is everything down to that inner side. Only the lower half of each ear hangs
-# free like that: higher up it is fused to the side of the head, and there its outermost layer is ear. Low down,
-# where no surface faces in, there is no ear (the tip hangs in front of the shoulder, which the outline also covers).
-from mathutils.bvhtree import BVHTree
-bvh=BVHTree.FromPolygons([v.co.copy() for v in me.vertices],[tuple(p.vertices) for p in me.polygons])
-def ear_depth(sg,y,z):
-    """How far in (|x|) the ear reaches along the ray at (y, z) on side sg, or None where there is no ear."""
-    o=V3((sg*0.5,y,z)); d=V3((-sg,0,0)); hits=[]
-    while len(hits)<12:
-        loc,nor,idx,dist=bvh.ray_cast(o,d,1.0)
-        if loc is None or sg*loc.x<0.05: break
-        hits.append((sg*loc.x,sg*nor.x)); o=loc+d*1e-4
-    if not hits: return None
-    for ax,nx in hits:
-        if nx<-0.2: return ax if hits[0][0]-ax<0.07 else None
-    return hits[0][0]-0.03 if z>0.46 else None
-EARC={}
-def in_ear(x,y,z):
-    if not (ear_outline(y,z,'L' if x>0 else 'R') and abs(x)>0.11): return False
-    k=(x>0,round(y,4),round(z,4))
-    if k not in EARC: EARC[k]=ear_depth(1 if x>0 else -1,y,z)
-    return EARC[k] is not None and abs(x)>=EARC[k]-0.004
 def in_scut(x,y,z): return y>0.415 and 0.19<z<0.42     # (below it, the right heel reaches as far back)
 fixed=0
 for v in me.vertices:
     x,y,z=v.co
-    if in_ear(x,y,z): kill={g.group for g in v.groups if g.group not in EAR}      # ear: ear bones only
+    if EARV[v.index]: kill={g.group for g in v.groups if g.group not in EAR}      # ear: ear bones only
     else:
         kill=set(EAR)                                                              # nothing else follows the ears
         if z<0.30: kill|=(R if x>0.0 else L)                                       # legs: strict left/right split
@@ -148,13 +140,13 @@ for v in me.vertices:
     if tot>1e-6:
         for g in v.groups: g.weight/=tot
 print("fixes",fixed)
-# ears: weighted procedurally along their chain (the proxy fuses them to the cheeks)
+# ears: weighted procedurally along their chain (the proxy, voxels a centimetre wide, fuses them to the cheeks)
 for side in ('L','R'):
     names=[f'Ear{i}.{side}' for i in range(1,5)]
     seg=[(V3(B[n][0]),V3(B[n][1])) for n in names]
     for v in me.vertices:
         p=V3(v.co)
-        if not in_ear(*p) or (p.x>0)!=(side=='L'): continue
+        if EARSIDE[v.index]!=(1 if side=='L' else 2): continue
         best=None
         for i,(h,t) in enumerate(seg):
             d=t-h; u=max(0,min(1,(p-h).dot(d)/d.length_squared)); dist=(p-(h+d*u)).length
@@ -173,7 +165,6 @@ for side in ('L','R'):
 # soften every seam the rules above cut (ear edge against the neck, legs against the belly): hard steps in the
 # weights tear the skin into shards when the body bends. By position, not along the edges: the mesh is split along
 # its UV seams, and copies of one point smoothed apart would crack open.
-EARV=[in_ear(*v.co) for v in me.vertices]
 def soften(radius=0.028, passes=3, keep=4, only=None):
     ng=len(mesh.vertex_groups)
     W=[{g.group:g.weight for g in v.groups if g.weight>0} for v in me.vertices]
@@ -199,9 +190,9 @@ def soften(radius=0.028, passes=3, keep=4, only=None):
         for g,x in top: mesh.vertex_groups[g].add([v.index],x/s_,'REPLACE')
 soften()
 # the back half again, wider: the haunch has to stretch from the flank, not fold against it
-soften(radius=0.055, passes=2, only=[v.co.y>-0.02 and not in_ear(*v.co) for v in me.vertices])
+soften(radius=0.055, passes=2, only=[v.co.y>-0.02 and not EARV[v.index] for v in me.vertices])
 # and the shoulders, where the upper arm meets the side of the chest
-soften(radius=0.045, passes=2, only=[-0.26<v.co.y<=-0.02 and v.co.z<0.42 and not in_ear(*v.co) for v in me.vertices])
+soften(radius=0.045, passes=2, only=[-0.26<v.co.y<=-0.02 and v.co.z<0.42 and not EARV[v.index] for v in me.vertices])
 print("weights softened")
 def sstep(x,a,b):
     t=max(0.0,min(1.0,(x-a)/(b-a))); return t*t*(3-2*t)
@@ -213,7 +204,7 @@ def regroup(v, w):
 # or reaching forward the forearm drags a web of chest skin down with it
 for v in me.vertices:
     x,y,z=v.co
-    if y>-0.02 or z<0.17 or in_ear(x,y,z): continue
+    if y>-0.02 or z<0.17 or EARV[v.index]: continue
     f=sstep(z,0.17,0.23); w={mesh.vertex_groups[g.group].name:g.weight for g in v.groups if g.weight>0}
     for s_ in 'LR':
         moved=0.0
@@ -234,7 +225,7 @@ def ahead_of_arm(x,y,z):
     return 0.0
 for v in me.vertices:
     x,y,z=v.co
-    if y>-0.1 or not 0.10<z<0.36 or in_ear(x,y,z): continue
+    if y>-0.1 or not 0.10<z<0.36 or EARV[v.index]: continue
     k=sstep(ahead_of_arm(x,y,z),0.02,0.06)
     if k<=0: continue
     w={mesh.vertex_groups[g.group].name:g.weight for g in v.groups if g.weight>0}
@@ -244,13 +235,13 @@ for v in me.vertices:
     if not moved: continue
     w['Chest']=w.get('Chest',0.0)+moved
     regroup(v,w)
-soften(radius=0.035, passes=3, only=[v.co.y<-0.08 and 0.08<v.co.z<0.38 and not in_ear(*v.co) for v in me.vertices])
+soften(radius=0.035, passes=3, only=[v.co.y<-0.08 and 0.08<v.co.z<0.38 and not EARV[v.index] for v in me.vertices])
 # the cheeks and the tips of the ears hang down by the shoulders (the right ones further forward: the head is
 # turned), and the bone heat gave them to the upper arms: above and in front of the shoulder joint the skin is the
 # head's and the neck's, or raising a paw to the face drags them with it
 for v in me.vertices:
     x,y,z=v.co
-    if in_ear(x,y,z): continue
+    if EARV[v.index]: continue
     k=sstep(z,0.33,0.39)*(1-sstep(y,-0.27,-0.23))       # (the ear tips hang down to the shoulder joints)
     if k<=0: continue
     w={mesh.vertex_groups[g.group].name:g.weight for g in v.groups if g.weight>0}
@@ -262,9 +253,8 @@ for v in me.vertices:
     h=sstep(-y,0.28,0.32)*sstep(z,0.40,0.45)        # (low down, by the shoulder, it is the neck's)
     w['Head']=w.get('Head',0.0)+moved*h; w['Neck']=w.get('Neck',0.0)+moved*(1-h)
     regroup(v,w)
-# the tips of the lop ears rest on the shoulders, and the mesh has them grown together there: the very tip goes partly
-# with the chest and the shoulder skin it touches partly with the neck (and not with the arm), so when the head moves
-# the two slide over each other instead of tearing apart
+# the tips of the lop ears hang by the shoulders: the very tip goes partly with the chest (it drags over it as the head
+# turns), and the shoulder skin under it partly with the neck, not with the arm
 ear_ix=[v.index for v in me.vertices if EARV[v.index]]
 kde=KDTree(len(ear_ix))
 for i,k in enumerate(ear_ix): kde.insert(me.vertices[k].co,i)
@@ -275,21 +265,18 @@ for k in ear_ix:
     if c<=0: continue
     w={n:x_*(1-c) for n,x_ in wdict(v).items()}; w['Chest']=w.get('Chest',0.0)+c
     regroup(v,w)
-ear_w={k:wdict(me.vertices[k]) for k in ear_ix}
 for v in me.vertices:
     x,y,z=v.co
     if EARV[v.index] or not 0.30<z<0.42: continue
     _,i,d=kde.find(v.co)
     if d>0.035: continue
     c=1-sstep(d,0.0,0.035); w=wdict(v)
-    # not the arm's, nor (down here) the head's; and halfway to the ear's own weights where they touch
+    # not the arm's, nor (down here) the head's
     for n in [n for n in w if n.split('.')[0] in ('UpperArm','Forearm')]:
         moved=w[n]*c; w[n]-=moved
         w['Chest']=w.get('Chest',0.0)+0.6*moved; w['Neck']=w.get('Neck',0.0)+0.4*moved
     if 'Head' in w:
         moved=w['Head']*c*(1-sstep(z,0.36,0.42)); w['Head']-=moved; w['Neck']=w.get('Neck',0.0)+moved
-    ew=ear_w[ear_ix[i]]; h=0.5*c
-    w={n:w.get(n,0.0)*(1-h)+ew.get(n,0.0)*h for n in set(w)|set(ew)}
     regroup(v,w)
 soften(radius=0.03, passes=2, only=[not EARV[v.index] and v.co.y<-0.2 and 0.30<v.co.z<0.45 for v in me.vertices])
 # the haunch: the thigh is inside it and the skin over it is loose. Only the skin round the leg and behind it goes
@@ -302,7 +289,7 @@ def ahead_of_thigh(x,y,z):
     return ((y-h[1])*dz-(z-h[2])*dy)/n
 for v in me.vertices:
     x,y,z=v.co
-    if y<0.0 or in_ear(x,y,z): continue
+    if y<0.0 or EARV[v.index]: continue
     k=max(sstep(z,0.38,0.48),sstep(ahead_of_thigh(x,y,z),0.05,0.18))
     if k<=0: continue
     w={mesh.vertex_groups[g.group].name:g.weight for g in v.groups if g.weight>0}
@@ -313,7 +300,7 @@ for v in me.vertices:
     if not moved: continue
     w['Hips']=w.get('Hips',0.0)+moved
     regroup(v,w)
-soften(radius=0.04, passes=2, only=[v.co.y>-0.04 and not in_ear(*v.co) for v in me.vertices])
+soften(radius=0.04, passes=2, only=[v.co.y>-0.04 and not EARV[v.index] for v in me.vertices])
 # the nose: only the nostrils over the mouth twitch (the bone heat spread it over the whole muzzle and chin)
 NOSE=V3((0.056,-0.478,0.50))     # between the nostrils (the head is turned a little): both slits, wide and low
 for v in me.vertices:
