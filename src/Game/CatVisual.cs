@@ -61,6 +61,10 @@ public partial class CatVisual : Node3D
 
     /// <summary>Self-test: head position and direction after the gaze turned it (null if not looking).</summary>
     internal (Vector3 pos, Vector3 dir)? GazeHead => _gaze is { Weight: > 0.001f } g ? (g.HeadPos, g.HeadDir) : null;
+    /// <summary>Self-test: where the gaze sent the head (world direction), and how far it may tip it up and turn it
+    /// round (degrees).</summary>
+    internal (Vector3 aim, float lookUpDeg, float turnDeg)? GazeAim =>
+        _gaze is { Weight: > 0.001f } g ? (g.AimDir, Mathf.RadToDeg(g.LookUp), Mathf.RadToDeg(g.MaxTurn)) : null;
 
     public const double HeldRollDeg = 60;
     /// <summary>Body angle while going up a window side: nearly vertical, head up.</summary>
@@ -108,6 +112,10 @@ public partial class CatVisual : Node3D
                 Head = skeleton.FindBone(profile.GazeBones.Head),
                 Chest = profile.GazeBones.Chest.Length > 0 ? skeleton.FindBone(profile.GazeBones.Chest) : -1,
                 Keep = profile.GazeBones.Keep.Select(skeleton.FindBone).Where(b => b >= 0).ToArray(),
+                Hang = profile.GazeBones.Hang.Select(skeleton.FindBone).Where(b => b >= 0).ToArray(),
+                LookUp = Mathf.DegToRad(profile.GazeBones.LookUpDeg),
+                NeckUpShare = profile.GazeBones.NeckUpShare,
+                MaxTurn = Mathf.DegToRad(profile.GazeBones.TurnDeg),
             };
             skeleton.AddChild(_gaze);
         }

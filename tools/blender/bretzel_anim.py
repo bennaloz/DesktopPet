@@ -225,14 +225,21 @@ def crouch_feet(p, k=1.0, front=0.0):
 
 # A rabbit at rest is not a cat or a dog standing on its legs: it sits low, the belly almost on the floor, the hind
 # legs folded right up under the haunches (the long feet flat, toes forward under the belly, the heel under the
-# rump), so that they hardly show; only the short front legs stand, a little bent.
+# rump), so that they hardly show; only the short front legs stand, a little bent. The gaits (hop, run, binky)
+# gather up into and spring out of this crouch.
 HUNCH_REAR, HUNCH_FRONT, HUNCH_FEET = 0.175, 0.14, -0.05
+# Sitting still it settles further: down on its heels, the hind legs lying folded flat on the floor along the feet
+# (the heel under the rump, the knee down by the toes), the front up on straighter front legs. With the feet forward
+# under the belly, as in the crouch, the shin stood up from the heel to a knee 13 cm off the floor and it looked
+# perched on tiptoe.
+REST_REAR, REST_FRONT, REST_FEET = HUNCH_REAR + 0.04, HUNCH_FRONT - 0.03, HUNCH_FEET + 0.10
 
 def hunch(p, rear=0.0, front=0.0, pitch=0.0, paws=0.0, **kw):
-    """The resting crouch, `rear`/`front` m lower (or higher, negative) than it, the front paws `paws` m further
-    back; the rest as body()."""
-    lower(p, rear=HUNCH_REAR + rear, front=HUNCH_FRONT + front, pitch=pitch, **kw)
-    for key in ('HL', 'HR'): plant(p, key, dy=HUNCH_FEET, dmeta=-HEEL_DOWN)
+    """Sitting still (REST_*), `rear`/`front` m lower (or higher, negative) than that, the front paws `paws` m
+    further back; the rest as body()."""
+    lower(p, rear=REST_REAR + rear, front=REST_FRONT + front, pitch=pitch, **kw)
+    settle_front(p)
+    for key in ('HL', 'HR'): plant(p, key, dy=REST_FEET, dmeta=-HEEL_DOWN)
     for key in ('FL', 'FR'): plant(p, key, dy=paws)
 
 EARS = [f'Ear{i}.{s}' for s in 'LR' for i in range(1, 5)]
@@ -378,32 +385,41 @@ def hop(p, t, f):
     nose(p, t, rate=2, amp=3)
 
 RUN_S, RUN_FRAMES = 1.56, 12      # bounding: 1.56 m per leap at 2.5 leaps a second (3.9 m/s)
+RUN_PUSH = 0.34                   # how long the hind feet are down, driving (of the cycle)
 def run(p, t, f):
     """Running is a string of leaps (a bound), not a dog's gallop. t = 0 the hind feet land together, ahead of
-    where the front paws came down, the back curled right up; they drive the body up and out (0-0.2): the back
-    unrolls and stretches, and it sails in a high arc, front legs reaching ahead, hind legs stretched out behind.
-    The front paws land almost together (0.52, 0.55), the nose dips, the body rolls over them and the back curls
-    up again as the hind legs swing forward past them; the front paws push off and for a moment it flies gathered
-    up before the hind feet come down."""
-    S = RUN_S
-    # the hind feet land flat and take the weight: the rump sinks down onto the folding hind legs (0-0.06) before
-    # they drive it up and out, rolling onto the toes at the very end
-    body(p,
-         dz=curve(t, [(0.0, -0.08), (0.06, -0.11), (0.15, -0.01), (0.35, 0.22), (0.52, 0.06), (0.66, -0.02), (0.86, 0.04)]),
-         pitch=curve(t, [(0.0, -12.0), (0.06, -15.0), (0.15, -8.0), (0.35, -2.0), (0.52, 6.0), (0.7, -2.0), (0.9, -10.0)]),
-         spine=curve(t, [(0.0, -11.0), (0.15, -4.0), (0.35, 0.0), (0.52, -1.0), (0.7, -9.0), (0.9, -13.0)]),
-         chest=curve(t, [(0.0, 2.0), (0.35, -6.0), (0.52, 0.0), (0.8, 3.0)]),
-         neck=curve(t, [(0.0, -2.0), (0.35, -8.0), (0.52, -4.0), (0.75, 0.0)]),
-         head=curve(t, [(0.0, 2.0), (0.35, 4.0), (0.52, 4.0), (0.75, 2.0)]))
-    p.length = curve(t, [(0.0, 0.86), (0.2, 1.0), (0.38, 1.05), (0.54, 1.0), (0.74, 0.90), (0.9, 0.86)])
+    where the front paws came down, the back curled right up. They drive (0-RUN_PUSH): flat on the whole long foot
+    they take the weight, then the body goes on over them, the back unrolling, and the hind legs straighten out
+    behind it, the heels coming up, until they leave the floor stretched out behind in line with the back, the feet
+    pointing back. It sails on stretched out, front legs reaching ahead. The front paws land almost together (0.52,
+    0.55), the nose dips, the body rolls over them and the back curls up again as the hind legs swing forward past
+    them; the front paws push off and for a moment it flies gathered up before the hind feet come down.
+    (Leaving the floor while still under the hip, with the foot just stood on its toes, the push went down into
+    the floor instead of on.)"""
+    S, T = RUN_S, RUN_PUSH
+    rise = curve(t, [(0.0, -0.08), (0.06, -0.10), (0.20, -0.03), (T, 0.10), (T + 0.10, 0.16), (0.52, 0.06), (0.66, -0.02),
+                     (0.86, 0.04)])
+    body(p, dz=rise,
+         pitch=curve(t, [(0.0, -12.0), (0.06, -14.0), (0.20, -7.0), (T, -1.0), (T + 0.10, 2.0), (0.52, 6.0), (0.7, -2.0), (0.9, -10.0)]),
+         spine=curve(t, [(0.0, -11.0), (0.20, -5.0), (T, 0.0), (T + 0.10, 0.0), (0.52, -1.0), (0.7, -9.0), (0.9, -13.0)]),
+         chest=curve(t, [(0.0, 2.0), (T + 0.02, -6.0), (0.52, 0.0), (0.8, 3.0)]),
+         neck=curve(t, [(0.0, -2.0), (T + 0.02, -8.0), (0.52, -4.0), (0.75, 0.0)]),
+         head=curve(t, [(0.0, 2.0), (T + 0.02, 4.0), (0.52, 4.0), (0.75, 2.0)]))
+    p.length = curve(t, [(0.0, 0.86), (0.20, 0.96), (T, 1.03), (T + 0.10, 1.05), (0.54, 1.0), (0.74, 0.90), (0.9, 0.86)])
     plans = []
     for key, land in (('FL', 0.52), ('FR', 0.55)):
         y, z, m, down = foot(t, land, 0.26, S, -0.18, 0.18, 25, -60)
         plans.append((key, y, z, m, down))
+    k = t % 1.0
     for key in ('HL', 'HR'):
-        y, z, m, down = foot(t, 0.0, 0.18, S, -0.10, 0.18, 55, 10, trail=0.10, trail_until=0.40, flat=HEEL_DOWN)
-        plans.append((key, y, z, m, down))
-    rise = curve(t, [(0.0, -0.08), (0.06, -0.11), (0.15, -0.01), (0.35, 0.22), (0.52, 0.06), (0.66, -0.02), (0.86, 0.04)])
+        push_to = RUN_TOE_OFF[2] - META[key]          # the foot pointing back as it leaves the floor
+        if k < T:
+            u = k / T
+            # flat, taking the weight; then the heel comes up as the body goes on over the foot, which turns on the
+            # ball until, leaving the floor, it points back in line with the shin
+            plans.append((key, -0.10 + S * T * u, 0.0, lerp(-HEEL_DOWN, push_to, smooth((u - 0.3) / 0.7)), 0.03 < u < 0.97))
+        else:
+            plans.append((key, -0.10 + S * T, 0.02, push_to, False))
     plans = carried(plans, rise, {'FL': 0.18, 'FR': 0.18, 'HL': 0.18, 'HR': 0.18})
     lower_to_reach(p, [q[:4] for q in plans if q[4]])
     for q in plans: plant(p, q[0], dy=q[1], dz=q[2], dmeta=q[3])
@@ -417,19 +433,23 @@ def run(p, t, f):
         swing_leg(p, key, w, ramp(u, [(0.0, -40.0), (0.25, -60.0), (0.55, -95.0), (0.85, -112.0), (1.0, -112.0)]),
                   ramp(u, [(0.0, -90.0), (0.25, -150.0), (0.55, -130.0), (0.85, -125.0), (1.0, -125.0)]),
                   ramp(u, [(0.0, -140.0), (0.25, -95.0), (0.55, -150.0), (0.85, -165.0), (1.0, -165.0)]))
-    # the hind legs likewise: after the push they follow through behind only so far (the thighs are the haunches:
-    # stretched right out behind they drag the skin of the belly out into a sheet), then fold up under the belly
-    # and reach forward to land
+    # the hind legs likewise: from stretched out behind as they left the floor, they fold up under the belly and
+    # reach forward to land
+    th, sh, ft = RUN_TOE_OFF
     for key in ('HL', 'HR'):
-        u = (t - 0.18) / 0.82
+        u = (t - T) / (1 - T)
         if u <= 0: continue
-        w = smooth(u / 0.12) * (1 - smooth((u - 0.85) / 0.15))
-        swing_leg(p, key, w, ramp(u, [(0.0, -95.0), (0.15, -110.0), (0.35, -120.0), (0.6, -138.0), (0.8, -155.0), (1.0, -160.0)]),
-                  ramp(u, [(0.0, -20.0), (0.15, -25.0), (0.35, -35.0), (0.6, -40.0), (0.8, -45.0), (1.0, -55.0)]),
-                  ramp(u, [(0.0, -80.0), (0.15, -25.0), (0.35, -55.0), (0.6, -150.0), (0.8, -165.0), (1.0, -155.0)]))
+        w = smooth(u / 0.05) * (1 - smooth((u - 0.88) / 0.12))
+        swing_leg(p, key, w, ramp(u, [(0.0, th), (0.15, th - 15), (0.35, -110.0), (0.6, -138.0), (0.8, -155.0), (1.0, -160.0)]),
+                  ramp(u, [(0.0, sh), (0.15, sh + 8), (0.35, -35.0), (0.6, -40.0), (0.8, -45.0), (1.0, -55.0)]),
+                  ramp(u, [(0.0, ft), (0.15, ft - 10), (0.35, -60.0), (0.6, -150.0), (0.8, -165.0), (1.0, -155.0)]))
     spread(p, curve(t, [(0.0, 10.0), (0.25, 3.0), (0.6, 2.0), (0.85, 12.0)]))
     p.belly = 0.035 * smooth((t - 0.10) / 0.10) * (1 - smooth((t - 0.55) / 0.15))   # drawn up in the long leap
     ears(p, swing=curve(t, [(0.0, 3.0), (0.3, -8.0), (0.52, 8.0), (0.8, 2.0)]))
+
+# the hind leg as it leaves the floor at the end of the push (world angles of thigh, shin and foot, side plane: 0 is
+# straight back, -90 straight down): stretched out behind, the foot in line with the shin
+RUN_TOE_OFF = (-60.0, -57.0, -46.0)
 
 def swing_leg(p, key, w, *angles):
     """A leg in the air posed by the world angles of its bones (deg, side plane, from the top down; a hind
@@ -601,10 +621,10 @@ def groom(p, t, f):
     up = bump(u, 0.05, 0.95)
     wipe = smooth((u - 0.45) / 0.35)                      # 0 at the cheek, 1 down at the nose
     lick = bump(u, 0.22, 0.45)
-    lower(p, rear=HUNCH_REAR, front=HUNCH_FRONT - 0.03 * up, spine=4 - 2 * up, neck=6 + 8 * up + 4 * wipe, head=6 + 4 * lick)
+    lower(p, rear=REST_REAR, front=REST_FRONT - 0.03 * up, spine=4 - 2 * up, neck=6 + 8 * up + 4 * wipe, head=6 + 4 * lick)
     p.yz['Neck'] = (0.0, 6 * sgn * up)
     p.yz['Head'] = (0.0, 4 * sgn * up)
-    for k in ('HL', 'HR'): plant(p, k, dy=HUNCH_FEET, dmeta=-HEEL_DOWN)
+    for k in ('HL', 'HR'): plant(p, k, dy=REST_FEET, dmeta=-HEEL_DOWN)
     plant(p, other)
     mz = muzzle(p)
     # from the floor up to the cheek, a little lick, then down the face to the nose, and back to the floor
@@ -636,38 +656,50 @@ def eat(p, t, f):
     p.x['Nose'] = 5 * max(0.0, chew) + 3 * max(0.0, nibble)
     ears(p, swing=1.5 * chew)
 
-def flop_pose(p, k, br=0.0):
-    """Lying on its side (k = how far over, 0..1), gone limp: all four legs laid out on the floor, the front ones
-    reaching out past the chin and the hind ones past the tail, the near and the far one of each pair crossed over
-    each other; the body curled a little round, not a log; the head laid down."""
+# How far each leg swings sideways (deg about its upper bone's local Z; - = towards the left side, the floor once it
+# has flopped) to lie on the floor: the lower pair down on it, the upper pair across them, resting on them (found by
+# swinging each until its paw was at that height; all the way to the floor would tear the upper haunch)
+FLOP_DROP = dict(FL=-21.0, FR=-55.0, HL=-9.0, HR=-53.0)
+
+def flop_pose(p, k, br=0.0, lead=0.0):
+    """Lying on its side (k = how far over, 0..1), gone limp: everything that is not held up falls to the floor. The
+    front legs lie out in front of the chest, the hind ones back along the floor behind the rump, the upper leg of each
+    pair across the lower one; the head laid down on its cheek; the back curled a little round. Held up stiffly (the
+    legs out in the air, the head up) it looked like a wooden toy knocked over.
+    lead: how much further over the shoulders and the head are than the hips (0..1), as it throws itself over."""
     s = smooth(k)
-    p.roll = 85 * s              # onto its right side, the back towards +X (the underside of the mesh is dark and rough)
+    p.roll = 85 * s              # onto its left side, the back towards +X (the underside of the mesh is dark and rough)
     # from its crouch: the body down at the floor, rolled over
-    lower(p, rear=lerp(HUNCH_REAR, 0.05, s), front=lerp(HUNCH_FRONT, 0.05, s), spine=-6 * k + br, neck=10 * k,
+    lower(p, rear=lerp(REST_REAR, 0.05, s), front=lerp(REST_FRONT, 0.05, s), spine=-6 * k + br, neck=10 * k,
           head=6 * k)
     p.length = 1 + 0.06 * s
-    plant(p, 'HL', dy=lerp(HUNCH_FEET, 0.47, s), dz=0.10 * s, dmeta=lerp(-HEEL_DOWN, 150.0, s))
-    plant(p, 'HR', dy=lerp(HUNCH_FEET, 0.39, s), dz=0.03 * s, dmeta=lerp(-HEEL_DOWN, 135.0, s))
-    plant(p, 'FL', dy=-0.26 * s, dz=0.08 * s, dmeta=-60 * s)
-    plant(p, 'FR', dy=-0.18 * s, dz=0.02 * s, dmeta=-35 * s)
-    c = 10 * s
-    p.yz['Spine'] = (0.0, c); p.yz['Chest'] = (0.0, 0.6 * c); p.yz['Neck'] = (0.0, 0.8 * c); p.yz['Hips'] = (0.0, -0.6 * c)
+    plant(p, 'HL', dy=lerp(REST_FEET, 0.30, s), dz=-0.10 * s, dmeta=lerp(-HEEL_DOWN, -40.0, s))
+    plant(p, 'HR', dy=lerp(REST_FEET, 0.27, s), dz=-0.06 * s, dmeta=lerp(-HEEL_DOWN, -25.0, s))
+    plant(p, 'FL', dy=-0.20 * s, dz=0.03 * s, dmeta=-50 * s)
+    plant(p, 'FR', dy=-0.13 * s, dmeta=-30 * s)
+    for key, a in FLOP_DROP.items(): p.yz[LEGS[key][0]] = (0.0, a * s)
+    # the shoulders going over first: the front twisted further round than the hips, along the back
+    tw = -85 * lead
+    p.yz['Spine'] = (0.3 * tw, 0.0); p.yz['Chest'] = (0.4 * tw, 0.0)
+    p.yz['Neck'] = (0.3 * tw, -20 * s); p.yz['Head'] = (0.0, -15 * s)
     ears(p, swing=-5 * k)
 
 def flop(p, t, f):
-    # a moment gathering, then over it goes in a quarter of a second, with a little bounce
-    k = smooth((t - 0.25) / 0.35)
-    flop_pose(p, k + 0.06 * bump(t, 0.6, 0.85))
+    # a moment gathering, then over it goes in a quarter of a second, the shoulders and the head first, the hips after
+    # them, with a little bounce
+    front = smooth((t - 0.22) / 0.30)
+    rear = smooth((t - 0.30) / 0.32)
+    flop_pose(p, rear + 0.06 * bump(t, 0.6, 0.85), lead=front - rear)
 
 def flop_sleep(p, t, f):
     flop_pose(p, 1.0, br=1.2 * math.sin(TAU * t))
 
 def thump(p, t, f):
-    """Hind feet slammed down together: the rump jolts up and down, ears flick."""
+    """Alarmed, sitting up alert, head high: the hind feet come up a little together and are slammed down, the rump
+    jolting up and down with them; ears flick. (Not stood up on straight legs like a dog: it stays crouched.)"""
     hit = bump(t, 0.3, 0.5)
-    body(p, dz=0.03 * hit, pitch=-4 * hit, spine=-3 * hit, neck=-6)
-    for key in ('HL', 'HR'): plant(p, key, dz=0.04 * hit, dmeta=-20 * hit)
-    for key in ('FL', 'FR'): plant(p, key)
+    hunch(p, rear=-0.03 * hit, front=-0.06, pitch=-3 * hit, spine=-3, neck=-12, head=-4)
+    for key in ('HL', 'HR'): plant(p, key, dy=REST_FEET, dz=0.04 * hit, dmeta=-HEEL_DOWN + 25 * hit)
     ears(p, swing=8 * bump(t, 0.45, 0.8), out=4 * bump(t, 0.45, 0.8))
 
 def held(p, t, f):
@@ -689,9 +721,9 @@ def fall(p, t, f):
 def land(p, t, f):
     """Touching down: the legs give, folding up under it, and it settles into its crouch."""
     a = smooth(t / 0.4)
-    lower(p, rear=lerp(0.0, HUNCH_REAR + 0.01, a), front=lerp(0.0, HUNCH_FRONT + 0.03 * bump(t, 0.2, 0.8), a),
+    lower(p, rear=lerp(0.0, REST_REAR + 0.01, a), front=lerp(0.0, REST_FRONT + 0.03 * bump(t, 0.2, 0.8), a),
           spine=5 * bump(t, 0.0, 1.0), neck=6 * bump(t, 0.0, 1.0))
-    for key in ('HL', 'HR'): plant(p, key, dy=HUNCH_FEET * a, dmeta=-HEEL_DOWN * a)
+    for key in ('HL', 'HR'): plant(p, key, dy=REST_FEET * a, dmeta=-HEEL_DOWN * a)
     for key in ('FL', 'FR'): plant(p, key)
     ears(p, swing=-8 * bump(t, 0.0, 1.0))
 

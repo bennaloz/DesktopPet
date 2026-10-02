@@ -129,4 +129,17 @@ public sealed class GazeBones
     /// (the shoulder blades, so the front legs do not slide).</summary>
     [JsonPropertyName("chest")] public string Chest { get; set; } = "";
     [JsonPropertyName("keep")] public List<string> Keep { get; set; } = new();
+    /// <summary>Bones hanging off the head (a lop rabbit's ears): when the look tips the head up or down they keep
+    /// hanging where the clip had them, turning with the head only sideways.</summary>
+    [JsonPropertyName("hang")] public List<string> Hang { get; set; } = new();
+    /// <summary>How far (degrees) the look may tip the head up from where the clip holds it: a rabbit's skin
+    /// stretches from the head down over the shoulders, and tears long before a cat's neck would stop.</summary>
+    [JsonPropertyName("look_up_deg")] public float LookUpDeg { get; set; } = 180f;
+    /// <summary>How much of a look up the neck takes (the rest is the head's): a rabbit's neck is short and its
+    /// skin is the chest's; it tips its head up at the skull.</summary>
+    [JsonPropertyName("neck_up_share")] public float NeckUpShare { get; set; } = 1f;
+    /// <summary>How far (degrees) the look may turn the head round to the side from where the clip points it: turned
+    /// right round to face the screen, the rabbit's lop ear (grown onto the cheek above and onto the shoulder below)
+    /// fanned out and tore.</summary>
+    [JsonPropertyName("turn_deg")] public float TurnDeg { get; set; } = 180f;
 }

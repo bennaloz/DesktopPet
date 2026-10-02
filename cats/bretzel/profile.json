@@ -8,7 +8,11 @@
   "eat_reach": 0.42,
   "gaze_bones": {
     "neck": "Neck",
-    "head": "Head"
+    "head": "Head",
+    "hang": ["Ear1.L", "Ear1.R"],
+    "look_up_deg": 30,
+    "neck_up_share": 0.2,
+    "turn_deg": 50
   },
   "ear_bones": [
     ["Ear1.L", "Ear2.L", "Ear3.L", "Ear4.L"],

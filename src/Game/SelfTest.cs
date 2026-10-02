@@ -318,6 +318,12 @@ public sealed class SelfTest
         if (_main.Visual.GazeHead is not { } h) { Expect(false, what + " (la testa non si gira)"); return; }
         var head = h.dir;
         var want = dir ?? (_main.OverlayWindow.ToWorld(point!.Value, 40) - h.pos).Normalized();
+        // an animal that may only tip its head up or turn it round so far (the rabbit) looks as far as it may
+        if (_main.Visual.GazeAim is { } a && (a.lookUpDeg < 180 || a.turnDeg < 180) && a.aim.AngleTo(want) > 0.01f)
+        {
+            want = a.aim;
+            what += $" (fin dove può: testa su al massimo di {a.lookUpDeg:0}°, girata di {a.turnDeg:0}°)";
+        }
         double deg = Mathf.RadToDeg(head.AngleTo(want));
         Expect(deg <= maxDeg, $"{what} (scarto {deg:0}°)");
     }
