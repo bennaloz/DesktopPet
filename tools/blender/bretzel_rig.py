@@ -221,6 +221,30 @@ for v in me.vertices:
             if n in w: moved+=w[n]*f; w[n]*=1-f
         if moved: w[f'UpperArm.{s_}']=w.get(f'UpperArm.{s_}',0.0)+moved
     regroup(v,w)
+# the chest in front of the front legs is the chest's, not the arm's: lifting a paw to the face (grooming) dragged
+# the whole front of the chest up with the leg in a sheet. Skin more than 2 cm in front of the line of the upper arm
+# and the forearm (side plane) goes over to the chest, fading in over 4 cm
+def ahead_of_arm(x,y,z):
+    """How far (m) a point lies in front of its side's upper arm and forearm, in the side plane."""
+    s_='L' if x>0 else 'R'
+    for n in (f'UpperArm.{s_}',f'Forearm.{s_}'):
+        h,t=B[n][:2]
+        if min(h[2],t[2])<=z<=max(h[2],t[2]):
+            u=(z-h[2])/(t[2]-h[2]); return (h[1]+u*(t[1]-h[1]))-y
+    return 0.0
+for v in me.vertices:
+    x,y,z=v.co
+    if y>-0.1 or not 0.10<z<0.36 or in_ear(x,y,z): continue
+    k=sstep(ahead_of_arm(x,y,z),0.02,0.06)
+    if k<=0: continue
+    w={mesh.vertex_groups[g.group].name:g.weight for g in v.groups if g.weight>0}
+    moved=0.0
+    for n in [n for n in w if n.split('.')[0] in ('UpperArm','Forearm','Hand')]:
+        moved+=w[n]*k; w[n]*=1-k
+    if not moved: continue
+    w['Chest']=w.get('Chest',0.0)+moved
+    regroup(v,w)
+soften(radius=0.035, passes=3, only=[v.co.y<-0.08 and 0.08<v.co.z<0.38 and not in_ear(*v.co) for v in me.vertices])
 # the cheeks and the tips of the ears hang down by the shoulders (the right ones further forward: the head is
 # turned), and the bone heat gave them to the upper arms: above and in front of the shoulder joint the skin is the
 # head's and the neck's, or raising a paw to the face drags them with it
@@ -279,7 +303,7 @@ def ahead_of_thigh(x,y,z):
 for v in me.vertices:
     x,y,z=v.co
     if y<0.0 or in_ear(x,y,z): continue
-    k=max(sstep(z,0.33,0.45),sstep(ahead_of_thigh(x,y,z),0.0,0.13))
+    k=max(sstep(z,0.38,0.48),sstep(ahead_of_thigh(x,y,z),0.05,0.18))
     if k<=0: continue
     w={mesh.vertex_groups[g.group].name:g.weight for g in v.groups if g.weight>0}
     moved=0.0
@@ -360,6 +384,35 @@ for v in me.vertices:
     regroup(v,w)
 soften(radius=0.03, passes=2, only=[-0.2<v.co.y<0.25 and v.co.z<0.36 and not EARV[v.index] for v in me.vertices])
 print("belly verts",sum(1 for v in me.vertices for g in v.groups if g.group==bg.index and g.weight>0.01))
+# the eyes: no lids in the mesh, so each eye has a bone that squashes it shut, the dark eye drawn to a slit and the fur
+# round it pulled in over it (Sleep). The eye centres from the dark of the texture; the head is turned a little, so
+# the right eye sits further forward and nearer the middle. And the lower jaw: chewing (Eat)
+EYES={'L':V3((0.103,-0.376,0.576)),'R':V3((-0.019,-0.419,0.582))}
+JAW=((0.045,-0.40,0.472),(0.045,-0.466,0.452))      # the hinge back under the cheek, the chin
+bpy.ops.object.select_all(action='DESELECT'); bpy.context.view_layer.objects.active=arm; arm.select_set(True)
+bpy.ops.object.mode_set(mode='EDIT')
+for s_,c in EYES.items():
+    eb=ad.edit_bones.new(f'Eye.{s_}'); eb.head=c; eb.tail=c+V3((0,-0.02,0))     # pointing forward: local Z is up
+    eb.align_roll(V3((0,0,1))); eb.parent=ad.edit_bones['Head']; eb.use_connect=False
+eb=ad.edit_bones.new('Jaw'); eb.head=JAW[0]; eb.tail=JAW[1]
+eb.align_roll(V3((1,0,0)).cross(V3(JAW[1])-V3(JAW[0]))); eb.parent=ad.edit_bones['Head']; eb.use_connect=False
+bpy.ops.object.mode_set(mode='OBJECT')
+for n in ('Eye.L','Eye.R','Jaw'): mesh.vertex_groups.new(name=n)
+for v in me.vertices:
+    if EARV[v.index]: continue
+    x,y,z=v.co
+    for s_,c in EYES.items():
+        d=(V3(v.co)-c).length
+        k=1-sstep(d,0.013,0.032)
+        if k<=0: continue
+        w={n:x_*(1-k) for n,x_ in wdict(v).items()}; w[f'Eye.{s_}']=w.get(f'Eye.{s_}',0.0)+k
+        regroup(v,w)
+    # the chin and the lower lip: below the mouth, in front of the cheeks, either side of the middle of the face
+    k=(1-sstep(z,0.458,0.474))*sstep(z,0.405,0.425)*sstep(-y,0.40,0.43)*(1-sstep(abs(x-0.045),0.03,0.055))
+    if k>0:
+        w={n:x_*(1-k) for n,x_ in wdict(v).items() if n!='Jaw'}; w['Jaw']=k
+        regroup(v,w)
+print("eye verts",{n:sum(1 for v in me.vertices for g in v.groups if mesh.vertex_groups[g.group].name==n and g.weight>0.3) for n in ('Eye.L','Eye.R','Jaw')})
 # a few blades of hay hanging out of the mouth, forward and down, on a bone of their own: the Eat clip shows them
 # and draws them into the mouth as it chews (the bone shrinks along its length), every other clip keeps them at
 # nothing. Thick and long enough to read at desktop size (the rabbit is about 110 px long, a pixel is 7 mm).

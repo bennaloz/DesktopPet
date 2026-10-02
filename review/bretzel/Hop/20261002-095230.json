@@ -1,0 +1,22 @@
+{
+  "pet": "bretzel",
+  "clip": "Hop",
+  "time": 0.4291,
+  "frame": 14,
+  "frames": 15,
+  "phase": 0.858,
+  "duration": 0.5,
+  "view": "desktop",
+  "facing": 1,
+  "note": "L'avanzamento ora va benissimo, forse alzerei un pelo di più il sedere quando si spinge con le zampe dietro. E occhio al piede dietro che non sta aderente al pavimento",
+  "summary": [],
+  "legs": {},
+  "bones": {},
+  "actions": [
+    "hop"
+  ],
+  "fingerprint": "57451746",
+  "skin": "a77f503b",
+  "units": "frame: da 1 a frames, a 30 fps, come nella pagina; before_deg/after_deg: rotazione locale dell'osso (Euler XYZ, gradi); *_m: metri del GLB negli assi del corpo (avanti = verso il muso, su, sinistra = fianco sinistro dell'animale); points_*: direzione in cui punta l'osso negli stessi assi",
+  "risposta": "Fatto: nella spinta il sedere sale 3 cm in più e il bacino ruota indietro con le zampe, poi si arrotola sotto quando i piedi dietro tornano avanti. Il piede che non aderiva: il modello sta già sulla pianta intera, e io lo ruotavo di altri 28° per \"stenderlo\", così metà piede finiva 5 cm sotto il pavimento (che il gioco taglia) e restavano su solo le punte. Ora appoggia tutta la pianta, in tutte le pose."
+}

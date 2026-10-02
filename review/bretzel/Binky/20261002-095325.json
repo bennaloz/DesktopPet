@@ -1,0 +1,22 @@
+{
+  "pet": "bretzel",
+  "clip": "Binky",
+  "time": 0.5636,
+  "frame": 18,
+  "frames": 22,
+  "phase": 0.769,
+  "duration": 0.7333,
+  "view": "desktop",
+  "facing": -1,
+  "note": "Allunghiamo anche un pelo le coscie allindietro?",
+  "summary": [],
+  "legs": {},
+  "bones": {},
+  "actions": [
+    "binky"
+  ],
+  "fingerprint": "4ae9b951",
+  "skin": "a77f503b",
+  "units": "frame: da 1 a frames, a 30 fps, come nella pagina; before_deg/after_deg: rotazione locale dell'osso (Euler XYZ, gradi); *_m: metri del GLB negli assi del corpo (avanti = verso il muso, su, sinistra = fianco sinistro dell'animale); points_*: direzione in cui punta l'osso negli stessi assi",
+  "risposta": "Fatto: nel calcio laterale anche le cosce vanno più indietro (12° in più), oltre a stinco e piede già distesi."
+}

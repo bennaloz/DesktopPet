@@ -1,0 +1,22 @@
+{
+  "pet": "bretzel",
+  "clip": "Groom",
+  "time": 0.4801,
+  "frame": 15,
+  "frames": 60,
+  "phase": 0.24,
+  "duration": 2,
+  "view": "desktop",
+  "facing": 1,
+  "note": "La zampa è attaccata al resto del corpo, andrebbe staccata perché così si tira dietro tutto, e poi si sta infilando la zampa nel muso, dovrebbe leccarsela e poi pulirsi",
+  "summary": [],
+  "legs": {},
+  "bones": {},
+  "actions": [
+    "groom"
+  ],
+  "fingerprint": "60774c5d",
+  "skin": "a77f503b",
+  "units": "frame: da 1 a frames, a 30 fps, come nella pagina; before_deg/after_deg: rotazione locale dell'osso (Euler XYZ, gradi); *_m: metri del GLB negli assi del corpo (avanti = verso il muso, su, sinistra = fianco sinistro dell'animale); points_*: direzione in cui punta l'osso negli stessi assi",
+  "risposta": "Rifatta: prima china la testa verso la zampa, tenuta bassa davanti e sotto la bocca, e se la lecca a piccoli colpi; poi se la passa sulla guancia, dal lato e non dentro il muso, scendendo verso la bocca, con la testa che si gira e si appoggia alla zampa. La zampa sale molto meno (prima arrivava all'altezza dell'occhio) e ho staccato la pelle del petto davanti alle zampe: ora segue il petto, non il braccio, quindi alzando la zampa non si tira dietro il petto."
+}

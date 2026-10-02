@@ -1,0 +1,22 @@
+{
+  "pet": "bretzel",
+  "clip": "Eat",
+  "time": 0.4401,
+  "frame": 14,
+  "frames": 90,
+  "phase": 0.147,
+  "duration": 3,
+  "view": "desktop",
+  "facing": 1,
+  "note": "Ache se poi piccolo non si vede, facciamo un po' di movimento della bocca quando mangia?",
+  "summary": [],
+  "legs": {},
+  "bones": {},
+  "actions": [
+    "eat"
+  ],
+  "fingerprint": "13a40c0c",
+  "skin": "a77f503b",
+  "units": "frame: da 1 a frames, a 30 fps, come nella pagina; before_deg/after_deg: rotazione locale dell'osso (Euler XYZ, gradi); *_m: metri del GLB negli assi del corpo (avanti = verso il muso, su, sinistra = fianco sinistro dell'animale); points_*: direzione in cui punta l'osso negli stessi assi",
+  "risposta": "Fatto: ho aggiunto al modello una mandibola (un osso nuovo per mento e labbro di sotto). Mentre mastica il mento gira e va di lato come fanno i conigli, aprendo appena la bocca; nella ciotola dà piccoli morsi rapidi. In piccolo si vede poco, come dicevi."
+}

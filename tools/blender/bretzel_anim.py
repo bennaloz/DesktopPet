@@ -50,9 +50,11 @@ class Pose:
         self.yz = {}              # bone -> (deg about local Y, deg about local Z)
         self.hips = (0.0, 0.0)    # world (dy, dz) offset of the whole body
         self.roll = 0.0           # degrees the whole body rolls onto its side (flop)
+        self.side = 0.0           # world +X offset of the whole body (towards its left side)
         self.length = 1.0         # the middle of the back (Spine) stretched out (> 1) or gathered up (< 1)
         self.hay = 0.0            # how much of the blades of hay out of the mouth is still out (Eat; 0 = none)
         self.belly = 0.0          # the underside drawn up into the body (m): a stretched-out body's belly hangs
+        self.eyes = 1.0           # how open the eyes are (1 open, about 0.1 shut: squashed to a slit)
 
     def cum(self, name):
         a = 0.0
@@ -113,7 +115,9 @@ class Pose:
         # the front legs keep their size; every other bone keys scale 1, or a clip would keep the last one's
         for pb in P:
             k = self.length if pb.name == 'Spine' else 1 / self.length if pb.name == 'Chest' else 1.0
-            pb.scale = (self.hay ** 0.5, self.hay, self.hay ** 0.5) if pb.name == 'Hay' else (1.0, k, 1.0)
+            if pb.name == 'Hay': pb.scale = (self.hay ** 0.5, self.hay, self.hay ** 0.5)
+            elif pb.name.startswith('Eye.'): pb.scale = (1.0, 1.0, self.eyes)     # squashed top to bottom: shut
+            else: pb.scale = (1.0, k, 1.0)
             pb.keyframe_insert("scale", frame=frame)
         # the belly drawn up, in the body's own frame (it rides on the Spine)
         pb = P['Belly']
@@ -122,7 +126,7 @@ class Pose:
         # the whole body: offset in the side plane, and the roll onto its side, both on the root (Hips)
         R = bones['Hips'].matrix_local.to_3x3()
         pb = P['Hips']
-        pb.location = R.inverted() @ Vector((0, self.hips[0], self.hips[1]))
+        pb.location = R.inverted() @ Vector((self.side, self.hips[0], self.hips[1]))
         pb.keyframe_insert("location", frame=frame)
         if self.roll:
             # roll about the body's long axis (world Y) through the hips: extra rotation on the root bone
@@ -197,7 +201,12 @@ def body(p, dz=0.0, dy=0.0, pitch=0.0, spine=0.0, chest=0.0, neck=0.0, head=0.0)
     p.x['Head'] = head
 
 SHOULDER_REACH = REST['Hips']['h'][0] - REST['UpperArm.L']['h'][0]     # the shoulders this far ahead of the root
-HEEL_DOWN = 180 + META['HL']            # how far the hind feet tip back to lie flat on the floor (heel down)
+# How far the hind feet tip back from the standing pose to lie flat on the floor (heel down): not at all. The Tripo
+# rabbit already stands on its whole long sole (flat on the floor from the toes to under the ankle joint, which is 9 cm
+# up inside the leg); tipped back by the bone's slope (28.5 deg) as it once was, the sole went 5 cm into the floor,
+# which the game cuts away, and only the toes stuck up out of it.
+HEEL_DOWN = 0.0
+FEET_SUNK = 180 + META['HL']            # the hind feet tipped that far: down out of sight under the loaf's haunches
 
 TUCK = 18.0      # how far the rump rolls under when the hips come all the way down to the crouch (deg)
 
@@ -216,6 +225,13 @@ def lower(p, rear, front, pitch=0.0, **kw):
     for _ in range(6):     # hump the back until the shoulders are back at their height
         p.x['Spine'] += math.degrees((shoulder(p, 'FL')[1] - sh) / 0.36)
     p.x['Neck'] -= 0.5 * math.degrees(p.cum('Head') - head)   # half: the head comes down a little with the chest
+
+def pelvis(p, deg):
+    """The pelvis rocked on the back (+ = the rump turned back and up, the hips opening: the push; - = rolled under,
+    the hind legs gathered in under the belly), the front left as it was. A rabbit drives with its whole hind quarter,
+    pelvis and haunches swinging with the legs, not only with its feet."""
+    p.x['Hips'] += deg
+    p.x['Spine'] -= deg
 
 def crouch_feet(p, k=1.0, front=0.0):
     """Paws on their standing spots, the long hind feet let down flat on the floor (k: how far, 0..1), the front
@@ -355,7 +371,7 @@ def hop(p, t, f):
     # the body: still while it sits (the paws stay put), a little back as the weight goes onto the hind legs, then
     # driven forward onto the front paws and on over them as the hind feet come up behind
     prog = ramp(t, [(0.0, 0.0), (0.20, 0.0), (0.26, -0.02), (TF, 0.55), (TH - 0.04, 0.93), (TH + 0.10, 1.0), (1.0, 1.0)])
-    rear = ramp(t, [(0.0, R), (0.20, R), (0.26, R + 0.015), (TF, R - 0.10), (LIFT + 0.05, R - 0.09), (TH, R - 0.02),
+    rear = ramp(t, [(0.0, R), (0.20, R), (0.26, R + 0.015), (TF, R - 0.13), (LIFT + 0.05, R - 0.12), (TH, R - 0.02),
                     (TH + 0.10, R + 0.01), (1.0, R)])
     front = ramp(t, [(0.0, F), (0.26, F + 0.01), (TF - 0.08, F - 0.03), (TF, F), (TF + 0.07, F + 0.025), (TH + 0.05, F + 0.01),
                      (1.0, F)])
@@ -363,6 +379,8 @@ def hop(p, t, f):
           spine=4 + 5 * bump(t, 0.26, LIFT + 0.04) - 9 * bump(t, LIFT, TH + 0.12),
           neck=curve(t, [(0.0, 3.0), (TF - 0.05, -3.0), (TF + 0.05, 4.0), (TH + 0.1, 3.0)]),
           head=curve(t, [(0.0, 2.0), (TF, 4.0), (TH + 0.1, 2.0)]))
+    pelvis(p, curve(t, [(0.0, 0.0), (0.20, 0.0), (0.26, -3.0), (TF, 14.0), (LIFT + 0.05, 11.0), (TH - 0.06, -9.0),
+                        (TH + 0.06, -3.0), (0.9, 0.0)]))
     p.length = 1 + 0.07 * bump(t, 0.28, LIFT + 0.06) - 0.05 * bump(t, LIFT, TH + 0.1)
     plans = []
     for key, land, lift in (('FL', TF, 0.25), ('FR', TF + 0.03, 0.27)):
@@ -405,6 +423,8 @@ def run(p, t, f):
          chest=curve(t, [(0.0, 2.0), (T + 0.02, -6.0), (0.52, 0.0), (0.8, 3.0)]),
          neck=curve(t, [(0.0, -2.0), (T + 0.02, -8.0), (0.52, -4.0), (0.75, 0.0)]),
          head=curve(t, [(0.0, 2.0), (T + 0.02, 4.0), (0.52, 4.0), (0.75, 2.0)]))
+    pelvis(p, curve(t, [(0.0, -13.0), (0.06, -10.0), (0.20, 1.0), (T, 18.0), (T + 0.10, 12.0), (0.6, 0.0), (0.8, -12.0),
+                        (0.92, -17.0)]))
     p.length = curve(t, [(0.0, 0.86), (0.20, 0.96), (T, 1.03), (T + 0.10, 1.05), (0.54, 1.0), (0.74, 0.90), (0.9, 0.86)])
     plans = []
     for key, land in (('FL', 0.52), ('FR', 0.55)):
@@ -535,7 +555,7 @@ def _binky_at(p, t, side, D, dyb, tt):
               dmeta=ramp(t, [(0.30, 50.0), (0.70, 0.0), (0.80, -60.0), (0.86, -HEEL_DOWN), (1.0, -HEEL_DOWN)]))
         if air > 0:
             swing_leg(p, key, air,
-                      ramp(t, [(0.30, -120.0), (0.38, -118.0), (0.46, -155.0), (0.53, -112.0), (0.64, -115.0), (0.74, -150.0)]),
+                      ramp(t, [(0.30, -120.0), (0.38, -118.0), (0.46, -155.0), (0.53, -100.0), (0.64, -104.0), (0.74, -150.0)]),
                       ramp(t, [(0.30, -30.0), (0.38, -20.0), (0.46, -30.0), (0.53, 6.0), (0.64, 0.0), (0.74, -40.0)]),
                       ramp(t, [(0.30, -60.0), (0.38, -40.0), (0.46, -175.0), (0.53, 0.0), (0.64, -8.0), (0.74, -165.0)]))
     # the kick sideways: each thigh turns about its own length, so the bent leg below the knee swings out while the
@@ -571,6 +591,8 @@ def tuck_front(p, ahead=0.06, sink=0.0, inward=0.0):
         reach(p, key, (sh[0] - ahead, 0.012 - sink), dmeta=-30)
         if inward: p.yz[LEGS[key][0]] = (0.0, sgn * inward)
 
+EYES_SHUT = 0.12     # the eyes squashed to a slit: shut (asleep)
+
 def loaf_pose(p, br=0.0, sink=0.0, head=0.0):
     """The loaf's body (LOAF), breathing (br -1..1), sunk `sink` m lower and the head `head` degrees lower."""
     L = LOAF
@@ -581,7 +603,7 @@ def loaf_pose(p, br=0.0, sink=0.0, head=0.0):
     aim(p, 'Neck', L['neck'] - head * 0.6)
     aim(p, 'Head', L['head'] - head)
     aim(p, 'Tail', L['tail'])
-    for key in ('HL', 'HR'): plant(p, key, dy=HUNCH_FEET + 0.08, dmeta=-HEEL_DOWN)   # back under the haunches
+    for key in ('HL', 'HR'): plant(p, key, dy=HUNCH_FEET + 0.08, dmeta=-FEET_SUNK)   # back under the haunches
     # the paws under the chest and down out of sight: tucked further back, the elbows showed between the chest and
     # the haunches, where the body is off the floor
     tuck_front(p, ahead=0.06, sink=0.035, inward=25)
@@ -601,6 +623,7 @@ def sleep(p, t, f):
     br = math.sin(TAU * t * 2)
     p.roll = 6
     loaf_pose(p, 1.4 * br, sink=0.005, head=22)
+    p.eyes = EYES_SHUT
     tuck_front(p, ahead=0.06, sink=0.055, inward=25)   # deeper: leaning lifts one side off its paw
     ears(p, swing=-9)
 
@@ -655,6 +678,9 @@ def eat(p, t, f):
     eaten = (math.floor(k) + smooth((k - math.floor(k)) / 0.5)) / 6
     p.hay = smooth((t - 0.12) / 0.08) * (1 - eaten)
     p.x['Nose'] = 5 * max(0.0, chew) + 3 * max(0.0, nibble)
+    # the lower jaw: chewing goes round and side to side, the mouth hardly opening; in the bowl quick little bites
+    p.x['Jaw'] = 6 * (0.5 + 0.5 * chew) * chewing + 5 * max(0.0, nibble)
+    p.yz['Jaw'] = (0.0, 6 * math.cos(TAU * t * 7) * chewing)
     ears(p, swing=1.5 * chew)
 
 # How far each leg swings sideways (deg about its upper bone's local Z; - = towards the left side, the floor once it
@@ -662,14 +688,18 @@ def eat(p, t, f):
 # swinging each until its paw was at that height; all the way to the floor would tear the upper haunch)
 FLOP_DROP = dict(FL=-21.0, FR=-55.0, HL=-9.0, HR=-53.0)
 
-def flop_pose(p, k, br=0.0, lead=0.0):
+FLOP_PIVOT = 0.11     # how far out to its left side its left paws stand (m): the line it tips over on
+
+def flop_pose(p, k, br=0.0, lead=0.0, roll=None):
     """Lying on its side (k = how far over, 0..1), gone limp: everything that is not held up falls to the floor. The
     front legs lie out in front of the chest, the hind ones back along the floor behind the rump, the upper leg of each
     pair across the lower one; the head laid down on its cheek; the back curled a little round. Held up stiffly (the
     legs out in the air, the head up) it looked like a wooden toy knocked over.
-    lead: how much further over the shoulders and the head are than the hips (0..1), as it throws itself over."""
+    lead: how much further over the shoulders and the head are than the hips (0..1), as it throws itself over;
+    roll: how far over it is (deg), if not as far as k says."""
     s = smooth(k)
-    p.roll = 85 * s              # onto its left side, the back towards +X (the underside of the mesh is dark and rough)
+    p.roll = 85 * s if roll is None else roll   # onto its left side, the back towards +X (the underside of the mesh is
+                                                # dark and rough)
     # from its crouch: the body down at the floor, rolled over
     lower(p, rear=lerp(REST_REAR, 0.05, s), front=lerp(REST_FRONT, 0.05, s), spine=-6 * k + br, neck=10 * k,
           head=6 * k)
@@ -684,16 +714,25 @@ def flop_pose(p, k, br=0.0, lead=0.0):
     p.yz['Spine'] = (0.3 * tw, 0.0); p.yz['Chest'] = (0.4 * tw, 0.0)
     p.yz['Neck'] = (0.3 * tw, -20 * s); p.yz['Head'] = (0.0, -15 * s)
     ears(p, swing=-5 * k)
+    # it tips over on its left paws, not about its own middle: the body goes over sideways as well as down (the floor
+    # pass takes care of the down)
+    r = math.radians(p.roll); h = REST['Hips']['h'][1] + p.hips[1]
+    p.side = FLOP_PIVOT * (1 - math.cos(r)) + h * math.sin(r)
 
 def flop(p, t, f):
-    # a moment gathering, then over it goes in a quarter of a second, the shoulders and the head first, the hips after
-    # them, with a little bounce
-    front = smooth((t - 0.22) / 0.30)
-    rear = smooth((t - 0.30) / 0.32)
-    flop_pose(p, rear + 0.06 * bump(t, 0.6, 0.85), lead=front - rear)
+    """Throwing itself over: it leans over onto its left paws (0.15-0.45), slowly, the weight going onto them, until
+    it is past the point of balance; then it drops, all at once, faster and faster (0.45-0.58), hits the floor with a
+    little bounce and goes limp. (Turned over evenly about its own middle it looked like a log rolled.)"""
+    lean = smooth((t - 0.15) / 0.30)
+    u = max(0.0, min(1.0, (t - 0.45) / 0.13))
+    roll = 18 * lean + 67 * u * u + 4 * bump(t, 0.58, 0.72)
+    k = 0.12 * lean + 0.88 * smooth(u) + 0.05 * bump(t, 0.58, 0.8)
+    flop_pose(p, k, roll=roll, lead=0.12 * bump(t, 0.40, 0.62))
+    p.eyes = lerp(1.0, EYES_SHUT, smooth((t - 0.70) / 0.30))     # lying there, the eyes fall shut
 
 def flop_sleep(p, t, f):
     flop_pose(p, 1.0, br=1.2 * math.sin(TAU * t))
+    p.eyes = EYES_SHUT
 
 def thump(p, t, f):
     """Alarmed, sitting up alert, head high: the hind feet come up a little together and are slammed down, the rump

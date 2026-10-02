@@ -1,0 +1,22 @@
+{
+  "pet": "bretzel",
+  "clip": "Run",
+  "time": 0.3802,
+  "frame": 12,
+  "frames": 12,
+  "phase": 0.95,
+  "duration": 0.4,
+  "view": "desktop",
+  "facing": 1,
+  "note": "Qui corre abbastanza ancora come un cane e muove solo i piedi e non tutta la coscia per spingersi, forse questo potrebbe migliorare anch ehop",
+  "summary": [],
+  "legs": {},
+  "bones": {},
+  "actions": [
+    "run"
+  ],
+  "fingerprint": "58e51885",
+  "skin": "a77f503b",
+  "units": "frame: da 1 a frames, a 30 fps, come nella pagina; before_deg/after_deg: rotazione locale dell'osso (Euler XYZ, gradi); *_m: metri del GLB negli assi del corpo (avanti = verso il muso, su, sinistra = fianco sinistro dell'animale); points_*: direzione in cui punta l'osso negli stessi assi",
+  "risposta": "Due cose. Il bacino ora lavora con le zampe: si arrotola sotto quando le zampe dietro arrivano avanti sotto la pancia e ruota indietro e in alto nella spinta, così si muove tutta la parte posteriore. E la pelle della coscia segue di più l'osso della coscia: prima metà della coscia restava ferma col bacino (per evitare pieghe da accucciato) e si vedevano muovere solo stinco e piede."
+}

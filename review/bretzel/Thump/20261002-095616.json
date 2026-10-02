@@ -1,0 +1,22 @@
+{
+  "pet": "bretzel",
+  "clip": "Thump",
+  "time": 0.4069,
+  "frame": 13,
+  "frames": 23,
+  "phase": 0.531,
+  "duration": 0.7667,
+  "view": "desktop",
+  "facing": 1,
+  "note": "Occhio sempre alla posizione dei piedi che hanno sempre le punte sollevate",
+  "summary": [],
+  "legs": {},
+  "bones": {},
+  "actions": [
+    "thump"
+  ],
+  "fingerprint": "652c4161",
+  "skin": "a77f503b",
+  "units": "frame: da 1 a frames, a 30 fps, come nella pagina; before_deg/after_deg: rotazione locale dell'osso (Euler XYZ, gradi); *_m: metri del GLB negli assi del corpo (avanti = verso il muso, su, sinistra = fianco sinistro dell'animale); points_*: direzione in cui punta l'osso negli stessi assi",
+  "risposta": "Erano le punte sollevate di tutte le pose: il piede finiva per metà sotto il pavimento (vedi la risposta sul saltello). Ora appoggia tutta la pianta; nel colpo i piedi si alzano un poco e battono giù."
+}

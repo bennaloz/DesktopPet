@@ -1,0 +1,22 @@
+{
+  "pet": "bretzel",
+  "clip": "Flop",
+  "time": 0.0069,
+  "frame": 1,
+  "frames": 29,
+  "phase": 0.007,
+  "duration": 0.9667,
+  "view": "desktop",
+  "facing": -1,
+  "note": "accettabile, vedi se puoi migliorare un po' la caduta di lato perché si buttano proprio di peso e non ruota, fanno \"perno\" sulle zampe per cadere",
+  "summary": [],
+  "legs": {},
+  "bones": {},
+  "actions": [
+    "flop"
+  ],
+  "fingerprint": "85235cd9",
+  "skin": "a77f503b",
+  "units": "frame: da 1 a frames, a 30 fps, come nella pagina; before_deg/after_deg: rotazione locale dell'osso (Euler XYZ, gradi); *_m: metri del GLB negli assi del corpo (avanti = verso il muso, su, sinistra = fianco sinistro dell'animale); points_*: direzione in cui punta l'osso negli stessi assi",
+  "risposta": "Rifatta la caduta: prima si inclina piano sulle zampe del lato su cui cade, facendo perno su di loro (il corpo va di lato oltre che giù), poi, passato il punto di equilibrio, crolla tutto in una volta accelerando, tocca terra con un piccolo rimbalzo e si affloscia. Prima girava uniforme attorno al proprio centro, come un tronco che rotola. Alla fine gli si chiudono gli occhi."
+}

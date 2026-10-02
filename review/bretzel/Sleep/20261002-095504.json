@@ -1,0 +1,22 @@
+{
+  "pet": "bretzel",
+  "clip": "Sleep",
+  "time": 0.9203,
+  "frame": 29,
+  "frames": 120,
+  "phase": 0.23,
+  "duration": 4,
+  "view": "desktop",
+  "facing": 1,
+  "note": "Occhi chiusi visto che dorme?",
+  "summary": [],
+  "legs": {},
+  "bones": {},
+  "actions": [
+    "sleep"
+  ],
+  "fingerprint": "8280d1b2",
+  "skin": "a77f503b",
+  "units": "frame: da 1 a frames, a 30 fps, come nella pagina; before_deg/after_deg: rotazione locale dell'osso (Euler XYZ, gradi); *_m: metri del GLB negli assi del corpo (avanti = verso il muso, su, sinistra = fianco sinistro dell'animale); points_*: direzione in cui punta l'osso negli stessi assi",
+  "risposta": "Fatto: il modello non ha palpebre, quindi ho messo un osso su ogni occhio che lo schiaccia in una fessura, come chiuso; la pelliccia intorno si chiude sopra. Occhi chiusi anche da steso a dormire e alla fine del Flop."
+}
