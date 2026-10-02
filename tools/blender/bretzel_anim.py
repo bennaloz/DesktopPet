@@ -761,6 +761,34 @@ def flop_sleep(p, t, f):
     flop_pose(p, 1.0, br=1.2 * math.sin(TAU * t))
     p.eyes = EYES_SHUT
 
+# Lounging: half lying, at ease. The hindquarters are over on their side, the hind legs out along the floor, while
+# the front is still up as a sphinx is, the front legs stretched out ahead, the head up, looking about: the twist is
+# taken along the back. The flop with its front turned back upright, shown from its back like the flop.
+LOUNGE_ROLL = 70.0
+
+def lounge_pose(p, k, br=0.0):
+    """Lounging (k: how far down into it, 0 the crouch, 1 lying), breathing br."""
+    s = smooth(k)
+    flop_pose(p, k, br=br, roll=LOUNGE_ROLL * s, lead=-s)
+    p.yz['Neck'] = (p.yz['Neck'][0], 0.0)
+    p.yz['Head'] = (0.0, 0.0)
+    p.x['Neck'] = p.x.get('Neck', 0.0) - 30 * s       # the head held up, not laid down
+    p.x['Head'] = p.x.get('Head', 0.0) - 10 * s
+    for key, dy, dz, dm in (('FL', -0.20, 0.03, -50), ('FR', -0.13, 0.0, -30)):
+        plant(p, key, dy=dy * s, dz=dz * s, dmeta=dm * s)    # straight out ahead, side by side
+        p.yz[LEGS[key][0]] = (0.0, 0.0)
+
+def lounge_down(p, t, f):
+    """Letting itself down into a lounge from its crouch: a moment, then the hindquarters roll over onto their side
+    and the hind legs slide out, while the front paws step forward and the head stays up."""
+    lounge_pose(p, smooth((t - 0.15) / 0.65))
+
+def lounge(p, t, f):
+    """Lounging: slow breaths, the nose going now and then, the ears settling."""
+    lounge_pose(p, 1.0, br=1.2 * math.sin(TAU * t))
+    nose(p, t, rate=6, amp=3 * smooth(math.sin(TAU * t * 2)))
+    ears(p, swing=-6 + 1.5 * math.sin(TAU * t))
+
 def thump(p, t, f):
     """Alarmed, sitting up alert, head high: the hind feet come up a little together and are slammed down, the rump
     jolting up and down with them; ears flick. (Not stood up on straight legs like a dog: it stays crouched.)"""
@@ -805,7 +833,8 @@ CLIPS = [  # name, frames, function, bake options
     ("Binky", BINKY_FRAMES, binky, dict(loop=False)),
     ("Binky_R", BINKY_FRAMES, lambda p, t, f: binky(p, t, f, side=-1), dict(loop=False)), ("Loaf", 90, loaf, {}), ("Sleep", 120, sleep, {}), ("Sit", 60, sit, {}),
     ("Groom", 60, groom, {}), ("Eat", 90, eat, {}), ("Flop", 30, flop, dict(loop=False, ground=True)),
-    ("FlopSleep", 120, flop_sleep, dict(ground=True)), ("Thump", 24, thump, dict(loop=False)), ("Held", 40, held, {}),
+    ("FlopSleep", 120, flop_sleep, dict(ground=True)), ("LoungeDown", 36, lounge_down, dict(loop=False, ground=True)),
+    ("Lounge", 120, lounge, dict(ground=True)), ("Thump", 24, thump, dict(loop=False)), ("Held", 40, held, {}),
     ("Fall", 20, fall, {}), ("Land", 12, land, dict(loop=False)), ("Petted", 60, petted, {}),
 ]
 

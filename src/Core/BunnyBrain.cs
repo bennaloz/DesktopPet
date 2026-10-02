@@ -4,7 +4,8 @@ namespace ZairaPet.Core;
 
 /// <summary>
 /// The rabbit (Bretzel): hops about the floor and never leaves it (dropped on a window, it hops down); loafs and
-/// washes its face; zoomies are dashes broken by binkies, leaps with a twist on the run; relaxed and tired it flops
+/// washes its face, and on a long rest sometimes lounges, half over on its side; zoomies are dashes broken by binkies,
+/// leaps with a twist on the run; relaxed and tired it flops
 /// onto its side to sleep; food it cannot get it thumps about with a hind foot. No meowing, no hunting.
 /// </summary>
 public sealed class BunnyBrain : PetBrain
@@ -15,7 +16,9 @@ public sealed class BunnyBrain : PetBrain
     public const double RunSpeed = 440;
     public const double DashAccel = 1600, DashBrake = 2000, DashCreep = 30;
     /// <summary>Length of the one-shot clips (tools/blender/bretzel_anim.py).</summary>
-    public const double BinkyTime = 22 / 30.0, FlopTime = 1.0, ThumpTime = 0.8;
+    public const double BinkyTime = 22 / 30.0, FlopTime = 1.0, ThumpTime = 0.8, LoungeDownTime = 36 / 30.0;
+    /// <summary>Chance that a long rest (and any long one when it is happy) is spent lounging.</summary>
+    public const double LoungeChance = 0.4;
     /// <summary>
     /// A binky is a leap on the run: the clip carries the body 1.6 m (BINKY_TRAVEL), about 180 px at 110 px a
     /// body length, so the pet goes on at this speed while it plays.
@@ -27,6 +30,7 @@ public sealed class BunnyBrain : PetBrain
     bool _binkyDash;                   // this dash breaks into a binky once it is going
     double _sitUpFor;                  // a rest starts sitting up, looking about, for this long
     double _groomAt = -1, _groomFor;   // when (state time) it washes its face during a rest, and for how long
+    double _loungeAt = -1;             // when (state time) it lets itself down to lounge for the rest of a rest
     bool _flopped;                     // asleep on its side
     bool _thumpUnreachable;
 
@@ -51,7 +55,7 @@ public sealed class BunnyBrain : PetBrain
     {
         PetState.Idle => "si guarda intorno", PetState.Wander => "saltella in giro", PetState.Travel => "va da qualche parte",
         PetState.Zoomies => "corse pazze!", PetState.Eat => "mangia", PetState.Sleep => _flopped ? "dorme sul fianco" : "dorme",
-        PetState.Sit => "a pagnotta", PetState.ChaseTreat => "corre al bocconcino", PetState.Petted => "si fa coccolare",
+        PetState.Sit => Lounging ? "rilassato sul fianco" : "a pagnotta", PetState.ChaseTreat => "corre al bocconcino", PetState.Petted => "si fa coccolare",
         PetState.Held => "in braccio", PetState.Airborne => "in volo", PetState.Landing => "atterra",
         PetState.Binky => "binky!", PetState.Flop => "si butta sul fianco", PetState.Thump => "batte la zampa",
         _ => s.ToString(),
@@ -74,6 +78,7 @@ public sealed class BunnyBrain : PetBrain
         if (s == PetState.Sleep) return;   // keeps _flopped from the flop that led into it
         _flopped = false;
         _groomAt = -1;
+        _loungeAt = -1;
         _sitUpFor = 0;
     }
 
@@ -98,7 +103,9 @@ public sealed class BunnyBrain : PetBrain
             Enter(PetState.Idle, 3 + _rng.NextDouble() * 5);
     }
 
-    /// <summary>A rest: sitting up looking about for a moment, then down into a loaf; a long one has a face wash.</summary>
+    /// <summary>A rest: sitting up looking about for a moment, then down into a loaf; a long one has a face wash, and
+    /// some long ones (more of them when it is happy) are spent lounging, after the wash: sitting up, it lets itself
+    /// down onto its side (loungedown) and stays so to the end, never loafing.</summary>
     void Rest(double seconds)
     {
         Enter(PetState.Sit, seconds);
@@ -107,14 +114,20 @@ public sealed class BunnyBrain : PetBrain
         {
             _groomAt = _sitUpFor + 1 + _rng.NextDouble() * (seconds - _sitUpFor - 7);
             _groomFor = 3 + _rng.NextDouble() * 3;
+            double from = _groomAt + _groomFor + 0.5;
+            if ((Happy > 0 || _rng.NextDouble() < LoungeChance) && from < seconds - LoungeDownTime - 4) _loungeAt = from;
         }
     }
+
+    bool Lounging => State == PetState.Sit && _loungeAt >= 0 && _stateTime >= _loungeAt;
 
     protected override string RestingAction()
     {
         if (_stateTime < _sitUpFor) return "sit";
         if (_groomAt >= 0 && _stateTime >= _groomAt && _stateTime < _groomAt + _groomFor) return "groom";
-        return "loaf";
+        if (Lounging) return _stateTime - _loungeAt < LoungeDownTime ? "loungedown" : "lounge";
+        // lounging later on, it waits sitting up rather than going down into a loaf to get up again
+        return _loungeAt >= 0 ? "sit" : "loaf";
     }
 
     /// <summary>Tired: it sleeps where it is. Relaxed (content, or just cuddled) it flops onto its side first.</summary>

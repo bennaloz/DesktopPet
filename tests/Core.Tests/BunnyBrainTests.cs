@@ -161,6 +161,22 @@ public class BunnyBrainTests
         Assert.Contains("groom", sim.Actions);
     }
 
+    [Fact]
+    public void A_long_rest_is_sometimes_spent_lounging_half_over_on_its_side()
+    {
+        var sim = new Sim(8);
+        var seq = new List<string>();
+        sim.RunUntil(() =>
+        {
+            if (seq.Count == 0 || seq[^1] != sim.Brain.Action) seq.Add(sim.Brain.Action);
+            return false;
+        }, 900);
+        int lounging = seq.IndexOf("lounge");
+        Assert.True(lounging > 0, "it lounges during some rest");
+        Assert.Equal("loungedown", seq[lounging - 1]);      // let down into it, not blended
+        Assert.Contains(seq.Skip(lounging + 1), a => a is "hop" or "idle" or "sit");   // and up again after
+    }
+
     [Theory]
     [InlineData(BunnyBrain.HopSpeed, "hop")]
     [InlineData(BunnyBrain.RunSpeed, "run")]

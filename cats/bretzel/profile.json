@@ -33,6 +33,8 @@
     "sleep": { "anims": ["Sleep"], "loop": true, "blend": 0.6 },
     "flop": { "anims": ["Flop"], "loop": false, "blend": 0.15, "show_side": -1 },
     "flopsleep": { "anims": ["FlopSleep"], "loop": true, "blend": 0.3, "show_side": -1 },
+    "loungedown": { "anims": ["LoungeDown"], "loop": false, "blend": 0.25, "show_side": -1 },
+    "lounge": { "anims": ["Lounge"], "loop": true, "blend": 0.2, "show_side": -1 },
     "thump": { "anims": ["Thump"], "loop": false, "blend": 0.1 },
     "petted": { "anims": ["Petted"], "loop": true, "blend": 0.5 },
     "held": { "anims": ["Held"], "loop": true }
