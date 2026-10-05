@@ -623,7 +623,7 @@ public abstract class PetBrain
         Action = s switch
         {
             PetState.Sleep => SleepAction(),
-            PetState.Zoomies => "run",
+            PetState.Zoomies => EnterAction(s) ?? "run",
             PetState.Eat => "eat",
             PetState.Sit => "sit",
             PetState.Petted => PettedAction,

@@ -14,6 +14,9 @@ public sealed class BunnyBrain : PetBrain
     public const double HopSpeed = 80;
     /// <summary>Dashing about (the half-bound, Run clip): a rabbit sprints far faster than it hops.</summary>
     public const double RunSpeed = 440;
+    /// <summary>Whether it runs at all: the Run clip is set aside for now (review: to be redone), so it hops
+    /// everywhere, its zoomies are hopping about with binkies, and a hungry dash to the bowl is a hop too.</summary>
+    public const bool Runs = false;
     public const double DashAccel = 1600, DashBrake = 2000, DashCreep = 30;
     /// <summary>Length of the one-shot clips (tools/blender/bretzel_anim.py).</summary>
     public const double BinkyTime = 22 / 30.0, FlopTime = 1.0, ThumpTime = 0.8, LoungeDownTime = 36 / 30.0;
@@ -49,7 +52,7 @@ public sealed class BunnyBrain : PetBrain
             _ => true,
         };
 
-    public override string GaitFor(double speed) => speed >= (HopSpeed + RunSpeed) / 2 ? "run" : "hop";
+    public override string GaitFor(double speed) => Runs && speed >= (HopSpeed + RunSpeed) / 2 ? "run" : "hop";
 
     public override string Describe(PetState s) => s switch
     {
@@ -70,6 +73,7 @@ public sealed class BunnyBrain : PetBrain
         PetState.Binky => "binky",
         PetState.Flop => "flop",
         PetState.Thump => "thump",
+        PetState.Zoomies when !Runs => "hop",
         _ => null,
     };
 
@@ -183,7 +187,7 @@ public sealed class BunnyBrain : PetBrain
     // ---------------------------------------------------------------- moving
 
     protected override double TravelSpeed(Needs needs, IWorld world) =>
-        State == PetState.ChaseTreat || Goal == Goal.Bowl && needs.Hunger > 0.8 ? RunSpeed : HopSpeed;
+        Runs && (State == PetState.ChaseTreat || Goal == Goal.Bowl && needs.Hunger > 0.8) ? RunSpeed : HopSpeed;
 
     /// <summary>
     /// Room on its support for a binky's leap ahead; if there is none, turned round when there is room behind.
@@ -199,6 +203,9 @@ public sealed class BunnyBrain : PetBrain
         return true;
     }
 
+    /// <summary>How fast its zoomies go: a dash, or hopping about while it does not run.</summary>
+    static double Top => Runs ? RunSpeed : HopSpeed;
+
     /// <summary>Dashes back and forth along the floor; often a dash breaks into a binky once it is going.</summary>
     protected override double DoZoomies(double dt, CatBody body, SurfaceMap map)
     {
@@ -206,7 +213,7 @@ public sealed class BunnyBrain : PetBrain
         bool arrived = !double.IsNaN(_zoomTarget) && Math.Abs(body.Pos.X - _zoomTarget) < 8;
         // at full tilt, with the rest of the dash still ahead of it: the leap, carried on by the run
         double ahead = double.IsNaN(_zoomTarget) ? 0 : Math.Abs(_zoomTarget - body.Pos.X);
-        if (_binkyDash && _zoomSpeed > RunSpeed * 0.6 && ahead >= BinkyTravel + 20
+        if (_binkyDash && _zoomSpeed > Top * 0.6 && ahead >= BinkyTravel + 20
             && Math.Sign(_zoomTarget - body.Pos.X) == Facing)
         {
             _binkyDash = false;
@@ -223,8 +230,8 @@ public sealed class BunnyBrain : PetBrain
             _zoomTarget = MathX.SafeClamp(body.Pos.X + dir * len, s.X0 + 30, s.X1 - 30);
             _binkyDash = _rng.NextDouble() < BinkyChance;
         }
-        double v = RunTowardsZoomTarget(dt, body, RunSpeed, DashAccel, DashBrake, DashCreep);
-        Action = _zoomSpeed > HopSpeed * 1.5 ? "run" : "hop";
+        double v = RunTowardsZoomTarget(dt, body, Top, DashAccel, DashBrake, DashCreep);
+        Action = Runs && _zoomSpeed > HopSpeed * 1.5 ? "run" : "hop";
         return v;
     }
 }

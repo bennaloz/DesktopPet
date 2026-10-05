@@ -102,7 +102,8 @@ public class BunnyBrainTests
         sim.Needs.Playfulness = 0.9;
         Assert.True(sim.RunUntil(() => sim.Brain.State == PetState.Zoomies, 20));
         Assert.True(sim.RunUntil(() => sim.Brain.Action == "binky", 15), "a binky during the zoomies");
-        Assert.Contains("run", sim.Actions);
+        Assert.Contains(BunnyBrain.Runs ? "run" : "hop", sim.Actions);
+        if (!BunnyBrain.Runs) Assert.DoesNotContain("run", sim.Actions);
     }
 
     [Fact]
@@ -181,7 +182,7 @@ public class BunnyBrainTests
     [InlineData(BunnyBrain.HopSpeed, "hop")]
     [InlineData(BunnyBrain.RunSpeed, "run")]
     public void Gait_follows_the_speed(double speed, string action) =>
-        Assert.Equal(action, new BunnyBrain(new Random(1)).GaitFor(speed));
+        Assert.Equal(BunnyBrain.Runs ? action : "hop", new BunnyBrain(new Random(1)).GaitFor(speed));
 
     [Fact]
     public void The_rabbit_species_gets_the_rabbit_brain() =>
