@@ -390,13 +390,18 @@ def hop(p, t, f):
     S, R, F = HOP_S, REST_REAR, REST_FRONT
     P1, F_LIFT, F_LAND, H_LIFT, H_LAND = 0.40, 0.40, 0.52, 0.56, 0.74
     PUSHED = HUNCH_REAR - 0.19          # how high the rump comes up as the hind legs push: 14 cm
+    BRACE = 0.045                       # how high the chest comes up on the front legs through the push
+    REACH = 0.06                        # the front paws come down this far ahead, legs slanting forward, and stay
     # where the body is (fraction of the hop): pushed forward over the front paws, on a little as they step, then
     # carried on by the hind feet catching up
     prog = ramp(t, [(0.0, 0.0), (0.12, 0.0), (P1, 0.40), (F_LAND, 0.55), (H_LIFT, 0.60), (H_LAND, 0.96),
                     (H_LAND + 0.10, 1.0), (1.0, 1.0)])
     rear = ramp(t, [(0.0, R), (0.12, R), (P1 - 0.04, PUSHED), (H_LIFT, PUSHED + 0.01), (H_LAND, R - 0.01),
                     (H_LAND + 0.10, R + 0.005), (1.0, R)])
-    front = ramp(t, [(0.0, F), (0.12, F), (P1, F), ((F_LIFT + F_LAND) / 2, F + 0.01), (F_LAND + 0.02, F + 0.04),
+    # braced on the front legs (review: it must dig in on them): as the hind legs push, the chest comes up onto
+    # straight front legs, struts slanting back from the paws; it comes down only as they step
+    front = ramp(t, [(0.0, F), (0.12, F), (P1 - 0.06, F - BRACE), (F_LIFT, F - 0.8 * BRACE),
+                     ((F_LIFT + F_LAND) / 2, F + 0.01), (F_LAND + 0.02, F + 0.04),
                      (H_LAND, F + 0.02), (H_LAND + 0.10, F), (1.0, F)])
     drive = smooth((t - 0.12) / (P1 - 0.16)) * (1 - smooth((t - H_LIFT) / (H_LAND - H_LIFT)))   # the rump up
     lower(p, rear=rear, front=front, dy=-S * (prog - t),
@@ -408,7 +413,7 @@ def hop(p, t, f):
     plans = []
     for key, d in (('FL', 0.0), ('FR', 0.025)):
         land = F_LAND + d
-        y, z, m, down = foot(t, land, 1 - (F_LAND - F_LIFT), S, -S * (1 - land), 0.05, 10, -40)
+        y, z, m, down = foot(t, land, 1 - (F_LAND - F_LIFT), S, -S * (1 - land) - REACH, 0.05, 10, -40)
         plans.append((key, y, z, m, down))
     heel = -70.0 - META['HL']          # the hind foot as it leaves the floor: rolled up on its toes, pointing down and back
     for key in ('HL', 'HR'):
