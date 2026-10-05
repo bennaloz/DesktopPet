@@ -259,20 +259,25 @@ PEEL = 25            # degrees the heel rises at the end of a gliding stance, be
 PEEL_RISE = 0.012    # m the ball of the paw comes up meanwhile, or the pad under it rolls into the floor
 
 def gait(p, t, phases, duty, reach, lift, bob, spine_flex=0.0, meta_roll=25.0, swing_curl=40.0, centre=None,
-         blade=None, track=(0.0, 0.0), hind_lift=None, extend=(0.0, 0.0), glide=False):
+         blade=None, track=(0.0, 0.0), hind_lift=None, extend=(0.0, 0.0), glide=False, hind_duty=None):
     """glide: the swinging paw rises early and then glides forward low to the ground (walk, trot), instead of
     peaking mid-swing like a marching step.
     extend: (front, hind) how far (m) each paw reaches out forward past its landing spot late in the swing,
     the way a galloping cat throws its legs out before they land.
     track: (front, hind) degrees each leg leans in under the body from shoulder/hip: a walking cat puts its
-    paws almost in one line under its middle, not at the corners like a table's legs."""
+    paws almost in one line under its middle, not at the corners like a table's legs.
+    hind_duty: the hind legs' share of the stride on the ground, when it is not the front ones' (a galloping dog's
+    hind paws push for less time than its front paws carry); their stance is shorter by as much, at the same speed."""
     centre = centre or {}
     blade = SCAPULA_SWING if blade is None else blade
     # glide also keeps the paw's speed continuous: it leaves the ground still drifting back with it and comes
     # down already moving back at ground speed (no stop-and-go at either end), and it peels off: the heel rises
     # over the last part of the stance while the toes stay down, so the lift-off is a roll, not a snap
-    v = 2 * reach * (1 - duty) / duty     # stance speed, in reach per unit of swing
+    duty0, reach0 = duty, reach
     for key, ph in phases.items():
+        duty = hind_duty if hind_duty and key[0] == 'H' else duty0
+        reach = reach0 * duty / duty0
+        v = 2 * reach * (1 - duty) / duty     # stance speed, in reach per unit of swing
         u = (t - ph) % 1.0
         if u < duty:                       # stance: paw planted, sliding back under the body
             k = u / duty
@@ -378,9 +383,12 @@ def gallop(p, t, g):
     legs and the head with it, then they vault the body up and on. Gathered flight around 0.95: the back rounds and
     the hind legs swing forward under it for the next push."""
     w = TAU * t
-    flex = math.cos(TAU * (t - 0.95))          # +1 rounded (gathered), -1 stretched out (extended)
-    pitch = g['pitch'] * math.cos(TAU * (t - 0.7))   # + nose down: onto the front legs; - rump down, pushing
-    p.hips = (0.0, g['drop'] + g['bounce'] * math.cos(2 * TAU * (t - 0.42)))   # high in both flights
+    flex = math.cos(TAU * (t - g.get('gather', 0.95)))          # +1 rounded (gathered), -1 stretched out (extended)
+    # + nose down: onto the front legs; - rump down, pushing
+    pitch = g['pitch'] * math.cos(TAU * (t - g.get('front_mid', 0.7)))
+    # high in the flights: both of a cat's, or a dog's one
+    flights = g.get('flights', (0.42, 0.92))
+    p.hips = (0.0, g['drop'] + g['bounce'] * math.cos(len(flights) * TAU * (t - flights[0])))
     p.x['Hips'] = pitch - g['flex'] * flex
     p.x['Spine'] = g['flex'] * flex
     p.x['Chest'] = 0.7 * g['flex'] * flex
@@ -390,8 +398,8 @@ def gallop(p, t, g):
     body = pitch + 0.7 * g['flex'] * flex
     p.x['Neck'] = g['neck'] - g['steady'] * body
     p.x['Head'] = g['head']
-    gait(p, t, g['phases'], duty=g['duty'], reach=g['reach'], lift=g['lift'], bob=0.0, blade=SCAPULA_RUN,
-         extend=g['extend'], centre=g['centre'], meta_roll=g['roll'], swing_curl=g['curl'])
+    gait(p, t, g['phases'], duty=g['duty'], hind_duty=g.get('hind_duty'), reach=g['reach'], lift=g['lift'], bob=0.0,
+         blade=SCAPULA_RUN, extend=g['extend'], centre=g['centre'], meta_roll=g['roll'], swing_curl=g['curl'])
     # the tail out behind as a counterweight (hanging, it trailed down to the ground between the hind legs),
     # curving up to the tip, and whipping: it dips as the body springs up and flicks up as it comes down, the tip later
     hips = math.degrees(p.cum('Hips'))
@@ -410,6 +418,8 @@ def run(p, t, f):
     gallop(p, t, dict(RUN_G, reach=RUN_REACH, extend=RUN_EXTEND, centre=RUN_CENTRE))
 
 TROT_TAIL = [55, 80, 95, 125, 155]
+# stride (frames), share of it each paw is down (front, hind) and half the stance, at the trot's ref_speed_px
+TROT_FRAMES, TROT_DUTY, TROT_HIND_DUTY, TROT_REACH = 18, 0.45, None, 0.143
 
 def trot(p, t, f):
     """The happy trot: diagonal pairs (left hind with right fore), a bouncy step, head up,
@@ -418,8 +428,8 @@ def trot(p, t, f):
     p.hips = (0.0, TROT_DROP + 0.006 * math.cos(2 * w))     # a light bounce at every diagonal push
     p.x['Neck'] = -6 + 2 * math.cos(2 * w)
     p.x['Head'] = 10 - 2 * math.cos(2 * w)
-    gait(p, t, {'HL': 0.0, 'FR': 0.02, 'HR': 0.5, 'FL': 0.52}, duty=0.45, reach=0.143, lift=0.065, bob=0.0, glide=True,
-         hind_lift=0.045,
+    gait(p, t, {'HL': 0.0, 'FR': 0.02, 'HR': 0.5, 'FL': 0.52}, duty=TROT_DUTY, hind_duty=TROT_HIND_DUTY,
+         reach=TROT_REACH, lift=0.065, bob=0.0, glide=True, hind_lift=0.045,
          meta_roll=20, swing_curl=45, track=(10, 5))   # folding legs, paws towards the middle, as in the walk
     sway = 4 * math.sin(w)
     chain_world(p, TAILS, TROT_TAIL, [0, sway * 0.5, sway, sway * 1.5, 6 + 10 * math.sin(2 * w)])
@@ -882,11 +892,30 @@ if os.environ.get("PET") == "sally":
     DOG_RUN_G = dict(RUN_G, pitch=4, flex=8, squash=0.04, drop=0.0, bounce=0.03, neck=8, head=-4, steady=0.65,
                      lift=0.08)
 
+    # A dog's timing, measured on the motion capture of a real dog (MANN, SIGGRAPH 2018: 51 takes, windows of steady
+    # straight running) and scaled to a golden's size (time with the square root of the leg length, x1.1): from a
+    # trot up the stride hardly speeds up, about 0.5 s, the dog goes faster with longer strides and a longer flight;
+    # the hind paws are down for less of the stride than the front ones. A cat gallops 3 strides a second: on a dog
+    # that looked like a toy wound up. Trot 16 frames, front paws down 38% of it, hind 30%; lope and sprint 15
+    # frames, a rotary gallop (the second hind and the second front paw on opposite sides) with one flight, gathered,
+    # after the front paws. The reaches keep the ground speed of the profile's ref_speed_px.
+    TROT_FRAMES, TROT_DUTY, TROT_HIND_DUTY = 16, 0.38, 0.30
+    TROT_REACH = 0.143 * (TROT_DUTY * TROT_FRAMES) / (0.45 * 18)
+    DOG_GALLOP_FRAMES = 15
+    DOG_RUN_DUTY, DOG_SPRINT_DUTY = (0.26, 0.20), (0.20, 0.15)     # (front, hind)
+    DOG_RUN_REACH = RUN_REACH * DOG_RUN_DUTY[0] * DOG_GALLOP_FRAMES / (RUN_G['duty'] * RUN_FRAMES)
+    DOG_SPRINT_REACH = SPRINT_REACH * DOG_SPRINT_DUTY[0] * DOG_GALLOP_FRAMES / (SPRINT_G['duty'] * SPRINT_FRAMES)
+    RUN_FRAMES = SPRINT_FRAMES = DOG_GALLOP_FRAMES
+    # hind stance mid around 0.15, front stance mid around 0.55, the flight gathered around 0.9
+    DOG_GALLOP = dict(phases={'HL': 0.0, 'HR': 0.14, 'FR': 0.33, 'FL': 0.5}, front_mid=0.55, gather=0.9, flights=(0.9,))
+    DOG_SPRINT_G.update(DOG_GALLOP, duty=DOG_SPRINT_DUTY[0], hind_duty=DOG_SPRINT_DUTY[1])
+    DOG_RUN_G.update(DOG_GALLOP, duty=DOG_RUN_DUTY[0], hind_duty=DOG_RUN_DUTY[1])
+
     def sprint(p, t, f):
-        gallop(p, t, dict(DOG_SPRINT_G, reach=SPRINT_REACH, extend=(0.12, 0.08), centre=SPRINT_CENTRE))
+        gallop(p, t, dict(DOG_SPRINT_G, reach=DOG_SPRINT_REACH, extend=(0.12, 0.08), centre=SPRINT_CENTRE))
 
     def run(p, t, f):
-        gallop(p, t, dict(DOG_RUN_G, reach=RUN_REACH, extend=RUN_EXTEND, centre=RUN_CENTRE))
+        gallop(p, t, dict(DOG_RUN_G, reach=DOG_RUN_REACH, extend=RUN_EXTEND, centre=RUN_CENTRE))
 
     # Dropped (or stepping down off a window): nose down towards the floor, front legs stretched down and forward
     # to take it, hind legs down behind, tail up; the legs paddle a little.
@@ -918,7 +947,7 @@ bake("Idle_Look", 120, idle_look)
 bake("Walk", 24, walk)
 bake("Run", RUN_FRAMES, run)
 bake("Sprint", SPRINT_FRAMES, sprint)
-bake("Trot", 18, trot)
+bake("Trot", TROT_FRAMES, trot)
 bake("Stalk", 60, stalk)
 bake("Wiggle", 15, wiggle)
 bake("Swat", 15, swat, loop=False)
