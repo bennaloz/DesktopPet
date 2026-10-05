@@ -151,20 +151,25 @@ class Pose:
 LEGS = {  # key: (upper, lower, meta, toe, knee forward)
     'HL': ('Thigh.L', 'Shin.L', 'Foot.L', 'Toe.L', True),
     'HR': ('Thigh.R', 'Shin.R', 'Foot.R', 'Toe.R', True),
-    'FL': ('UpperArm.L', 'Forearm.L', 'Hand.L', None, False),
-    'FR': ('UpperArm.R', 'Forearm.R', 'Hand.R', None, False),
+    'FL': ('UpperArm.L', 'Forearm.L', 'Hand.L', 'Finger.L', False),
+    'FR': ('UpperArm.R', 'Forearm.R', 'Hand.R', 'Finger.R', False),
 }
 PAW = {k: REST[v[2]]['t'] for k, v in LEGS.items()}
 META = {k: math.degrees(REST[v[2]]['a']) for k, v in LEGS.items()}
-TOE = math.degrees(REST['Toe.L']['a'])
+TOES = {k: math.degrees(REST[v[3]]['a']) for k, v in LEGS.items()}
+# a paw in the air lets its toes hang relaxed, a little curled under (deg, from the line of the foot), instead of
+# holding them flat as on the floor: held flat the whole time the paw looked like a stiff spoon
+TOE_CURL = {'F': -20.0, 'H': -15.0}
 
-def plant(p, key, dy=0.0, dz=0.0, dmeta=0.0, toe=None):
-    """A paw at its rest spot moved by (dy, dz); dmeta tilts the foot (+ = heel up); the toes stay flat unless told."""
+def plant(p, key, dy=0.0, dz=0.0, dmeta=0.0, toe=None, relax=0.0):
+    """A paw at its rest spot moved by (dy, dz); dmeta tilts the foot (+ = heel up); the toes stay flat unless told.
+    relax (0..1): how far the toes go from that to hanging relaxed off the foot (TOE_CURL), for a paw in the air."""
     u, l, m, t, fwd = LEGS[key]
     paw = (PAW[key][0] + dy, PAW[key][1] + dz)
     ang = p.leg(u, l, m, paw, META[key] + dmeta, fwd)
     if t:   # the toes at a world angle (flat on the floor unless told), whatever the foot does
-        p.x[t] = (TOE if toe is None else toe) - math.degrees(REST[t]['a'] + ang)
+        flat = (TOES[key] if toe is None else toe) - math.degrees(REST[t]['a'] + ang)
+        p.x[t] = lerp(flat, TOE_CURL[key[0]], relax)
 
 def reach(p, key, target, dmeta=0.0):
     """A front paw at a world point (after the body is posed), e.g. up at the muzzle."""
@@ -428,7 +433,7 @@ def hop(p, t, f):
             m = lerp(heel, -HEEL_DOWN, smooth((t - H_LIFT) / (H_LAND - H_LIFT) / 0.8))   # swinging forward, to land flat
         plans.append((key, y, z, m, down))
     lower_to_reach(p, [q[:4] for q in plans if q[4]])
-    for q in plans: plant(p, q[0], dy=q[1], dz=q[2], dmeta=q[3])
+    for q in plans: plant(p, q[0], dy=q[1], dz=q[2], dmeta=q[3], relax=0.0 if q[4] else smooth(q[2] / 0.02))
     ears(p, swing=curve(t, [(0.0, 0.0), (P1, -3.0), (F_LAND, 4.0), (H_LAND, -2.0), (0.9, 0.0)]))
     nose(p, t, rate=2, amp=3)
 
@@ -472,7 +477,7 @@ def run(p, t, f):
             plans.append((key, -0.10 + S * T, 0.02, push_to, False))
     plans = carried(plans, rise, {'FL': 0.18, 'FR': 0.18, 'HL': 0.18, 'HR': 0.18})
     lower_to_reach(p, [q[:4] for q in plans if q[4]])
-    for q in plans: plant(p, q[0], dy=q[1], dz=q[2], dmeta=q[3])
+    for q in plans: plant(p, q[0], dy=q[1], dz=q[2], dmeta=q[3], relax=0.0 if q[4] else smooth(q[2] / 0.02))
     # the front legs in the air are swung by angle, not put at a spot on the floor that the bobbing body comes down
     # onto: off the floor they fold up under the chest (the upper arm stays as it is, the forearm comes forward, the
     # paw hangs from the wrist), then they reach out ahead to land. Swinging the upper arm back folds the armpit.

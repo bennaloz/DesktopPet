@@ -50,6 +50,7 @@ def along(a, b, l):
     dy,dz=b[0]-a[0],b[1]-a[1]; d=math.hypot(dy,dz); return (a[0]+dy/d*l,a[1]+dz/d*l)
 
 HIP,THIGH,SHIN,FOOT=(0.27,0.33),0.17,0.17,0.142
+PALM=0.045      # front paw, wrist to the ball (of 0.096 to the tips of the toes)
 SHOULDER,UPPER,FORE=(-0.22,0.34),0.155,0.16
 # measured on the mesh (y, z): the hock and the ball of each hind foot, the toe tips; the wrists and the paw tips
 HIND={'L':dict(x=(0.11,0.12,0.12,0.134,0.134),hock=(0.265,0.09),ball=(0.14,0.022),toe=(0.09,0.012)),
@@ -80,7 +81,11 @@ for s,sg in (('L',1),('R',-1)):
     elbow=joint(SHOULDER,m['wrist'],UPPER,FORE,False)
     B[f'UpperArm.{s}']=(p3(x[0],SHOULDER),p3(x[1],elbow),'Chest',False)
     B[f'Forearm.{s}']=(p3(x[1],elbow),p3(x[2],m['wrist']),f'UpperArm.{s}',True)
-    B[f'Hand.{s}']=(p3(x[2],m['wrist']),p3(x[3],m['tip']),f'Forearm.{s}',True)
+    # the front paw in two (review: in one piece it rolled up onto its tips like a stiff spoon): the palm from the
+    # wrist to the ball, and the toes, which stay flat on the floor while the wrist comes up
+    fball=along(m['wrist'],m['tip'],PALM); xb=x[2]+(x[3]-x[2])*PALM/math.dist(m['wrist'],m['tip'])
+    B[f'Hand.{s}']=(p3(x[2],m['wrist']),p3(xb,fball),f'Forearm.{s}',True)
+    B[f'Finger.{s}']=(p3(xb,fball),p3(x[3],m['tip']),f'Hand.{s}',True)
 for n,(h,t,p,c) in B.items(): print(f"bone {n:11s} {tuple(round(v,3) for v in h)} -> {tuple(round(v,3) for v in t)}")
 
 ad=bpy.data.armatures.new("Rig"); arm=bpy.data.objects.new("Rig",ad)
@@ -122,7 +127,7 @@ me=mesh.data; gi={g.name:g.index for g in mesh.vertex_groups}
 def groups(pred): return {gi[n] for n in gi if pred(n)}
 L=groups(lambda n: n.endswith('.L')); R=groups(lambda n: n.endswith('.R'))
 EAR=groups(lambda n: n.startswith('Ear'))
-LEG=groups(lambda n: n.split('.')[0] in ('Thigh','Shin','Foot','Toe','UpperArm','Forearm','Hand'))
+LEG=groups(lambda n: n.split('.')[0] in ('Thigh','Shin','Foot','Toe','UpperArm','Forearm','Hand','Finger'))
 TAIL={gi['Tail']}
 def in_scut(x,y,z): return y>0.415 and 0.19<z<0.42     # (below it, the right heel reaches as far back)
 fixed=0
@@ -230,7 +235,7 @@ for v in me.vertices:
     if k<=0: continue
     w={mesh.vertex_groups[g.group].name:g.weight for g in v.groups if g.weight>0}
     moved=0.0
-    for n in [n for n in w if n.split('.')[0] in ('UpperArm','Forearm','Hand')]:
+    for n in [n for n in w if n.split('.')[0] in ('UpperArm','Forearm','Hand','Finger')]:
         moved+=w[n]*k; w[n]*=1-k
     if not moved: continue
     w['Chest']=w.get('Chest',0.0)+moved
@@ -333,7 +338,7 @@ print("filled",filled)
 def side_angle(n): h,t=B[n][0],B[n][1]; return math.atan2(t[2]-h[2],t[1]-h[1])
 bpy.ops.object.select_all(action='DESELECT'); bpy.context.view_layer.objects.active=arm; arm.select_set(True)
 bpy.ops.object.mode_set(mode='POSE')
-for chain in (('Thigh','Shin','Foot','Toe'),('UpperArm','Forearm','Hand')):
+for chain in (('Thigh','Shin','Foot','Toe'),('UpperArm','Forearm','Hand','Finger')):
     done=0.0
     for n in chain:
         turn=side_angle(n+'.L')-side_angle(n+'.R')
@@ -345,7 +350,7 @@ bpy.ops.object.select_all(action='DESELECT'); bpy.context.view_layer.objects.act
 bpy.ops.object.mode_set(mode='POSE'); bpy.ops.pose.armature_apply(selected=False); bpy.ops.object.mode_set(mode='OBJECT')
 am=mesh.modifiers.new("Armature",'ARMATURE'); am.object=arm
 for b in arm.data.bones:
-    if b.name.endswith('.R') and b.name.split('.')[0] in ('Thigh','Shin','Foot','Toe','UpperArm','Forearm','Hand'):
+    if b.name.endswith('.R') and b.name.split('.')[0] in ('Thigh','Shin','Foot','Toe','UpperArm','Forearm','Hand','Finger'):
         L=arm.data.bones[b.name[:-2]+'.L']
         print(f"rest {b.name:11s} y {b.head_local.y:+.3f} z {b.head_local.z:+.3f} -> y {b.tail_local.y:+.3f} z {b.tail_local.z:+.3f}"
               f"   (L y {L.head_local.y:+.3f} z {L.head_local.z:+.3f} -> y {L.tail_local.y:+.3f} z {L.tail_local.z:+.3f})")
@@ -397,6 +402,26 @@ for s_ in 'LR':
         w[f'Foot.{s_}']=w.get(f'Foot.{s_}',0.0)+k*(1-kt); w[f'Toe.{s_}']=w.get(f'Toe.{s_}',0.0)+k*kt
         regroup(v,w)
 print("hind feet made rigid")
+# the front paw the same way: the palm (wrist to ball) and the toes (ball to tip) each in one piece, bending at the
+# ball; the forearm keeps what is nearer to it
+for s_ in 'LR':
+    bn={n:arm.data.bones[f'{n}.{s_}'] for n in ('Forearm','Hand','Finger')}
+    elbow,wrist,ball,tip=bn['Forearm'].head_local,bn['Hand'].head_local,bn['Hand'].tail_local,bn['Finger'].tail_local
+    pdir=(tip-wrist).normalized()
+    leg={f'{n}.{s_}' for n in ('UpperArm','Forearm','Hand','Finger')}
+    for v in me.vertices:
+        p=V3(v.co)
+        if p.z>0.10 or p.y>-0.10 or (p.x>0)!=(s_=='L') or EARV[v.index]: continue
+        w=wdict(v)
+        if sum(x_ for n,x_ in w.items() if n in leg)<0.5: continue
+        dP=min(seg_dist(p,wrist,ball),seg_dist(p,ball,tip)); dF=seg_dist(p,elbow,wrist)
+        k=1-sstep(dP-dF,-0.008,0.008)
+        if k<=0: continue
+        kt=sstep((p-ball).dot(pdir),-0.008,0.008)
+        w={n:x_*(1-k) for n,x_ in w.items()}
+        w[f'Hand.{s_}']=w.get(f'Hand.{s_}',0.0)+k*(1-kt); w[f'Finger.{s_}']=w.get(f'Finger.{s_}',0.0)+k*kt
+        regroup(v,w)
+print("front paws split at the ball")
 # the eyes: no lids in the mesh, so each eye has a bone that squashes it shut, the dark eye drawn to a slit and the fur
 # round it pulled in over it (Sleep). The eye centres from the dark of the texture; the head is turned a little, so
 # the right eye sits further forward and nearer the middle. And the lower jaw: chewing (Eat)
