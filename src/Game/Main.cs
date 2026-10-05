@@ -82,7 +82,8 @@ public partial class Main : Node3D
                      : args.Contains("--selftest-mouse") ? "mouse" : args.Contains("--selftest-input") ? "input"
                      : args.Contains("--selftest-gaze") ? "gaze" : args.Contains("--selftest-loaf") ? "loaf" : args.Contains("--selftest-tail") ? "tail"
                      : args.Contains("--selftest-hunt") ? "hunt" : args.Contains("--selftest-switch") ? "switch"
-                     : args.Contains("--selftest-switched") ? "switched" : args.Contains("--selftest-pant") ? "pant" : null;
+                     : args.Contains("--selftest-switched") ? "switched" : args.Contains("--selftest-pant") ? "pant"
+                     : args.Contains("--selftest-feet") ? "feet" : null;
         if (mode != null) _selfTest = new SelfTest(this, mode);
     }
 

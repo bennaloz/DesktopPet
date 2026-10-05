@@ -32,6 +32,10 @@ public partial class CatVisual : Node3D
     bool _gazeActive;
     TailModifier? _tail;
     PantModifier? _pant;
+    FootLockModifier? _feet;
+    /// <summary>Self-test: the paws' hold on the floor (null without one); it can be switched off to compare.</summary>
+    internal FootLockModifier? FootLock => _feet;
+    internal bool FootLockOn { get; set; } = true;
 
     /// <summary>How winded she is, 0..1 (set by the game every frame): a dog pants with her mouth open.</summary>
     public float Pant { set { if (_pant != null) _pant.Pant = value; } }
@@ -129,6 +133,7 @@ public partial class CatVisual : Node3D
         if (skeleton != null) AddEars(skeleton);
         if (skeleton != null && skeleton.FindBone(profile.PantBone) is int jaw and >= 0)
             skeleton.AddChild(_pant = new PantModifier { Name = "Pant", Jaw = jaw });
+        if (skeleton != null) AddFootLock(skeleton);
 
         Recolor();
         UseFloorClipMaterials();
@@ -147,6 +152,15 @@ public partial class CatVisual : Node3D
         skeleton.AddChild(tail);
         tail.Setup(skeleton);
         return tail;
+    }
+
+    void AddFootLock(Skeleton3D skeleton)
+    {
+        var legs = _profile.FootLock.Select(chain => chain.Select(skeleton.FindBone).ToArray())
+                                    .Where(chain => chain.Length >= 3 && chain.All(b => b >= 0)).ToArray();
+        if (legs.Length == 0) return;
+        // (last: after the gaze, tail, ears and jaw, on the finished pose)
+        skeleton.AddChild(_feet = new FootLockModifier { Name = "FootLock", Legs = legs });
     }
 
     void AddEars(Skeleton3D skeleton)
@@ -411,6 +425,16 @@ void fragment() {
         // the feet are on the node origin: clip just under it (half a pixel, so paws standing on it stay whole)
         float floorY = FloorClip ? GlobalPosition.Y - 0.5f : -1e9f;
         foreach (var m in _clipMaterials) m.SetShaderParameter("floor_y", floorY);
+        if (_feet != null)
+        {
+            // tolerances in proportion to her size on screen
+            _feet.FloorY = GlobalPosition.Y;
+            _feet.OnFloor = FloorClip && !held;
+            _feet.Hold = FootLockOn;
+            _feet.BodySpeed = (float)groundSpeed;
+            _feet.Tolerance = (float)(_profile.LengthPx * 0.025);
+            _feet.MaxSlip = (float)(_profile.LengthPx * 0.08);
+        }
     }
 
     static IEnumerable<T> FindAll<T>(Node root) where T : Node

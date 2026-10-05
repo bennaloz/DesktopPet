@@ -40,7 +40,7 @@ public sealed class SelfTest
         _script = mode switch
         {
             "windows" => WindowScript(), "mouse" => MouseScript(), "input" => InputScript(), "gaze" => GazeScript(), "loaf" => LoafScript(), "tail" => TailScript(), "hunt" => HuntScript(),
-            "switch" => SwitchScript(), "switched" => SwitchedScript(), "pant" => PantScript(), _ => TourScript(),
+            "switch" => SwitchScript(), "switched" => SwitchedScript(), "pant" => PantScript(), "feet" => FeetScript(), _ => TourScript(),
         };
         // Godot merges consecutive motion events without looking at the device, so a real mouse move could
         // lend its position to an injected one: every injected event goes through on its own, right away.
@@ -71,6 +71,57 @@ public sealed class SelfTest
             (4.2, "rested again", () => _main.Winded.Level = 0),
             (6.5, "shut again", () => { float d = _main.Visual.JawShutDeg ?? 0; Check(d > 0.9 * shut, $"ripreso fiato, richiude la bocca (mascella a {d:0} gradi)"); }),
             (7.0, "quit", () => _main.Quit()),
+        };
+    }
+
+    /// <summary>Planted paws stay put: she walks off across the floor twice from the middle, without and then with the
+    /// hold on the floor, and the paws on the floor are measured for how far they moved across the screen per second
+    /// down (starting off, speeding up and the clip's own pace all make them skate a little without it).</summary>
+    List<(double, string, Action)> FeetScript()
+    {
+        double off = 0;
+        void Check(bool ok, string what) => Log.Info($"selftest CHECK {(ok ? "OK  " : "FAIL")} {what}");
+        double Rate() { var f = _main.Visual.FootLock!; return f.SlipPx / Math.Max(0.01, f.PlantedSeconds); }
+        double start = 0;
+        void Go(double dx)
+        {
+            var floor = _main.Body.Support ?? _main.Map.NearestFloor(_main.Body.Pos.X);
+            _main.Brain.ExploreTo(floor, Math.Clamp(start + dx, floor.X0 + 50, floor.X1 - 50));
+        }
+        void Begin(bool hold)
+        {
+            _main.Visual.FootLockOn = hold;
+            start = _main.Body.Pos.X;
+            Go(400);
+            _main.Visual.FootLock!.ResetStats();
+        }
+        if (_main.Visual.FootLock == null)
+            return new() { (0.5, "none", () => Check(false, "nessuna zampa da tenere a terra nel profilo")), (1.0, "quit", () => _main.Quit()) };
+        // there and back: starting off, arriving, standing, turning round, starting again
+        return new()
+        {
+            (1.0, "start", () => { _main.Summon(); _main.Brain.StandFor(60); }),
+            (2.5, "walk, no hold", () => Begin(false)),
+            (7.0, "back", () => Go(0)),
+            (12.0, "measure", () => { off = Rate(); Log.Info($"selftest feet: senza {off:0.0} px/s, {_main.Visual.FootLock!.PlantedSeconds:0.0} s a terra"); }),
+            (12.1, "home", () => { _main.Summon(); _main.Brain.StandFor(60); }),
+            (13.5, "walk, hold", () => Begin(true)),
+            (15.500, "screenshot", Shot),
+            (15.567, "screenshot", Shot),
+            (15.634, "screenshot", Shot),
+            (15.701, "screenshot", Shot),
+            (15.768, "screenshot", Shot),
+            (15.835, "screenshot", Shot),
+            (15.902, "screenshot", Shot),
+            (15.969, "screenshot", Shot),
+            (18.0, "back", () => Go(0)),
+            (23.0, "measure", () =>
+            {
+                double on = Rate();
+                Log.Info($"selftest feet: con {on:0.0} px/s, {_main.Visual.FootLock!.PlantedSeconds:0.0} s a terra, {_main.Visual.FootLock!.Slipped} fotogrammi oltre il limite");
+                Check(on < 0.5 * off, $"zampe a terra ferme: scivolano {on:0.0} px/s invece di {off:0.0}");
+            }),
+            (23.5, "quit", () => _main.Quit()),
         };
     }
 

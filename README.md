@@ -143,6 +143,7 @@ run.bat -- --selftest-windows    serve tools/test-window.ps1 in parallelo: sale 
                                  (finestra alta, da scalare: tools/test-window.ps1 -Top 200 -Height 520 -MoveAt 22 -CloseAt 40)
 run.bat -- --selftest-input      presa, lancio, carezze, doppio clic (eventi iniettati in Godot)
 run.bat -- --selftest-mouse      mouse vero: in parallelo tools/test-mouse.ps1 (sessione sbloccata!)
+run.bat -- --selftest-feet --cat=X  cammina avanti e indietro senza e con le zampe tenute a terra, misura quanto scivolano
 dotnet test tests/Core.Tests     test della logica (superfici, fisica, percorsi, comportamenti)
 ```
 

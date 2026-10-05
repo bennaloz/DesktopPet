@@ -2,6 +2,12 @@
   "name": "Bretzel",
   "species": "rabbit",
   "model": "bretzel.glb",
+  "foot_lock": [
+    ["Thigh.L", "Shin.L", "Foot.L", "Toe.L"],
+    ["Thigh.R", "Shin.R", "Foot.R", "Toe.R"],
+    ["UpperArm.L", "Forearm.L", "Hand.L"],
+    ["UpperArm.R", "Forearm.R", "Hand.R"]
+  ],
   "length_px": 110,
   "yaw_offset_deg": 0,
   "three_quarter_deg": 25,

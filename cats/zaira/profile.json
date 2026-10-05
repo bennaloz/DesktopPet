@@ -1,6 +1,12 @@
 {
   "name": "Zaira",
   "model": "zaira.glb",
+  "foot_lock": [
+    ["Thigh.L", "Shin.L", "Foot.L", "Toe.L"],
+    ["Thigh.R", "Shin.R", "Foot.R", "Toe.R"],
+    ["UpperArm.L", "Forearm.L", "Hand.L", "Finger.L"],
+    ["UpperArm.R", "Forearm.R", "Hand.R", "Finger.R"]
+  ],
   "length_px": 150,
   "yaw_offset_deg": 0,
   "three_quarter_deg": 25,

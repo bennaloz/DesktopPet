@@ -36,6 +36,9 @@ public sealed class CatProfile
     /// <summary>The jaw a dog pants with (<see cref="PantModifier"/>): the clips keep it shut, the game opens it when she is
     /// winded. Empty: no panting.</summary>
     [JsonPropertyName("pant_bone")] public string PantBone { get; set; } = "";
+    /// <summary>Legs whose planted paws <see cref="FootLockModifier"/> holds on the floor: upper, lower, paw and the
+    /// bone touching the floor (the toes), each. Empty: the paws go where the clip puts them.</summary>
+    [JsonPropertyName("foot_lock")] public List<List<string>> FootLock { get; set; } = new();
     [JsonPropertyName("material_colors")] public Dictionary<string, float[]> MaterialColors { get; set; } = new();
     [JsonPropertyName("actions")] public Dictionary<string, ActionClip> Actions { get; set; } = new();
 
