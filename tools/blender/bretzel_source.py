@@ -7,6 +7,7 @@ a function of y only: the legs, upright columns, stay upright). The two sides st
 hind foot half a stride ahead of the right): the skeleton follows each leg where it is. (Mirroring one half would
 make them equal but loses the scut, which sits on the left, and smears the texture.)"""
 import bpy, bmesh, math
+from meshfix import weld
 
 FRONT_X, BACK_X = -0.072, 0.097       # the midline of the chest and of the rump, in the Tripo mesh
 BEND = (-0.20, 0.32)                  # where along the body one turns into the other
@@ -57,13 +58,6 @@ def drop_crumbs(mesh, crumbs=300):
     bmesh.ops.delete(bm, geom=drop, context='VERTS')
     print("islands", sorted(sizes, reverse=True)[:8], "dropped verts", len(drop))
     bm.to_mesh(me); bm.free(); tmp.free()
-
-def weld(mesh):
-    """One vertex per point: Tripo splits the mesh along its UV seams (the UVs stay on the face corners). Decimated
-    split, the two sides of every seam were thinned apart and the skin had hairline cracks along all of them."""
-    bm = bmesh.new(); bm.from_mesh(mesh.data)
-    bmesh.ops.remove_doubles(bm, verts=bm.verts, dist=1e-6)
-    bm.to_mesh(mesh.data); bm.free()
 
 def decimate(mesh, polys):
     bpy.ops.object.select_all(action='DESELECT')

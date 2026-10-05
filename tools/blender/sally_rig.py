@@ -1,6 +1,7 @@
 import os,sys; sys.path.insert(0,os.path.dirname(os.path.abspath(__file__)))
 os.environ["PET"]="sally"
 from paths import source_file, work_file
+from meshfix import weld
 """The golden retriever: the Tripo model with the Zaira rig (same bones and names, so anim.py drives it too:
 PET=sally blender -b --python anim.py). Blender, head towards -Y, Z up, feet on z=0, every bone's local X = world
 +X. Also recolours the texture: the single-photo reconstruction left the parts the photo did not see (the back of
@@ -24,6 +25,7 @@ mesh.data.transform(mathutils.Matrix.Rotation(math.pi/2,4,'Z'))
 V=np.array([v.co[:] for v in mesh.data.vertices])
 mesh.data.transform(mathutils.Matrix.Translation((-(V[:,0].min()+V[:,0].max())/2, -(V[:,1].min()+V[:,1].max())/2, -V[:,2].min())))
 mesh.name="Sally"
+weld(mesh)       # before decimating, or every UV seam opens into a crack
 bpy.context.view_layer.objects.active=mesh; mesh.select_set(True)
 dec=mesh.modifiers.new("dec",'DECIMATE'); dec.ratio=20000/len(mesh.data.polygons)
 bpy.ops.object.modifier_apply(modifier="dec")

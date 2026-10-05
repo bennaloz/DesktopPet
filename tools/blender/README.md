@@ -6,7 +6,7 @@ Tripo l'ha generato. Intermedi e anteprime finiscono in `assets/zaira/work/`, ig
 I percorsi sono relativi al repo (`paths.py`), gli script si lanciano da qualunque cartella.
 
 1. `prep.py` – importa, raddrizza (muso verso -Y), centra, piedi a z=0 → `work/mesh.blend`
-2. `rig.py` – decimazione a ~25k facce, scheletro da gatto, pesi via proxy voxel,
+2. `rig.py` – saldatura delle cuciture UV (`meshfix.py`: decimate aperte diventano crepe), decimazione a ~25k facce, scheletro da gatto, pesi via proxy voxel,
    pesi della coda procedurali, stacco delle facce che incollavano coda e sedere → `work/rig.blend`
    `front_toes.py` – divide la mano delle zampe davanti in metacarpo e dita (`Finger.L/R`): sdraiata le dita
    restano piatte a terra invece di puntare in alto. Lavora sul `rig.blend` esistente (la coda e' stata

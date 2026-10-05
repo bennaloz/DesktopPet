@@ -1,9 +1,11 @@
 import os,sys; sys.path.insert(0,os.path.dirname(os.path.abspath(__file__))); from paths import work_file
+from meshfix import weld, keep_largest
 import bpy, mathutils, numpy as np
 from mathutils import Vector as V3
 bpy.ops.wm.open_mainfile(filepath=work_file("mesh.blend"))
 mesh=bpy.data.objects["Zaira"]
-# lighter mesh
+# lighter mesh (welded first, or the decimation opens every UV seam into a crack)
+weld(mesh)
 bpy.context.view_layer.objects.active=mesh; mesh.select_set(True)
 dec=mesh.modifiers.new("dec",'DECIMATE'); dec.ratio=0.28
 bpy.ops.object.modifier_apply(modifier="dec")
@@ -75,6 +77,7 @@ for vg in list(proxy.vertex_groups): proxy.vertex_groups.remove(vg)
 bpy.ops.object.select_all(action='DESELECT'); bpy.context.view_layer.objects.active=proxy; proxy.select_set(True)
 rm=proxy.modifiers.new("vox",'REMESH'); rm.mode='VOXEL'; rm.voxel_size=0.012
 bpy.ops.object.modifier_apply(modifier="vox")
+keep_largest(proxy)
 pd=proxy.modifiers.new("pd",'DECIMATE'); pd.ratio=min(1.0, 12000/len(proxy.data.polygons))
 bpy.ops.object.modifier_apply(modifier="pd")
 print("proxy verts", len(proxy.data.vertices), flush=True)
