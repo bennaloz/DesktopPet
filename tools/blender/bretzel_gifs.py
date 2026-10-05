@@ -5,7 +5,7 @@ import bpy, math, json
 argv=sys.argv[sys.argv.index("--")+1:]; out=argv[0]
 ONLY=set(argv[1].split(",")) if len(argv)>1 else None
 SETS=[('ferma',['Idle'],3),('saltelli',['Hop'],1),('corsa',['Run'],1),('binky',['Binky'],1),('pagnotta',['Loaf'],3),
-      ('dorme',['Sleep'],4),('seduto',['Sit'],2),('si_lava',['Groom'],1),('mangia',['Eat'],1),('flop',['Flop','FlopSleep'],2),
+      ('dorme',['Sleep'],4),('all_erta',['Sit'],2),('si_lava',['Groom'],1),('mangia',['Eat'],1),('flop',['Flop','FlopSleep'],2),
       ('thump',['Thump'],1),('in_braccio',['Held'],2),('cade',['Fall','Land'],1),('coccole',['Petted'],2)]
 bpy.ops.wm.open_mainfile(filepath=work_file("anim.blend"))
 sc=bpy.context.scene; arm=bpy.data.objects["Rig"]
