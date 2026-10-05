@@ -422,7 +422,9 @@ def hop(p, t, f):
     plans = []
     for key, d in (('FL', 0.0), ('FR', 0.025)):
         land = F_LAND + d
-        y, z, m, down = foot(t, land, 1 - (F_LAND - F_LIFT), S, -S * (1 - land), 0.05, 10, -40)
+        # between hops it sits leaning on them as at rest (REST_PAW_BACK, REST_WRIST: flat paws under the chest)
+        y, z, m, down = foot(t, land, 1 - (F_LAND - F_LIFT), S, -S * (1 - land) + REST_PAW_BACK, 0.05, 10, -40)
+        m += REST_WRIST * (1 - smooth(z / 0.02))
         if down and t < F_LIFT + d: m += DIG_TIPS * smooth((t - 0.12) / (P1 - 0.12))   # rolling up onto the tips
         plans.append((key, y, z, m, down))
     heel = -70.0 - META['HL']          # the hind foot as it leaves the floor: rolled up on its toes, pointing down and back
