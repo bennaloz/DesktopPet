@@ -273,6 +273,9 @@ REST_REAR, REST_FRONT, REST_FEET = HUNCH_REAR + 0.04, HUNCH_FRONT - 0.03, HUNCH_
 # (review/bretzel/Sit/20261002-160619: posed so; with the foot at its standing angle the hock stayed 9 cm up and it sat
 # on the tips of its feet): the paws 8 cm further forward than REST_FEET, the foot turned heel down by SIT_HEEL.
 SIT_FEET, SIT_HEEL = REST_FEET - 0.08, 36.0
+# Sitting, it leans on its front paws (review: the wrist stood up in a hump and the weight looked to sit back on the
+# haunches): the paws a little further back under the chest, the wrist let down so the paw lies flat, palm and toes.
+REST_PAW_BACK, REST_WRIST = 0.02, -14.0
 
 def hunch(p, rear=0.0, front=0.0, pitch=0.0, paws=0.0, **kw):
     """Sitting still (REST_*), `rear`/`front` m lower (or higher, negative) than that, the front paws `paws` m
@@ -280,7 +283,7 @@ def hunch(p, rear=0.0, front=0.0, pitch=0.0, paws=0.0, **kw):
     lower(p, rear=REST_REAR + rear, front=REST_FRONT + front, pitch=pitch, **kw)
     settle_front(p)
     for key in ('HL', 'HR'): plant(p, key, dy=SIT_FEET, dmeta=-SIT_HEEL)
-    for key in ('FL', 'FR'): plant(p, key, dy=paws)
+    for key in ('FL', 'FR'): plant(p, key, dy=paws + REST_PAW_BACK, dmeta=REST_WRIST)
 
 EARS = [f'Ear{i}.{s}' for s in 'LR' for i in range(1, 5)]
 
