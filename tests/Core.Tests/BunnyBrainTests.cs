@@ -173,6 +173,7 @@ public class BunnyBrainTests
             return false;
         }, 900);
         int lounging = seq.IndexOf("lounge");
+        if (!BunnyBrain.Lounges) { Assert.DoesNotContain("loungedown", seq); Assert.Equal(-1, lounging); return; }
         Assert.True(lounging > 0, "it lounges during some rest");
         Assert.Equal("loungedown", seq[lounging - 1]);      // let down into it, not blended
         Assert.Contains(seq.Skip(lounging + 1), a => a is "hop" or "idle" or "sit");   // and up again after

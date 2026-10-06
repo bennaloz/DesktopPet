@@ -22,6 +22,9 @@ public sealed class BunnyBrain : PetBrain
     public const double BinkyTime = 22 / 30.0, FlopTime = 1.0, ThumpTime = 0.8, LoungeDownTime = 36 / 30.0;
     /// <summary>Chance that a long rest (and any long one when it is happy) is spent lounging.</summary>
     public const double LoungeChance = 0.4;
+    /// <summary>Whether it ever lounges: the LoungeDown and Lounge clips are set aside for now (review: to be redone),
+    /// so its long rests are a loaf.</summary>
+    public const bool Lounges = false;
     /// <summary>
     /// A binky is a leap on the run: the clip carries the body 1.6 m (BINKY_TRAVEL), about 180 px at 110 px a
     /// body length, so the pet goes on at this speed while it plays.
@@ -119,7 +122,7 @@ public sealed class BunnyBrain : PetBrain
             _groomAt = _sitUpFor + 1 + _rng.NextDouble() * (seconds - _sitUpFor - 7);
             _groomFor = 3 + _rng.NextDouble() * 3;
             double from = _groomAt + _groomFor + 0.5;
-            if ((Happy > 0 || _rng.NextDouble() < LoungeChance) && from < seconds - LoungeDownTime - 4) _loungeAt = from;
+            if (Lounges && (Happy > 0 || _rng.NextDouble() < LoungeChance) && from < seconds - LoungeDownTime - 4) _loungeAt = from;
         }
     }
 
