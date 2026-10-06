@@ -149,6 +149,22 @@ dotnet test tests/Core.Tests     test della logica (superfici, fisica, percorsi,
 
 Screenshot e log finiscono in `%APPDATA%\Godot\app_userdata\Zaira Desktop Pet\`.
 
+## Sul telefono (PWA)
+
+La versione per telefono è una pagina web installabile: stesso cervello (src/Core compilato in WebAssembly,
+`web/brain`), stessi modelli e profili, disegnati con three.js (`web/`). La stanza è lo schermo: pavimento,
+una mensola, la ciotola, il trespolo per il gatto, il premio. Col dito: accarezzarlo strisciando di lato,
+prenderlo sollevandolo (o tenendo fermo il dito un attimo) e lanciarlo piano; spostare ciotola e trespolo;
+doppio tocco sulla ciotola per riempirla.
+
+    python tools/build_web.py --pets bretzel,sally,zaira --default bretzel
+
+produce `export/web/` (da mettere su un qualunque server web statico) e `export/DesktopPet-web.zip`.
+Prova in locale: `python -m http.server 8790` dentro `export/web`, poi http://127.0.0.1:8790/.
+Su iPhone: aprire l'indirizzo in Safari, Condividi, "Aggiungi alla schermata Home". Per funzionare anche
+senza rete (service worker) serve https; in http la pagina va lo stesso, ma solo online.
+Lo stato dell'animale resta nel telefono (localStorage), uno per animale.
+
 ## Struttura
 
 - `src/Core` — logica pura senza Godot, testata: mappa delle superfici, fisica, percorsi, bisogni, comportamenti, salvataggio.

@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="it">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+  <title>Desktop Pet</title>
+  <link rel="manifest" href="manifest.webmanifest">
+  <meta name="theme-color" content="#efe6d8">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="Pet">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+  <link rel="icon" href="icons/icon-192.png">
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js",
+        "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"
+      }
+    }
+  </script>
+  <style>
+    :root { --wall: #efe6d8; --wall2: #e4d6c2; --ink: #4a3b2c; --bar: rgba(255, 250, 242, 0.9); }
+    html, body { margin: 0; height: 100%; overflow: hidden; background: linear-gradient(var(--wall), var(--wall2));
+      font-family: -apple-system, system-ui, sans-serif; color: var(--ink);
+      -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
+    #view { position: fixed; inset: 0; width: 100vw; height: 100vh; touch-action: none; }
+    #bar { position: fixed; left: 0; right: 0; bottom: 0; height: 64px; display: flex; gap: 10px; align-items: center;
+      justify-content: center; padding: 0 12px env(safe-area-inset-bottom); background: var(--bar);
+      border-top: 1px solid #d8c8b0; box-sizing: content-box; }
+    #bar button, #bar select { font: inherit; font-size: 16px; color: var(--ink); background: #fff; border: 1px solid #cdb999;
+      border-radius: 12px; padding: 9px 12px; min-height: 44px; }
+    #status { position: fixed; top: 40%; left: 0; right: 0; text-align: center; font-size: 18px; pointer-events: none; }
+    #emote { position: fixed; transform: translate(-50%, -100%); background: #fff; border: 1px solid #cdb999;
+      border-radius: 14px; padding: 4px 10px; font-size: 15px; white-space: nowrap; pointer-events: none; display: none; }
+  </style>
+</head>
+<body>
+  <canvas id="view"></canvas>
+  <div id="status">carico…</div>
+  <div id="emote"></div>
+  <div id="bar">
+    <button id="fill" aria-label="Riempi la ciotola">🍽️ Ciotola</button>
+    <button id="treat" aria-label="Lancia un croccantino">🍪 Premio</button>
+    <select id="pet" aria-label="Animale"></select>
+  </div>
+  <script type="module" src="main.js"></script>
+</body>
+</html>

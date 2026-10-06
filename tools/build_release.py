@@ -76,7 +76,7 @@ def main():
     exe = os.path.join(out, a.name + ".exe")
     shutil.rmtree(out, ignore_errors=True); os.makedirs(out)
     # everything that is not the game: pipeline, review, tests, and the pets left out (their extracted textures too)
-    exclude = ["assets/*", "tools/*", "review/*", "tests/*", "docs/*", "export/*"] + \
+    exclude = ["assets/*", "tools/*", "review/*", "tests/*", "docs/*", "export/*", "web/*"] + \
               [f"cats/{d}/*" for d in every if d not in pets] + [f"cats/{p}/*.jpg" for p in pets]
     with open(os.path.join(ROOT, "export_presets.cfg"), "w", encoding="utf-8", newline="\n") as f:
         f.write(PRESET.format(features=f"default_pet_{a.default}", exclude=", ".join(exclude),

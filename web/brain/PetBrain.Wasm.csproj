@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk.WebAssembly">
+  <!-- The pets' brains (src/Core, plain C#) compiled to WebAssembly for the phone page (web/). -->
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <RootNamespace>ZairaPet.Web</RootNamespace>
+    <InvariantGlobalization>true</InvariantGlobalization>
+    <!-- the save goes through System.Text.Json by reflection: trim only the framework, not our types -->
+    <TrimMode>partial</TrimMode>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="../../src/Core/**/*.cs" Link="Core/%(RecursiveDir)%(Filename)%(Extension)" />
+  </ItemGroup>
+</Project>
